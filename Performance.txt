@@ -1,0 +1,40 @@
+Windows
+N Particles:          128
+Map size:             161 x 161, 25921 bytes
+Test duration:        81.581 ms
+One loc. update:      8.1581 ms
+Updates per second:   122.578
+Particles per second: 15689.9
+
+N Particles:          128
+Map size:             641 x 641, 410881 bytes
+Test duration:        81.646 ms
+One loc. update:      8.1646 ms
+Updates per second:   122.48
+Particles per second: 15677.4
+
+
+Pi 1 gen
+N Particles:          128
+Map size:             161 x 161, 25921 bytes
+Test duration:        4864.78 ms
+One loc. update:      486.478 ms
+Updates per second:   2.05559
+Particles per second: 263.116
+
+N Particles:          128
+Map size:             641 x 641, 410881 bytes
+Test duration:        5035.62 ms
+One loc. update:      503.562 ms
+Updates per second:   1.98585
+Particles per second: 254.189
+
+
+
+Pi 4B
+N Particles:          128
+Map size:             641 x 641, 410881 bytes
+Test duration:        285.085 ms
+One loc. update:      28.5085 ms
+Updates per second:   35.0773
+Particles per second: 4489.89
