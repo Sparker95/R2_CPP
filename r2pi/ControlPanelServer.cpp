@@ -46,7 +46,8 @@ void ControlPanelServer::TerminateWait()
 	ClosePipe();
 }
 
-ControlPanelServer::ControlPanelServer()
+ControlPanelServer::ControlPanelServer(MainMessageLoop* pMainMsgLoop)
+	: m_pMainMsgLoop(pMainMsgLoop)
 {
 	m_PipeFd[0] = -1;
 	m_PipeFd[1] = -1;
@@ -212,41 +213,45 @@ void ControlPanelServer::ClosePipe()
 	m_PipeFd[1] = -1;
 }
 
-void ControlPanelServer::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigned int msgPayloadSize)
-{
-	using MessageType = ControlPanelProtocol::MessageType;
-	switch (static_cast<ControlPanelProtocol::MessageType>(msgType))
-	{
-	case (MessageType::MSG_PRINT):
-	{
-		// For safety, null terminate string
-		if (msgPayloadSize < ControlPanelProtocol::MAX_PAYLOAD_SIZE - 1)
-			msgPayload[msgPayloadSize] = 0;
-		else
-			msgPayload[ControlPanelProtocol::MAX_PAYLOAD_SIZE - 1] = 0;
-
-		printf("Message: ");
-		printf(msgPayload);
-		printf("\n");
-
-		break;
-	}
-	case (MessageType::MSG_TEST0):
-	{
-		// Send back some message
-		ControlPanelProtocol::MessageHeader header;
-		char text[] = "Hello from server!";
-		header.Init(MessageType::MSG_PRINT, sizeof(text));
-		send(m_ClientSockFd, static_cast<const void*>(&header), static_cast<size_t>(ControlPanelProtocol::MessageHeader::SIZE_PACKED), 0);
-		send(m_ClientSockFd, static_cast<const void*>(text), static_cast<size_t>(header.m_PayloadSize), 0);
-		break;
-	}
-	default:
-		break;
-	}
-}
-
 void ControlPanelServer::OnProtocolError(uint8_t errorCode, unsigned int extraData)
 {
 	fprintf(stderr, "ControlPanelServer: protocol error: %i, %i\n ", static_cast<int>(errorCode), static_cast<int>(extraData));
+}
+
+bool ControlPanelServer::SendAll(const char* pData, unsigned int nBytes)
+{
+	if (nBytes == 0)
+		return false;
+
+	const char* pDataLeft = pData;
+	ssize_t nBytesLeft = static_cast<ssize_t>(nBytes);
+
+	while (nBytesLeft > 0)
+	{
+		ssize_t nBytesSent = send(m_ClientSockFd, static_cast<const void*>(pDataLeft), nBytesLeft, 0);
+		if (nBytesSent == -1)
+			return false;
+
+		nBytesLeft -= nBytesSent;
+		pDataLeft += nBytesSent;
+	}
+	return true;
+}
+
+bool ControlPanelServer::SendMessage(ControlPanelProtocol::MessageType msgType, unsigned int payloadSize, const char* pPayload)
+{
+	ControlPanelProtocol::MessageHeader header;
+	header.Init(msgType, payloadSize);
+
+	// Send header
+	if (!SendAll(reinterpret_cast<const char*>(&header), static_cast<size_t>(ControlPanelProtocol::MessageHeader::SIZE_PACKED)))
+		return false;
+
+	if (payloadSize != 0 && pPayload != nullptr)
+	{
+		if (!SendAll(pPayload, static_cast<size_t>(header.m_PayloadSize)))
+			return false;
+	}
+
+	return true;
 }

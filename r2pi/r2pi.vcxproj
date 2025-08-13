@@ -96,6 +96,7 @@
     <ClCompile Include="..\Common\MapUtils.cpp" />
     <ClCompile Include="..\Common\Scan.cpp" />
     <ClCompile Include="ControlPanelServer.cpp" />
+    <ClCompile Include="ControlPanelServerMessages.cpp" />
     <ClCompile Include="MainMessageLoop.cpp" />
     <ClCompile Include="SensorInterface.cpp" />
     <ClCompile Include="Main.cpp" />

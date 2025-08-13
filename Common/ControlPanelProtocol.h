@@ -18,9 +18,11 @@ namespace ControlPanelProtocol
 		MSG_PRINT = 1, // Receiver will print characters in UI
 
 		// Client to Server
+		MSG_RQ_SENSOR_SCAN_DATA, // Requests sensor scan data
 
 		// Server to Client
-        MSG_TEST0
+        MSG_TEST0,
+		MSG_SENSOR_SCAN_DATA // Sends whole scan data
 	};
 
 	struct MessageHeader

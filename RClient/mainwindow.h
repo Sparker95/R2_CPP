@@ -12,6 +12,8 @@ class MainWindow;
 }
 QT_END_NAMESPACE
 
+class QScatterSeries;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -25,6 +27,9 @@ private:
     ControlPanelProtocol::MessageDecoder m_MsgDecoder;
     QTcpSocket m_Socket;
 
+    // Other UI elements
+    QScatterSeries* m_pScatterSeries = nullptr;
+
     void OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigned int msgPayloadSize);
     void OnProtocolError(uint8_t errorCode, unsigned int extraData);
 
@@ -32,6 +37,7 @@ private slots:
     void SlotOnConnectButtonClicked();
     void SlotOnSendMsgButton();
     void SlotOnSendNewlineButton();
+    void SlotOnRequestScanDataButton();
 
     void SlotOnSocketConnected();
     void SlotOnSocketDisconnected();

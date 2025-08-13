@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>1041</width>
+    <height>781</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -69,9 +69,9 @@
    <widget class="QPushButton" name="SendMsgButton">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>50</y>
-      <width>321</width>
+      <x>360</x>
+      <y>10</y>
+      <width>75</width>
       <height>24</height>
      </rect>
     </property>
@@ -82,14 +82,40 @@
    <widget class="QPushButton" name="SendNewlineButton">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>80</y>
-      <width>321</width>
+      <x>440</x>
+      <y>10</y>
+      <width>75</width>
       <height>24</height>
      </rect>
     </property>
     <property name="text">
      <string>Send TEST0</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="RequestScanData">
+    <property name="geometry">
+     <rect>
+      <x>520</x>
+      <y>10</y>
+      <width>121</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Request Scan Data</string>
+    </property>
+   </widget>
+   <widget class="QQuickWidget" name="QuickWidget">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>50</y>
+      <width>640</width>
+      <height>640</height>
+     </rect>
+    </property>
+    <property name="resizeMode">
+     <enum>QQuickWidget::ResizeMode::SizeRootObjectToView</enum>
     </property>
    </widget>
   </widget>
@@ -98,13 +124,20 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
+     <width>1041</width>
      <height>22</height>
     </rect>
    </property>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QQuickWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">QtQuickWidgets/QQuickWidget</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections>
   <connection>
@@ -155,10 +188,27 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>RequestScanData</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>SlotOnRequestScanDataButton()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>170</x>
+     <y>147</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>399</x>
+     <y>299</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>SlotOnConnectButtonClicked()</slot>
   <slot>SlotOnSendMsgButton()</slot>
   <slot>SlotOnSendNewlineButton()</slot>
+  <slot>SlotOnRequestScanDataButton()</slot>
  </slots>
 </ui>

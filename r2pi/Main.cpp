@@ -37,10 +37,6 @@ int main(int argc, char** argv)
 
 	bool initDone = true;
 
-	// Stats server
-	ControlPanelServer statsServer;
-	statsServer.Start();
-
 	// Sensor interface
 	SensorInterface sensor;
 	if (!sensor.Start())
@@ -49,6 +45,10 @@ int main(int argc, char** argv)
 	// Main message loop
 	MainMessageLoop msgLoop(&sensor);
 	g_pMsgLoop = &msgLoop;
+
+	// Stats server
+	ControlPanelServer statsServer(&msgLoop);
+	statsServer.Start();
 
 	if (initDone)
 	{

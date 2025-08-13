@@ -113,5 +113,6 @@ void MainMessageLoop::OnReceivedScan_mt(const Sensor::ScanSample* pSamples, uint
 
 void MainMessageLoop::GetScanSamples_mt(std::vector<Sensor::ScanSample>& outSamples)
 {
-
+	std::unique_lock lock(m_StateMutex);
+	outSamples = m_ScanSamples;
 }
