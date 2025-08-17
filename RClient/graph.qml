@@ -13,11 +13,11 @@ GraphsView {
     }
 
     component GraphMarker : Rectangle {
-        width: 8
-        height: 8
+        width: 6
+        height: 6
         color: "#ff0000"
         radius: width * 0.5
-        border.width: 1
+        border.width: 0
         border.color: "#000000"
     }
 

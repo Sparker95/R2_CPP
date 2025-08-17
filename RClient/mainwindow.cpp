@@ -126,8 +126,8 @@ void MainWindow::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigne
             for (uint i = 0; i < nSamples; i++)
             {
                 Sensor::ScanSample& sCart = scanSamples[i];
-                float xPos = sCart.m_Dist_m * sinf(sCart.m_Angle_rad);
-                float yPos = sCart.m_Dist_m * cosf(sCart.m_Angle_rad);
+                float xPos = sCart.m_Dist_m * cosf(sCart.m_Angle_rad);
+                float yPos = sCart.m_Dist_m * sinf(sCart.m_Angle_rad);
                 scanSamplesCart[i] = QPointF(xPos, yPos);
             }
 
@@ -148,6 +148,20 @@ void MainWindow::OnProtocolError(uint8_t errorCode, unsigned int extraData)
 {
     QMessageBox msgBox(QMessageBox::Icon::Critical, "Error", "Protocol error");
     msgBox.exec();
+}
+
+bool MainWindow::SendMessage(ControlPanelProtocol::MessageType msgType, unsigned int payloadSize, const char* pPayload)
+{
+    ControlPanelProtocol::MessageHeader header;
+    header.Init(msgType, payloadSize);
+
+    // Send header
+    m_Socket.write(reinterpret_cast<const char*>(&header), ControlPanelProtocol::MessageHeader::SIZE_PACKED);
+
+    if (payloadSize != 0 && pPayload != nullptr)
+        m_Socket.write(pPayload, payloadSize);
+
+    return true;
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -191,5 +205,25 @@ void MainWindow::SlotOnRequestScanDataButton()
         header.Init(ControlPanelProtocol::MessageType::MSG_RQ_SENSOR_SCAN_DATA, 0);
 
         m_Socket.write(reinterpret_cast<const char*>(&header), ControlPanelProtocol::MessageHeader::SIZE_PACKED);
+    }
+}
+
+void MainWindow::SlotOnIcpTestStoreButton()
+{
+    // Store one scan for future comparison
+    char payload = 0;
+    if (m_Socket.state() == QAbstractSocket::SocketState::ConnectedState)
+    {
+        SendMessage(ControlPanelProtocol::MessageType::MSG_ICP_TEST, 1, &payload);
+    }
+}
+
+void MainWindow::SlotOnIcpTestRunButton()
+{
+    // Store another scan and run ICP
+    char payload = 1;
+    if (m_Socket.state() == QAbstractSocket::SocketState::ConnectedState)
+    {
+        SendMessage(ControlPanelProtocol::MessageType::MSG_ICP_TEST, 1, &payload);
     }
 }

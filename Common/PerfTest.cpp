@@ -6,12 +6,15 @@
 #include <chrono>
 #include <thread>
 
+#include <Eigen/Dense>
+
 #include "Vector2.h"
 #include "Scan.h"
 #include "LineRasterizer.h"
 #include "Map.h"
 #include "MapUtils.h"
 #include "Localizer.h"
+#include "ICP.h"
 
 using namespace std;
 
@@ -190,11 +193,129 @@ void TestRasterizer()
 	}
 }
 
+void TestEigen()
+{
+	using namespace Eigen;
+	Eigen::Matrix3d m = Matrix3d::Random();
+	m = (m + Eigen::Matrix3d::Constant(1.2)) * 50;
+	std::cout << "m =" << std::endl << m << std::endl;
+	Vector3d v(1, 2, 3);
+
+	std::cout << "m * v =" << std::endl << m * v << std::endl;
+}
+
+void TestICP()
+{
+	const uint nPoints = 6;
+	Scan::TScanCart scan0;
+	scan0.resize(Eigen::NoChange, nPoints);
+	
+	for (uint i = 0; i < nPoints; i++)
+	{
+		scan0(0, i) = static_cast<float>(i);
+		scan0(1, i) = static_cast<float>(i*i);
+	}
+
+	Pose offset(0.1f, 0.0f, 0.05f);
+
+	Scan::TScanCart scan1 = scan0;
+	
+	// Offset scan1: x,y
+	for (uint i = 0; i < nPoints; i++)
+	{
+		scan1(0, i) = scan1(0, i) + offset.x;
+		scan1(1, i) = scan1(1, i) + offset.y;
+	}
+
+	Scan::TScanPolar scan0polar, scan1polar;
+	Scan::ScanCartToPolar(scan0, scan0polar);
+	Scan::ScanCartToPolar(scan1, scan1polar);
+
+	// Offset scan1 direction
+	for (uint i = 0; i < nPoints; i++)
+		scan1polar(0, i) = scan1polar(0, i) + offset.dir;
+
+	Pose initialT;
+
+	// Timestamp start
+	auto timestampStart = chrono::high_resolution_clock::now();
+
+	Pose resultT = ICP::MatchScans(scan0polar, scan1polar, 16, initialT);
+
+	// Timestamp end
+	auto timestampEnd = chrono::high_resolution_clock::now();
+
+	auto testDuration_us = chrono::duration_cast<chrono::microseconds>(timestampEnd - timestampStart);
+	float testDuration_ms = 1e-3f * static_cast<float>(testDuration_us.count());
+
+	std::cout << "ICP test:\n";
+	std::cout << "Result (dx, dy, ddir): " << resultT.x << " " << resultT.y << " " << resultT.dir << "\n";
+	std::cout << "MatchScans duration: " << testDuration_ms << " ms\n";
+}
+
+void TestICP2()
+{
+	const uint nPoints = 256;
+
+	Scan::TScanCart scan0;
+	scan0.resize(Eigen::NoChange, nPoints);
+
+	for (uint i = 0; i < nPoints; i++)
+	{
+		float dir = PI_2X * static_cast<float>(i) / static_cast<float>(nPoints);
+		
+		float dist = ((i / 16) & 1) ? 1.0f : 2.0f;
+
+		scan0(0, i) = dist * std::cos(dir);
+		scan0(1, i) = dist * std::sin(dir);
+	}
+
+	Pose offset(0.7f, 0.0f, 0.04f);
+
+	Scan::TScanCart scan1 = scan0;
+
+	// Offset scan1: x,y
+	for (uint i = 0; i < nPoints; i++)
+	{
+		scan1(0, i) = scan1(0, i) + offset.x;
+		scan1(1, i) = scan1(1, i) + offset.y;
+	}
+
+	Scan::TScanPolar scan0polar, scan1polar;
+	Scan::ScanCartToPolar(scan0, scan0polar);
+	Scan::ScanCartToPolar(scan1, scan1polar);
+
+	// Offset scan1 direction
+	for (uint i = 0; i < nPoints; i++)
+		scan1polar(0, i) = scan1polar(0, i) + offset.dir;
+
+	// Timestamp start
+	auto timestampStart = chrono::high_resolution_clock::now();
+
+	Pose initialT;
+	Pose resultT = ICP::MatchScans(scan0polar, scan1polar, 16, initialT);
+
+	// Timestamp end
+	auto timestampEnd = chrono::high_resolution_clock::now();
+
+	auto testDuration_us = chrono::duration_cast<chrono::microseconds>(timestampEnd - timestampStart);
+	float testDuration_ms = 1e-3f * static_cast<float>(testDuration_us.count());
+
+	std::cout << "ICP test:\n";
+	std::cout << "Result (dx, dy, ddir): " << resultT.x << " " << resultT.y << " " << resultT.dir << "\n";
+	std::cout << "MatchScans duration: " << testDuration_ms << " ms\n";
+}
+
 int main()
 {
 	//TestScanFromMap();
 	//TestApplyScanToMap();
+	
 	//while (1)
-		TestLocalizerUpdate();
+	//TestLocalizerUpdate();
+
+	//TestEigen();
+
+	TestICP2();
 }
 

@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "../Common/ControlPanelProtocol.h"
+#include "../Common/Sensor.h"
 
 namespace std
 {
@@ -38,4 +39,7 @@ private:
 	// Sends all data. Handles calling send() many times if it didn't send instantly.
 	bool SendAll(const char* pData, unsigned int nBytes);
 	bool SendMessage(ControlPanelProtocol::MessageType msgType, unsigned int payloadSize, const char* pPayload);
+
+	// Other data
+	std::vector<Sensor::ScanSample> m_IcpTestScan; // Used for ICP_TEST message
 };

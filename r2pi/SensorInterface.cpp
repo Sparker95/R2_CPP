@@ -409,7 +409,9 @@ void SensorInterface::ProcessScanResult()
 
 void SensorInterface::RawScanSample::Convert(float& outAngle_rad, float& outDistance_m)
 {
-	outAngle_rad = static_cast<float>(m_RawAngle) * (PI_2X / (64.0f * 360.0f)); // Actual heading = rawAngle / 64.0 deg
+	// !!! Here we convert sensor spin direction. Real sensor spins clockwise,
+	// while notation in rest of software is mathematical: positive is counter clockwise.
+	outAngle_rad = PI_2X - static_cast<float>(m_RawAngle) * (PI_2X / (64.0f * 360.0f)); // Actual heading = rawAngle / 64.0 deg
 	outDistance_m = static_cast<float>(m_RawDistance) * (1.0f / 4000.0f);       // Actual distance = rawDistance / 4.0 mm
 
 	//outAngle_rad = static_cast<float>(m_iRawAngle) / 64.0f; // Actual heading = rawAngle / 64.0 deg

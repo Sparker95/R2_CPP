@@ -30,14 +30,18 @@ private:
     // Other UI elements
     QScatterSeries* m_pScatterSeries = nullptr;
 
+    // Handling communications
     void OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigned int msgPayloadSize);
     void OnProtocolError(uint8_t errorCode, unsigned int extraData);
+    bool SendMessage(ControlPanelProtocol::MessageType msgType, unsigned int payloadSize, const char* pPayload);
 
 private slots:
     void SlotOnConnectButtonClicked();
     void SlotOnSendMsgButton();
     void SlotOnSendNewlineButton();
     void SlotOnRequestScanDataButton();
+    void SlotOnIcpTestStoreButton();
+    void SlotOnIcpTestRunButton();
 
     void SlotOnSocketConnected();
     void SlotOnSocketDisconnected();

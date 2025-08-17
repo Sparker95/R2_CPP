@@ -118,6 +118,32 @@
      <enum>QQuickWidget::ResizeMode::SizeRootObjectToView</enum>
     </property>
    </widget>
+   <widget class="QPushButton" name="IcpTestStore">
+    <property name="geometry">
+     <rect>
+      <x>660</x>
+      <y>10</y>
+      <width>121</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>ICP Test: Store</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="IcpTestRun">
+    <property name="geometry">
+     <rect>
+      <x>790</x>
+      <y>10</y>
+      <width>121</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>ICP Test: Run</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -204,11 +230,45 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>IcpTestStore</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>SlotOnIcpTestStoreButton()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>720</x>
+     <y>43</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>520</x>
+     <y>390</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>IcpTestRun</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>SlotOnIcpTestRunButton()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>850</x>
+     <y>43</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>520</x>
+     <y>390</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>SlotOnConnectButtonClicked()</slot>
   <slot>SlotOnSendMsgButton()</slot>
   <slot>SlotOnSendNewlineButton()</slot>
   <slot>SlotOnRequestScanDataButton()</slot>
+  <slot>SlotOnIcpTestStoreButton()</slot>
+  <slot>SlotOnIcpTestRunButton()</slot>
  </slots>
 </ui>
