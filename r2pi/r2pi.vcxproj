@@ -86,6 +86,7 @@
     <ClInclude Include="..\Common\Sensor.h" />
     <ClInclude Include="..\Common\Utils.h" />
     <ClInclude Include="..\Common\Vector2.h" />
+    <ClInclude Include="ControlInputsSocket.h" />
     <ClInclude Include="ControlPanelServer.h" />
     <ClInclude Include="Eigen\src\Cholesky\LDLT.h" />
     <ClInclude Include="Eigen\src\Cholesky\LLT.h" />
@@ -406,6 +407,7 @@
     <ClCompile Include="..\Common\MapUtils.cpp" />
     <ClCompile Include="..\Common\Scan.cpp" />
     <ClCompile Include="..\Common\Utils.cpp" />
+    <ClCompile Include="ControlInputsSocket.cpp" />
     <ClCompile Include="ControlPanelServer.cpp" />
     <ClCompile Include="ControlPanelServerMessages.cpp" />
     <ClCompile Include="MainMessageLoop.cpp" />

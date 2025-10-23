@@ -76,7 +76,10 @@ void ControlPanelServer::ThreadFunction()
 	// Create socket
 	int sockFd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockFd < 0)
+	{
 		fprintf(stderr, "Error: ControlPanelServer socket() failed\n");
+		return;
+	}
 
 	// Bind socket
 	struct sockaddr_in serverAddr;

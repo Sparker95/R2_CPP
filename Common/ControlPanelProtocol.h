@@ -6,6 +6,7 @@
 namespace ControlPanelProtocol
 {
 	constexpr unsigned int CONTROL_PANEL_PORT = 4567;
+	constexpr unsigned int CONTROL_INPUTS_PORT = 4568;
 	constexpr unsigned int MAX_PAYLOAD_SIZE = 8 * 1024;
 	constexpr unsigned char HEADER_MAGIC_NR_0 = 0x5A;
 	constexpr unsigned char HEADER_MAGIC_NR_1 = 0xA5;

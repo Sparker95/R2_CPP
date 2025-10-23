@@ -1,4 +1,5 @@
 #include "ControlPanelServer.h"
+#include "ControlInputsSocket.h"
 #include "SensorInterface.h"
 #include "MainMessageLoop.h"
 
@@ -46,9 +47,13 @@ int main(int argc, char** argv)
 	MainMessageLoop msgLoop(&sensor);
 	g_pMsgLoop = &msgLoop;
 
-	// Stats server
-	ControlPanelServer statsServer(&msgLoop);
-	statsServer.Start();
+	// Control panel server
+	ControlPanelServer ctrlPanelServer(&msgLoop);
+	ctrlPanelServer.Start();
+
+	// Control inputs
+	ControlInputsSocket inputsSocket;
+	inputsSocket.Start();
 
 	if (initDone)
 	{
@@ -58,7 +63,8 @@ int main(int argc, char** argv)
 	if (!initDone)
 		fprintf(stderr, "Error: Failed to initialize\n");
 	printf("Terminating other threads\n");
-	statsServer.TerminateWait();
+	ctrlPanelServer.TerminateWait();
+	inputsSocket.TerminateWait();
 	sensor.TerminateWait();
 	printf("Program has been terminated\n");
 	g_pMsgLoop = nullptr;

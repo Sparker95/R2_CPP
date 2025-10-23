@@ -4,12 +4,6 @@
     <ClCompile Include="..\Common\ControlPanelProtocol.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="ControlPanelServer.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="ControlPanelServerMessages.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
     <ClCompile Include="..\Common\Localizer.cpp">
       <Filter>Common</Filter>
     </ClCompile>
@@ -40,15 +34,21 @@
     <ClCompile Include="..\Common\ICP.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="ControlPanelServer.cpp">
+      <Filter>Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="ControlPanelServerMessages.cpp">
+      <Filter>Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="ControlInputsSocket.cpp">
+      <Filter>Platform</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\Common.h">
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\ControlPanelProtocol.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="ControlPanelServer.h">
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\Localizer.h">
@@ -1004,6 +1004,12 @@
     </ClInclude>
     <ClInclude Include="..\Common\ICP.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="ControlPanelServer.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="ControlInputsSocket.h">
+      <Filter>Platform</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
