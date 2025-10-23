@@ -19,7 +19,8 @@ namespace ControlPanelProtocol
 
 		// Client to Server
 		MSG_RQ_SENSOR_SCAN_DATA, // Requests sensor scan data
-		MSG_ICP_TEST, // Requests ICP test. Data is byte: 0 - store scan 0, 1 - store scan 1 and run ICP on them.
+		MSG_ICP_TEST,            // Requests ICP test. Data is byte: 0 - store scan 0, 1 - store scan 1 and run ICP on them.
+		MSG_SAVE_SCANS,          // Requests to save N consecutive scans. Data is byte: N - count of scans.
 
 		// Server to Client
         MSG_TEST0,

@@ -8,11 +8,16 @@
 #include "MainMessageLoop.h"
 
 #include <vector>
+#include <thread>
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+
 #include <sys/socket.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 static char g_SendBuffer[16 * 1024];
 
@@ -49,7 +54,8 @@ void ControlPanelServer::OnProtocolNewMessage(uint8_t msgType, char* msgPayload,
 		{
 			// Send back sensor scan data
 			std::vector<Sensor::ScanSample> samples;
-			m_pMainMsgLoop->GetScanSamples_mt(samples);
+			uint scanCounter;
+			m_pMainMsgLoop->GetScanSamples_mt(samples, scanCounter);
 
 			uint payloadSize = 4 + static_cast<uint>(sizeof(Sensor::ScanSample)) * static_cast<uint>(samples.size()); // First number is num of samples
 
@@ -73,12 +79,14 @@ void ControlPanelServer::OnProtocolNewMessage(uint8_t msgType, char* msgPayload,
 			if (*msgPayload == 0)
 			{
 				// Store scan for later comparison
-				m_pMainMsgLoop->GetScanSamples_mt(m_IcpTestScan);
+				uint scanCounter;
+				m_pMainMsgLoop->GetScanSamples_mt(m_IcpTestScan, scanCounter);
 			}
 			else
 			{
 				std::vector<Sensor::ScanSample> newScan;
-				m_pMainMsgLoop->GetScanSamples_mt(newScan);
+				uint scanCounter;
+				m_pMainMsgLoop->GetScanSamples_mt(newScan, scanCounter);
 
 				Scan::TScanPolar oldScanPolar, newScanPolar;
 				Utils::ScanSensorToMatrix(m_IcpTestScan.data(), static_cast<uint>(m_IcpTestScan.size()), oldScanPolar);
@@ -93,6 +101,53 @@ void ControlPanelServer::OnProtocolNewMessage(uint8_t msgType, char* msgPayload,
 				// Send back message as text
 				SendMessage(ControlPanelProtocol::MessageType::MSG_PRINT, static_cast<uint>(strlen(str)), str);
 			}
+		}
+		case (MessageType::MSG_SAVE_SCANS):
+		{
+			if (msgPayloadSize != 1)
+				return;
+
+			char lineBuffer[256];
+
+			unsigned int nScansToSave = static_cast<unsigned int>(*msgPayload);
+			unsigned int scanCounter = m_pMainMsgLoop->GetScanCounter_mt();
+			for (unsigned int scanId = 0; scanId < nScansToSave; scanId++)
+			{
+				// Wait till next scan
+				while (true)
+				{
+					unsigned int newScanCounter = m_pMainMsgLoop->GetScanCounter_mt();
+					if (newScanCounter != scanCounter)
+						break;
+
+					std::this_thread::sleep_for(std::chrono::milliseconds(50));
+				}
+
+				// We have waited till new scan
+				std::vector<Sensor::ScanSample> samples;
+				m_pMainMsgLoop->GetScanSamples_mt(samples, scanCounter);
+
+				// Save to file
+				char filePath[32];
+				snprintf(filePath, 32, "Scan %i.txt", scanId);
+				int fd = open(filePath, O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
+				if (fd != -1)
+				{
+					snprintf(lineBuffer, 256, "%i\n", scanCounter);
+					write(fd, lineBuffer, strlen(lineBuffer));
+
+					for (const Sensor::ScanSample& sample : samples)
+					{
+						snprintf(lineBuffer, 256, "%.6f %.6f\n", sample.m_Angle_rad, sample.m_Dist_m);
+						write(fd, lineBuffer, strlen(lineBuffer));
+					}
+				}
+				close(fd);
+			}
+
+			// Finally report back that we have saved the scans
+			snprintf(lineBuffer, 256, "Saved %i scans to file(s)", nScansToSave);
+			SendMessage(ControlPanelProtocol::MessageType::MSG_PRINT, static_cast<uint>(strlen(lineBuffer)), lineBuffer);
 		}
 		default:
 			break;

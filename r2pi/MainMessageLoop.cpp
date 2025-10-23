@@ -86,6 +86,7 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 	if (MessageNewSensorScanData* pMsg = dynamic_cast<MessageNewSensorScanData*>(&msgBase))
 	{
 		m_ScanSamples.swap(pMsg->m_Scan);
+		m_ScanCounter++;
 		//printf("MainMessageLoop: Received new scan: %i raw samples\n", pMsg->m_RawSampleCount);
 		return;
 	}
@@ -111,8 +112,9 @@ void MainMessageLoop::OnReceivedScan_mt(const Sensor::ScanSample* pSamples, uint
 //------------------------------------------------------------------------------------------------------------------------
 // Getters 
 
-void MainMessageLoop::GetScanSamples_mt(std::vector<Sensor::ScanSample>& outSamples)
+void MainMessageLoop::GetScanSamples_mt(std::vector<Sensor::ScanSample>& outSamples, uint& outScanCounter)
 {
 	std::unique_lock lock(m_StateMutex);
 	outSamples = m_ScanSamples;
+	outScanCounter = m_ScanCounter;
 }

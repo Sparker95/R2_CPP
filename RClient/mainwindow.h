@@ -42,6 +42,7 @@ private slots:
     void SlotOnRequestScanDataButton();
     void SlotOnIcpTestStoreButton();
     void SlotOnIcpTestRunButton();
+    void SlotOnSaveScansButton();
 
     void SlotOnSocketConnected();
     void SlotOnSocketDisconnected();

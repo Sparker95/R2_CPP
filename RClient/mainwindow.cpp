@@ -227,3 +227,12 @@ void MainWindow::SlotOnIcpTestRunButton()
         SendMessage(ControlPanelProtocol::MessageType::MSG_ICP_TEST, 1, &payload);
     }
 }
+
+void MainWindow::SlotOnSaveScansButton()
+{
+    char payload = 3;
+    if (m_Socket.state() == QAbstractSocket::SocketState::ConnectedState)
+    {
+        SendMessage(ControlPanelProtocol::MessageType::MSG_SAVE_SCANS, 1, &payload);
+    }
+}

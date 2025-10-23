@@ -33,7 +33,8 @@ public:
 	void PostMessage(std::unique_ptr<MessageBase>&& pMsg);
 
 	// Getters for data, to be used by ControlPanelServer
-	void GetScanSamples_mt(std::vector<Sensor::ScanSample>& outSamples);
+	void GetScanSamples_mt(std::vector<Sensor::ScanSample>& outSamples, uint& outScanCounter);
+	uint GetScanCounter_mt() const { return m_ScanCounter; }
 
 private:
 	// Other components
@@ -50,6 +51,7 @@ private:
 
 	// Data from sensors
 	std::vector<Sensor::ScanSample> m_ScanSamples;
+	std::atomic<uint> m_ScanCounter = 0;
 
 	void ProcessMessage(MessageBase& msgBase);
 
