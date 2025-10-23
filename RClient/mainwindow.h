@@ -5,6 +5,7 @@
 
 #include <QMainWindow>
 #include <QTcpSocket>
+#include <QUdpSocket>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -25,7 +26,8 @@ public:
 private:
     Ui::MainWindow *ui;
     ControlPanelProtocol::MessageDecoder m_MsgDecoder;
-    QTcpSocket m_Socket;
+    QTcpSocket m_ControlPanelSocket;
+    QUdpSocket m_ControlInputsSocket;
 
     // Other UI elements
     QScatterSeries* m_pScatterSeries = nullptr;
@@ -43,6 +45,7 @@ private slots:
     void SlotOnIcpTestStoreButton();
     void SlotOnIcpTestRunButton();
     void SlotOnSaveScansButton();
+    void SlotOnInputsTestButton();
 
     void SlotOnSocketConnected();
     void SlotOnSocketDisconnected();

@@ -25,15 +25,15 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
-    , m_Socket(this)
+    , m_ControlPanelSocket(this)
 {
     ui->setupUi(this);
 
     // Button events from UI
-    QObject::connect(&m_Socket, &QTcpSocket::connected, this, &MainWindow::SlotOnSocketConnected);
-    QObject::connect(&m_Socket, &QTcpSocket::disconnected, this, &MainWindow::SlotOnSocketDisconnected);
-    QObject::connect(&m_Socket, &QTcpSocket::errorOccurred, this, &MainWindow::SlotOnSocketError);
-    QObject::connect(&m_Socket, &QTcpSocket::readyRead, this, &MainWindow::SlotOnSocketReadyRead);
+    QObject::connect(&m_ControlPanelSocket, &QTcpSocket::connected, this, &MainWindow::SlotOnSocketConnected);
+    QObject::connect(&m_ControlPanelSocket, &QTcpSocket::disconnected, this, &MainWindow::SlotOnSocketDisconnected);
+    QObject::connect(&m_ControlPanelSocket, &QTcpSocket::errorOccurred, this, &MainWindow::SlotOnSocketError);
+    QObject::connect(&m_ControlPanelSocket, &QTcpSocket::readyRead, this, &MainWindow::SlotOnSocketReadyRead);
 
     // Message decoder
     m_MsgDecoder.BindOnReceivedMessage(
@@ -55,7 +55,7 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     // Disconnect from socket events, otherwise SlotOnSocketDisconnected will be invoked after MainWindow is destroyed!
-    m_Socket.disconnect(this);
+    m_ControlPanelSocket.disconnect(this);
 
     delete ui;
 }
@@ -80,9 +80,9 @@ void MainWindow::SlotOnSocketError()
 void MainWindow::SlotOnSocketReadyRead()
 {
     char readBuffer[1024];
-    while(m_Socket.bytesAvailable())
+    while(m_ControlPanelSocket.bytesAvailable())
     {
-        qint64 nBytesRead = m_Socket.read(readBuffer, sizeof(readBuffer));
+        qint64 nBytesRead = m_ControlPanelSocket.read(readBuffer, sizeof(readBuffer));
         m_MsgDecoder.ReadStream(readBuffer, nBytesRead);
     }
 }
@@ -156,10 +156,10 @@ bool MainWindow::SendMessage(ControlPanelProtocol::MessageType msgType, unsigned
     header.Init(msgType, payloadSize);
 
     // Send header
-    m_Socket.write(reinterpret_cast<const char*>(&header), ControlPanelProtocol::MessageHeader::SIZE_PACKED);
+    m_ControlPanelSocket.write(reinterpret_cast<const char*>(&header), ControlPanelProtocol::MessageHeader::SIZE_PACKED);
 
     if (payloadSize != 0 && pPayload != nullptr)
-        m_Socket.write(pPayload, payloadSize);
+        m_ControlPanelSocket.write(pPayload, payloadSize);
 
     return true;
 }
@@ -169,42 +169,52 @@ bool MainWindow::SendMessage(ControlPanelProtocol::MessageType msgType, unsigned
 
 void MainWindow::SlotOnConnectButtonClicked()
 {
+    if (m_ControlInputsSocket.state() != QAbstractSocket::SocketState::BoundState)
+    {
+        bool controlsSocketBindRes = m_ControlInputsSocket.bind();
+        if (!controlsSocketBindRes)
+        {
+            ui->ConnStateLabel->setText("UDP error");
+            return;
+        }
+    }
+
     QString addressStr = ui->ConnAddress->text();
-    m_Socket.connectToHost(addressStr, ControlPanelProtocol::CONTROL_PANEL_PORT);
+    m_ControlPanelSocket.connectToHost(addressStr, ControlPanelProtocol::CONTROL_PANEL_PORT);
     ui->ConnStateLabel->setText("Connecting ...");
 }
 
 void MainWindow::SlotOnSendMsgButton()
 {
-    if (m_Socket.state() == QAbstractSocket::SocketState::ConnectedState)
+    if (m_ControlPanelSocket.state() == QAbstractSocket::SocketState::ConnectedState)
     {
         char msgText[] = "ABC"; // "Message from Client";
         ControlPanelProtocol::MessageHeader header;
         header.Init(ControlPanelProtocol::MessageType::MSG_PRINT, sizeof(msgText));
 
-        m_Socket.write(reinterpret_cast<const char*>(&header), ControlPanelProtocol::MessageHeader::SIZE_PACKED);
-        m_Socket.write(msgText, sizeof(msgText));
+        m_ControlPanelSocket.write(reinterpret_cast<const char*>(&header), ControlPanelProtocol::MessageHeader::SIZE_PACKED);
+        m_ControlPanelSocket.write(msgText, sizeof(msgText));
     }
 }
 
 void MainWindow::SlotOnSendNewlineButton()
 {
-    if (m_Socket.state() == QAbstractSocket::SocketState::ConnectedState)
+    if (m_ControlPanelSocket.state() == QAbstractSocket::SocketState::ConnectedState)
     {
         ControlPanelProtocol::MessageHeader header;
         header.Init(ControlPanelProtocol::MessageType::MSG_TEST0, 0);
-        m_Socket.write(reinterpret_cast<const char*>(&header), ControlPanelProtocol::MessageHeader::SIZE_PACKED);
+        m_ControlPanelSocket.write(reinterpret_cast<const char*>(&header), ControlPanelProtocol::MessageHeader::SIZE_PACKED);
     }
 }
 
 void MainWindow::SlotOnRequestScanDataButton()
 {
-    if (m_Socket.state() == QAbstractSocket::SocketState::ConnectedState)
+    if (m_ControlPanelSocket.state() == QAbstractSocket::SocketState::ConnectedState)
     {
         ControlPanelProtocol::MessageHeader header;
         header.Init(ControlPanelProtocol::MessageType::MSG_RQ_SENSOR_SCAN_DATA, 0);
 
-        m_Socket.write(reinterpret_cast<const char*>(&header), ControlPanelProtocol::MessageHeader::SIZE_PACKED);
+        m_ControlPanelSocket.write(reinterpret_cast<const char*>(&header), ControlPanelProtocol::MessageHeader::SIZE_PACKED);
     }
 }
 
@@ -212,7 +222,7 @@ void MainWindow::SlotOnIcpTestStoreButton()
 {
     // Store one scan for future comparison
     char payload = 0;
-    if (m_Socket.state() == QAbstractSocket::SocketState::ConnectedState)
+    if (m_ControlPanelSocket.state() == QAbstractSocket::SocketState::ConnectedState)
     {
         SendMessage(ControlPanelProtocol::MessageType::MSG_ICP_TEST, 1, &payload);
     }
@@ -222,7 +232,7 @@ void MainWindow::SlotOnIcpTestRunButton()
 {
     // Store another scan and run ICP
     char payload = 1;
-    if (m_Socket.state() == QAbstractSocket::SocketState::ConnectedState)
+    if (m_ControlPanelSocket.state() == QAbstractSocket::SocketState::ConnectedState)
     {
         SendMessage(ControlPanelProtocol::MessageType::MSG_ICP_TEST, 1, &payload);
     }
@@ -231,8 +241,22 @@ void MainWindow::SlotOnIcpTestRunButton()
 void MainWindow::SlotOnSaveScansButton()
 {
     char payload = 3;
-    if (m_Socket.state() == QAbstractSocket::SocketState::ConnectedState)
+    if (m_ControlPanelSocket.state() == QAbstractSocket::SocketState::ConnectedState)
     {
         SendMessage(ControlPanelProtocol::MessageType::MSG_SAVE_SCANS, 1, &payload);
     }
+}
+
+void MainWindow::SlotOnInputsTestButton()
+{
+    if (m_ControlPanelSocket.state() != QAbstractSocket::SocketState::ConnectedState)
+        return;
+
+    if (m_ControlInputsSocket.state() != QAbstractSocket::SocketState::BoundState)
+        return;
+
+    char data[4] = {0, 1, 2, 3};
+    QByteArray dataArray(data, 4);
+    QHostAddress receiverAddr = m_ControlPanelSocket.peerAddress();
+    m_ControlInputsSocket.writeDatagram(dataArray, receiverAddr, ControlPanelProtocol::CONTROL_INPUTS_PORT);
 }

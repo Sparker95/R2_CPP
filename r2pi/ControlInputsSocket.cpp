@@ -72,13 +72,13 @@ void ControlInputsSocket::ThreadFunction()
 	}
 
 	// Bind socket
-	struct sockaddr_in serverAddr;
-	serverAddr.sin_family = AF_INET;
-	serverAddr.sin_addr.s_addr = INADDR_ANY;
-	serverAddr.sin_port = htons(ControlPanelProtocol::CONTROL_INPUTS_PORT);
+	struct sockaddr_in addr;
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = INADDR_ANY;
+	addr.sin_port = htons(ControlPanelProtocol::CONTROL_INPUTS_PORT);
 	if (bind(sockFd,
-		reinterpret_cast<sockaddr*>(&serverAddr),
-		sizeof(serverAddr)) < 0)
+		reinterpret_cast<sockaddr*>(&addr),
+		sizeof(addr)) < 0)
 	{
 		fprintf(stderr, "Error: ControlInputsSocket bind() failed\n");
 		return;

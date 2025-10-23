@@ -157,6 +157,19 @@
      <string>Save 3 Scans</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="InputsTestButton">
+    <property name="geometry">
+     <rect>
+      <x>660</x>
+      <y>140</y>
+      <width>121</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Inputs Test</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
@@ -291,6 +304,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>InputsTestButton</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>SlotOnInputsTestButton()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>720</x>
+     <y>173</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>520</x>
+     <y>390</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>SlotOnConnectButtonClicked()</slot>
@@ -300,5 +329,6 @@
   <slot>SlotOnIcpTestStoreButton()</slot>
   <slot>SlotOnIcpTestRunButton()</slot>
   <slot>SlotOnSaveScansButton()</slot>
+  <slot>SlotOnInputsTestButton()</slot>
  </slots>
 </ui>
