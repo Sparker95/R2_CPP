@@ -55,6 +55,9 @@ qt6_add_qml_module(RClient
     NO_RESOURCE_TARGET_PATH
     QML_FILES
         graph.qml
+        SOURCES ../Common/ControlInputsProtocol.h
+        SOURCES InputHandling.h
+        SOURCES InputHandling.cpp
 )
 
 target_link_libraries(RClient PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)

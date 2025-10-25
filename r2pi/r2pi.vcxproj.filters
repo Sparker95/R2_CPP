@@ -1011,6 +1011,9 @@
     <ClInclude Include="ControlInputsSocket.h">
       <Filter>Platform</Filter>
     </ClInclude>
+    <ClInclude Include="..\Common\ControlInputsProtocol.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Common">

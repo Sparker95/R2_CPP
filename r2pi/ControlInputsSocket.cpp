@@ -1,5 +1,5 @@
 #include "ControlInputsSocket.h"
-#include "../Common/ControlPanelProtocol.h"
+#include "../Common/ControlInputsProtocol.h"
 
 #include <thread>
 #include <algorithm>
@@ -75,7 +75,7 @@ void ControlInputsSocket::ThreadFunction()
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
 	addr.sin_addr.s_addr = INADDR_ANY;
-	addr.sin_port = htons(ControlPanelProtocol::CONTROL_INPUTS_PORT);
+	addr.sin_port = htons(ControlInputsProtocol::CONTROL_INPUTS_PORT);
 	if (bind(sockFd,
 		reinterpret_cast<sockaddr*>(&addr),
 		sizeof(addr)) < 0)
@@ -84,18 +84,17 @@ void ControlInputsSocket::ThreadFunction()
 		return;
 	}
 
-	printf("ControlInputsSocket: Opened socket on port %i\n", ControlPanelProtocol::CONTROL_INPUTS_PORT);
+	printf("ControlInputsSocket: Opened socket on port %i\n", ControlInputsProtocol::CONTROL_INPUTS_PORT);
 
 	fd_set readFds;
 	const int pipeReadFd = m_PipeFd[0];
 
-	FD_ZERO(&readFds);
-	FD_SET(pipeReadFd, &readFds);
-	FD_SET(sockFd, &readFds);
-
 	bool loopRead = true;
 	while (loopRead)
 	{
+		FD_ZERO(&readFds);
+		FD_SET(pipeReadFd, &readFds);
+		FD_SET(sockFd, &readFds);
 		int selectRes = select(std::max(sockFd, pipeReadFd) + 1, &readFds, nullptr, nullptr, nullptr);
 
 		if (selectRes == -1)

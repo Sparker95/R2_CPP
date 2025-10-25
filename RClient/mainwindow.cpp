@@ -17,7 +17,10 @@
 #include <QScatterSeries>
 #include <QtQml>
 
+#include "InputHandling.h"
+
 #include "../Common/ControlPanelProtocol.h"
+#include "../Common/ControlInputsProtocol.h"
 #include "../Common/Sensor.h"
 #include "../Common/Common.h"
 
@@ -50,6 +53,9 @@ MainWindow::MainWindow(QWidget *parent)
     ui->QuickWidget->show();
     m_pScatterSeries = dynamic_cast<QScatterSeries*>(
         QQmlEngine::contextForObject(ui->QuickWidget->rootObject())->objectForName("scatterSeries"));
+
+    // Timer for control inputs
+    m_iControlInputsTimerId = startTimer(40, Qt::TimerType::PreciseTimer);
 }
 
 MainWindow::~MainWindow()
@@ -85,6 +91,48 @@ void MainWindow::SlotOnSocketReadyRead()
         qint64 nBytesRead = m_ControlPanelSocket.read(readBuffer, sizeof(readBuffer));
         m_MsgDecoder.ReadStream(readBuffer, nBytesRead);
     }
+}
+
+void MainWindow::timerEvent(QTimerEvent *event)
+{
+    if (event->timerId() != m_iControlInputsTimerId)
+    {
+        QMainWindow::timerEvent(event);
+        return;
+    }
+
+    // Do something
+    if (m_ControlPanelSocket.state() != QAbstractSocket::SocketState::ConnectedState)
+        return;
+
+    if (m_ControlInputsSocket.state() != QAbstractSocket::SocketState::BoundState)
+        return;
+
+    ControlInputsProtocol::Message msg;
+
+    // Handle inputs
+    float motorInput = InputHandling::GetMotorInputNorm();
+    float steerInput = InputHandling::GetSteerInputNorm();
+    bool brakeInput = InputHandling::GetBrakeInput();
+
+    if (!brakeInput)
+    {
+        msg.m_fMotorSpeed = 500.0f * motorInput;
+        msg.m_bBrake = false;
+    }
+    else
+        msg.m_bBrake = true;
+
+    msg.m_fSteer = steerInput;
+
+    QByteArray dataArray(reinterpret_cast<const char*>(&msg), sizeof(ControlInputsProtocol::Message));
+    QHostAddress receiverAddr = m_ControlPanelSocket.peerAddress();
+    m_ControlInputsSocket.writeDatagram(dataArray, receiverAddr, ControlInputsProtocol::CONTROL_INPUTS_PORT);
+
+    // Set label text
+    QString labelText = QString::asprintf("Motor: %.2f\nBrake: %i\nSteer: %.2f",
+                                          motorInput, static_cast<int>(brakeInput), steerInput);
+    ui->ControlInputsLabel->setText(labelText);
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -258,5 +306,5 @@ void MainWindow::SlotOnInputsTestButton()
     char data[4] = {0, 1, 2, 3};
     QByteArray dataArray(data, 4);
     QHostAddress receiverAddr = m_ControlPanelSocket.peerAddress();
-    m_ControlInputsSocket.writeDatagram(dataArray, receiverAddr, ControlPanelProtocol::CONTROL_INPUTS_PORT);
+    m_ControlInputsSocket.writeDatagram(dataArray, receiverAddr, ControlInputsProtocol::CONTROL_INPUTS_PORT);
 }

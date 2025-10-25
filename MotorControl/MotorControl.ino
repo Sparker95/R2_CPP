@@ -4,14 +4,15 @@
 
 /*
 Serial commands
-Command:                     Data:    Return:
-ST_RAW, STEER_RAW            <int>    ACK;
-ST, STEER                    <float>  ACK;
-MT_MV, MOTOR_MOVE            <float>  ACK;
-MT_BR, MOTOR_BRAKE                    ACK;
-MT_ODO, MOTOR_GET_ODOMETER            ODO <int>;
-MT_LOG, MOTOR_LOG_ENABLE              ACK;         periodic: LOG ... ... ... ;
-PING                                  MT_CTRL;
+Command:   Data:    Return:
+ST_RAW     <int>    ACK;
+ST         <float>  ACK;
+MT_MV      <float>  ACK;
+MT_BR               ACK;
+MT_ODO              ODO <int>;
+MT_LOG     0/1      ACK;         periodic: LOG ... ... ... ;
+PING                MT_CTRL;
+STOP_ON_DC 0/1      ACK;
 */
 
 #define MAIN_CLOCK_HZ 16000000
@@ -295,8 +296,11 @@ uint8_t g_iSerialCmdBufferId = 0;
 // Motor control
 MotorController g_MotorController;
 
-// Misc
+// Settings, modes of operation
 bool g_bMotorLogEnabled = false;
+bool g_bStopOnDisconnect = true;
+uint8_t g_bDisconnectCounter = 0; // Counts only if g_bStopOnDisconnect == true
+constexpr uint8_t DISCONNECT_COUNTER_THRESHOLD = 50;
 
 // Forward declarations
 void ProcessMotorControllerLog(float encoderFreq_Hz, float pidOutputNorm);
@@ -408,11 +412,23 @@ void loop()
         {
           // Received command separator, process command
           g_SerialCmdBuffer[g_iSerialCmdBufferId] = 0; // Null terminate string for safety
-          bool printAck = false; // Some commands print back "ACK;"
-          if (ProcessSerialCommand(g_SerialCmdBuffer, g_iSerialCmdBufferId, printAck))
+          
+          // Find space ' ', it separates command from arguments
+          char* pArgs = strchr(g_SerialCmdBuffer, ' ');
+          if (pArgs)
+          {
+            *pArgs = 0; // Replace space with 0, then everything before space can be treated as separate string
+            pArgs++;
+          }
+          
+          bool printAck = true; // Most commands print back "ACK;"
+          if (ProcessSerialCommand(g_SerialCmdBuffer, pArgs, printAck))
           {
             if (printAck)
               g_pCurrentSerial->print("ACK;\n");
+            
+            // Correct commands reset the disconnect counter
+            g_bDisconnectCounter = 0;
           }
           else
           {
@@ -440,13 +456,24 @@ void loop()
     }
   }
   
-  // Triggered when motor PWM overflows every 50 Hz, the engine control code is in this branch  
+  // Triggered when motor PWM overflows every 50 Hz, the engine control code and some other logic is in this branch  
   if (g_bTimer1InterruptFlag)
   {
     g_bTimer1InterruptFlag = false;
     
     // <<< Timestamp 0
     PORTF |= (1 << PORTF_TIMESTAMP_0);
+    
+    // Disconnection logic
+    if (g_bDisconnectCounter < DISCONNECT_COUNTER_THRESHOLD)
+      g_bDisconnectCounter++;
+    
+    // If we consider communication lost, motor must be stopped, steering must be reset
+    if (g_bStopOnDisconnect && g_bDisconnectCounter == DISCONNECT_COUNTER_THRESHOLD)
+    {
+      g_MotorController.SetCommand_Brake();
+      Steer_SetRawValue(PwmControl::PWM_VALUE_NEUTRAL);
+    }
     
     UpdateMotorController();
     
@@ -521,45 +548,38 @@ void UpdateMotorController()
   }
 }
 
-bool ProcessSerialCommand(char* pCmd, uint8_t cmdSize, bool& outPrintAck)
+bool ProcessSerialCommand(char* pCmd, char* pArgs, bool& outPrintAck)
 {
-  // String separation is used in most commands
-  char* pSpace = strchr(pCmd, ' ');
-  
-  if (strstr(pCmd, "ST_RAW") == pCmd || strstr(pCmd, "STEER_RAW") == pCmd)
+  if (strcmp(pCmd, "ST_RAW") == 0)
   {
-    if (!pSpace)
+    if (!pArgs)
       return false;
     
-    int cmdValue = atoi(pSpace);
+    int cmdValue = atoi(pArgs);
     Steer_SetRawValue(static_cast<uint16_t>(cmdValue));
-    outPrintAck = true;
   }
-  else if (strstr(pCmd, "ST") == pCmd || strstr(pCmd, "STEER") == pCmd)
+  else if (strcmp(pCmd, "ST") == 0)
   {
-    if (!pSpace)
+    if (!pArgs)
       return false;
     
-    float cmdValue = atof(pSpace);
+    float cmdValue = atof(pArgs);
     uint16_t steerRawValue = PwmControl::FloatToRawPwm(cmdValue);
     Steer_SetRawValue(steerRawValue);
-    outPrintAck = true;
   }
-  else if (strstr(pCmd, "MT_MV") == pCmd || strstr(pCmd, "MOTOR_MOVE") == pCmd)
+  else if (strcmp(pCmd, "MT_MV") == 0)
   {
-    if (!pSpace)
+    if (!pArgs)
       return false;
-    float freq_Hz = atof(pSpace);
+    float freq_Hz = atof(pArgs);
     bool moveDirFwd = freq_Hz > 0.0f;
     g_MotorController.SetCommand_Move(moveDirFwd, abs(freq_Hz));
-    outPrintAck = true;
   }
-  else if (strstr(pCmd, "MT_BR") == pCmd || strstr(pCmd, "MOTOR_BRAKE") == pCmd)
+  else if (strcmp(pCmd, "MT_BR") == 0)
   {
     g_MotorController.SetCommand_Brake();
-    outPrintAck = true;
   }
-  else if (strstr(pCmd, "MT_ODO") == pCmd || strstr(pCmd, "MOTOR_GET_ODOMETER") == pCmd)
+  else if (strcmp(pCmd, "MT_ODO") == 0)
   {
     uint16_t encoderCounter = g_iEncoderCounter;
     int encoderCounter_int = encoderCounter;
@@ -573,29 +593,29 @@ bool ProcessSerialCommand(char* pCmd, uint8_t cmdSize, bool& outPrintAck)
     // Don't print ACK here
     outPrintAck = false;
   }
-  else if (strstr(pCmd, "MT_LOG") == pCmd || strstr(pCmd, "MOTOR_LOG_ENABLE") == pCmd) // Toggles motor controller logging
+  else if (strcmp(pCmd, "MT_LOG") == 0) // Toggles motor controller logging
   {
-    if (!pSpace)
+    char value = *pArgs;
+    if (value != '0' && value != '1')
       return false;
     
-    char* pValue = pSpace + 1;
-    if (*pValue == '1')
-    {
-      g_bMotorLogEnabled = true;
-      outPrintAck = true;
-    }
-    else if (*pValue == '0')
-    {
-      g_bMotorLogEnabled = false;
-      outPrintAck = true;
-    }
-    else
-      return false;
+    g_bMotorLogEnabled = value == '1';
   }
-  else if (strstr(pCmd, "PING") == pCmd)
+  else if (strcmp(pCmd, "PING") == 0)
   {
     g_pCurrentSerial->print("MT_CTRL;\n");
     outPrintAck = false;
+  }
+  else if (strcmp(pCmd, "STOP_ON_DC") == 0)
+  {
+    if (!pArgs)
+      return false;
+    
+    char value = *pArgs;
+    if (value != '0' && value != '1')
+      return false;
+    
+    g_bStopOnDisconnect = value == '1';
   }
   else
     return false; // No command recognized
