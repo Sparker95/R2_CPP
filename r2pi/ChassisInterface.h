@@ -15,8 +15,23 @@ private:
 	static const char STR_UNEXPECTED_RESPONSE[];
 
 public:
+	struct MotorCtrlPidSettings
+	{
+		float m_fKP = 0.5f;
+		float m_fKI = 0.5f;
+		float m_fKD = 0.0f;
+		float m_fErrorScale = 0.001f;
+		float m_fErrorIntegralMax = 1.0f;
+	};
+
+	struct MotorCtrlAccelSettings
+	{
+		float m_fAccelMove = 100.0f;
+		float m_fAccelBrake = 100.0f;
+	};
+
 	~ChassisInterface();
-	bool Init();
+	bool Init(const MotorCtrlPidSettings& pidSettings, const MotorCtrlAccelSettings& accelSettings);
 	bool Terminate();
 
 	std::mutex& GetMutex();
@@ -25,6 +40,8 @@ public:
 	bool SendCommand_MotorMove(float freq_Hz);
 	bool SendCommand_MotorBrake();
 	bool SendCommand_Steer(float steerNorm);
+	bool SendCommand_SetPid(const MotorCtrlPidSettings& s);
+	bool SendCommand_SetAccel(const MotorCtrlAccelSettings& s);
 	
 private:
 	std::mutex m_Mutex;

@@ -88,6 +88,7 @@
     <ClInclude Include="..\Common\Utils.h" />
     <ClInclude Include="..\Common\Vector2.h" />
     <ClInclude Include="ChassisInterface.h" />
+    <ClInclude Include="Config.h" />
     <ClInclude Include="ControlInputsSocket.h" />
     <ClInclude Include="ControlPanelServer.h" />
     <ClInclude Include="Eigen\src\Cholesky\LDLT.h" />
@@ -419,6 +420,7 @@
     <ClCompile Include="..\Common\Scan.cpp" />
     <ClCompile Include="..\Common\Utils.cpp" />
     <ClCompile Include="ChassisInterface.cpp" />
+    <ClCompile Include="Config.cpp" />
     <ClCompile Include="ControlInputsSocket.cpp" />
     <ClCompile Include="ControlPanelServer.cpp" />
     <ClCompile Include="ControlPanelServerMessages.cpp" />
