@@ -8,17 +8,29 @@ namespace ControlInputsProtocol
 
 	struct Message
 	{
-        constexpr static uint8_t MAGIC_NUMBER_0 = 0x79;
+        constexpr static uint8_t MAGIC_NUMBER_0 = 0x80;
         constexpr static uint8_t MAGIC_NUMBER_1 = 0x5A;
         constexpr static uint8_t MAGIC_NUMBER_2 = 0xA5;
+
+        // Values for m_CmdFlags
+        constexpr static uint8_t CMD_FLAG_BRAKE        = 1 << 0;
+        constexpr static uint8_t CMD_FLAG_MOVE         = 1 << 1;
+        constexpr static uint8_t CMD_FLAG_MOVE_DIR_FWD = 1 << 2;
+
+        enum class MoveSpeed : uint8_t
+        {
+            SLOW   = 0,
+            CRUISE = 1,
+            FAST   = 2
+        };
 
         // Data
         uint8_t m_iMagicNumber0 = MAGIC_NUMBER_0;
         uint8_t m_iMagicNumber1 = MAGIC_NUMBER_1;
         uint8_t m_iMagicNumber2 = MAGIC_NUMBER_2;
-        bool m_bBrake = 0;
-		float m_fSteer = 0;
-        float m_fMotorSpeed= 0;
+        uint8_t m_CmdFlags = 0;
+        float m_fSteerNorm = 0.0f;
+        MoveSpeed m_MoveSpeed = {};
 
         bool IsValid() const
         {
