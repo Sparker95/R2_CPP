@@ -2,6 +2,8 @@
 
 #include "../Common/Common.h"
 
+#include "ChassisSettings.h"
+
 #include <memory>
 
 namespace std
@@ -16,7 +18,7 @@ class ControlInputsSocket
 public:
 	bool Start();
 	void TerminateWait();
-	ControlInputsSocket(ChassisInterface* pChassisInterface);
+	ControlInputsSocket(ChassisInterface* pChassisInterface, const ChassisSettings::ControlSettings* pChassisCtrlSettings);
 	~ControlInputsSocket();
 
 private:
@@ -26,6 +28,7 @@ private:
 	std::unique_ptr<std::thread> m_pThread;
 	int m_PipeFd[2]; // 0 - read, 1 - write
 	bool m_bRunning = false;
+	const ChassisSettings::ControlSettings* m_pChassisCtrlSettings = nullptr;
 
 	void ThreadFunction();
 	void ClosePipe();

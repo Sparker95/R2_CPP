@@ -217,7 +217,8 @@ class MotorController
     
     if (m_CmdType == Command::MOVE)
     {
-      if (m_CmdMoveDir == m_CurrentMoveDir)
+      if (m_CmdMoveDir == m_CurrentMoveDir ||
+        m_fCmdTargetFrequency_Hz == 0.0f) // Prevents braking when going in reverse and then switching to 0
       {
         // Linearly smooth the m_fSmoothFrequency_Hz towards m_fCmdTargetFrequency_Hz
         SmoothLinear(m_fSmoothFrequency_Hz, m_fCmdTargetFrequency_Hz, m_fAccelMoving);

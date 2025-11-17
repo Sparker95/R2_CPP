@@ -4,27 +4,66 @@
 
 namespace InputHandling
 {
+
+using TMoveSpeed = ControlInputsProtocol::Message::MoveSpeed;
+
 bool GetKeyStateDown(int nVirtKey)
 {
     SHORT state = GetKeyState(nVirtKey);
     return (state & (~1)) != 0;
 }
 
-float GetMotorInputNorm()
+bool GetMoveInput(TMoveSpeed& outMoveSpeed, bool& outMoveDirFwd)
 {
-    if (GetKeyStateDown('w') != 0 || GetKeyStateDown('W') != 0)
-        return 1.0f;
-    else if (GetKeyStateDown('s') != 0 || GetKeyStateDown('S') != 0)
-        return -1.0f;
+    bool move = false;
+    bool moveDirFwd = false;
+    TMoveSpeed moveSpeed = TMoveSpeed::SLOW;
 
-    return 0.0f;
+    bool inputFwd = GetKeyStateDown('w') != 0 || GetKeyStateDown('W') != 0;
+    bool inputBwd = GetKeyStateDown('s') != 0 || GetKeyStateDown('S') != 0;
+
+    if (inputFwd && inputBwd)
+    {
+        move = false;
+        moveDirFwd = false;
+    }
+    else if (inputFwd)
+    {
+        move = true;
+        moveDirFwd = true;
+    }
+    else if (inputBwd)
+    {
+        move = true;
+        moveDirFwd = false;
+    }
+
+    if (move)
+    {
+        // Resolve move speed
+        if (GetKeyStateDown(VK_SHIFT))
+            moveSpeed = TMoveSpeed::FAST;
+        else if (GetKeyStateDown(VK_CONTROL))
+            moveSpeed = TMoveSpeed::SLOW;
+        else
+            moveSpeed = TMoveSpeed::CRUISE;
+    }
+
+    outMoveSpeed = moveSpeed;
+    outMoveDirFwd = moveDirFwd;
+    return move;
 }
 
 float GetSteerInputNorm()
 {
-    if (GetKeyStateDown('d') != 0 || GetKeyStateDown('D') != 0)
+    bool inputLeft = GetKeyStateDown('a') != 0 || GetKeyStateDown('A') != 0;
+    bool inputRight = GetKeyStateDown('d') != 0 || GetKeyStateDown('D') != 0;
+
+    if (inputLeft && inputRight)
+        return 0.0f;
+    else if (inputRight)
         return 1.0f;
-    else if (GetKeyStateDown('a') != 0 || GetKeyStateDown('A') != 0)
+    else if (inputLeft)
         return -1.0f;
 
     return 0.0f;
@@ -33,10 +72,16 @@ float GetSteerInputNorm()
 bool GetBrakeInput()
 {
     // Holding both W and S
-    if ((GetKeyStateDown('w') != 0 || GetKeyStateDown('W') != 0) &&
-        (GetKeyStateDown('s') != 0 || GetKeyStateDown('S') != 0))
+    if ((GetKeyStateDown('w') || GetKeyStateDown('W')) &&
+        (GetKeyStateDown('s') || GetKeyStateDown('S')))
         return true;
 
-    return (GetKeyStateDown(VK_SPACE) != 0);
+    if (GetKeyStateDown('x') || GetKeyStateDown('X'))
+        return true;
+
+    if (GetKeyStateDown(VK_SPACE))
+        return true;
+
+    return false;
 }
 }

@@ -18,8 +18,9 @@
 #include <fcntl.h>
 
 
-ControlInputsSocket::ControlInputsSocket(ChassisInterface* pChassisInterface)
-	: m_pChassisInterface(pChassisInterface)
+ControlInputsSocket::ControlInputsSocket(ChassisInterface* pChassisInterface, const ChassisSettings::ControlSettings* pChassisCtrlSettings)
+	: m_pChassisInterface(pChassisInterface),
+	m_pChassisCtrlSettings(pChassisCtrlSettings)
 {
 	m_PipeFd[0] = -1;
 	m_PipeFd[1] = -1;
@@ -146,20 +147,34 @@ bool ControlInputsSocket::ProcessMessage(const char* pMsg, uint msgSize)
 	{
 		std::unique_lock chassisLock(m_pChassisInterface->GetMutex());
 
-		// WIP control limits
-		const float STEER_MAX = 0.7f;
-		const float MOVE_FREQ_MAX_HZ = 500.0f;
-
-		if (pControlInputsMsg->m_bBrake)
+		// Movement or braking
+		if (pControlInputsMsg->m_CmdFlags & ControlInputsProtocol::Message::CMD_FLAG_BRAKE)
 			m_pChassisInterface->SendCommand_MotorBrake();
-		else
+		else if (pControlInputsMsg->m_CmdFlags & ControlInputsProtocol::Message::CMD_FLAG_MOVE)
 		{
-			float moveCmdValue = std::clamp(pControlInputsMsg->m_fMotorSpeed * MOVE_FREQ_MAX_HZ,
-				-MOVE_FREQ_MAX_HZ, MOVE_FREQ_MAX_HZ);
+			using TMoveSpeed = ControlInputsProtocol::Message::MoveSpeed;
+			float moveCmdValue = 0;
+			switch (pControlInputsMsg->m_MoveSpeed)
+			{
+				case TMoveSpeed::SLOW:   moveCmdValue = m_pChassisCtrlSettings->m_fSpeedSlow_Hz; break;
+				case TMoveSpeed::CRUISE: moveCmdValue = m_pChassisCtrlSettings->m_fSpeedCruise_Hz; break;
+				case TMoveSpeed::FAST:   moveCmdValue = m_pChassisCtrlSettings->m_fSpeedFast_Hz; break;
+			}
+
+			if (!(pControlInputsMsg->m_CmdFlags & ControlInputsProtocol::Message::CMD_FLAG_MOVE_DIR_FWD))
+				moveCmdValue = -moveCmdValue;
+
 			m_pChassisInterface->SendCommand_MotorMove(moveCmdValue);
 		}
+		else
+		{
+			// Not moving, not braking -> slow down to 0
+			m_pChassisInterface->SendCommand_MotorMove(0.0f);
+		}
 
-		float steerCmdValue = std::clamp(pControlInputsMsg->m_fSteer, -STEER_MAX, STEER_MAX);
+		// Steering
+		float steerCmdValue = std::clamp(pControlInputsMsg->m_fSteerNorm * m_pChassisCtrlSettings->m_fSteerOutputMax,
+			-m_pChassisCtrlSettings->m_fSteerOutputMax, m_pChassisCtrlSettings->m_fSteerOutputMax);
 		m_pChassisInterface->SendCommand_Steer(steerCmdValue);
 	}
 

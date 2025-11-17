@@ -87,6 +87,7 @@
     <ClInclude Include="..\Common\Sensor.h" />
     <ClInclude Include="..\Common\Utils.h" />
     <ClInclude Include="..\Common\Vector2.h" />
+    <ClInclude Include="ChassisSettings.h" />
     <ClInclude Include="ChassisInterface.h" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="ControlInputsSocket.h" />

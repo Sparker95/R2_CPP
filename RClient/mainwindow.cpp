@@ -101,7 +101,9 @@ void MainWindow::timerEvent(QTimerEvent *event)
         return;
     }
 
-    // Do something
+    using TMoveSpeed = ControlInputsProtocol::Message::MoveSpeed;
+    using TMessage = ControlInputsProtocol::Message;
+
     if (m_ControlPanelSocket.state() != QAbstractSocket::SocketState::ConnectedState)
         return;
 
@@ -111,27 +113,37 @@ void MainWindow::timerEvent(QTimerEvent *event)
     ControlInputsProtocol::Message msg;
 
     // Handle inputs
-    float motorInput = InputHandling::GetMotorInputNorm();
-    float steerInput = InputHandling::GetSteerInputNorm();
+    bool moveDirFwd = false;
+    TMoveSpeed moveSpeed = {};
+    bool move = InputHandling::GetMoveInput(moveSpeed, moveDirFwd);
+    float steerInputNorm = InputHandling::GetSteerInputNorm();
     bool brakeInput = InputHandling::GetBrakeInput();
 
-    if (!brakeInput)
+    if (brakeInput)
     {
-        msg.m_fMotorSpeed = 500.0f * motorInput;
-        msg.m_bBrake = false;
+        msg.m_CmdFlags |= TMessage::CMD_FLAG_BRAKE;
     }
-    else
-        msg.m_bBrake = true;
+    else if (move)
+    {
+        msg.m_CmdFlags |= TMessage::CMD_FLAG_MOVE;
+        msg.m_MoveSpeed = moveSpeed;
+        if (moveDirFwd)
+            msg.m_CmdFlags |= TMessage::CMD_FLAG_MOVE_DIR_FWD;
+    }
 
-    msg.m_fSteer = steerInput;
+    msg.m_fSteerNorm = steerInputNorm;
 
     QByteArray dataArray(reinterpret_cast<const char*>(&msg), sizeof(ControlInputsProtocol::Message));
     QHostAddress receiverAddr = m_ControlPanelSocket.peerAddress();
     m_ControlInputsSocket.writeDatagram(dataArray, receiverAddr, ControlInputsProtocol::CONTROL_INPUTS_PORT);
 
     // Set label text
-    QString labelText = QString::asprintf("Motor: %.2f\nBrake: %i\nSteer: %.2f",
-                                          motorInput, static_cast<int>(brakeInput), steerInput);
+    QString labelText = QString::asprintf("Move: %i\nMove Dir: %i\nMove Speed: %i\nBrake: %i\nSteer: %.2f",
+                                          move,
+                                          moveDirFwd,
+                                          static_cast<unsigned int>(moveSpeed),
+                                          static_cast<int>(brakeInput),
+                                          steerInputNorm);
     ui->ControlInputsLabel->setText(labelText);
 }
 

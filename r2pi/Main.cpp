@@ -4,6 +4,7 @@
 #include "MainMessageLoop.h"
 #include "ChassisInterface.h"
 #include "Config.h"
+#include "ChassisSettings.h"
 
 #include <cstring>
 #include <thread>
@@ -77,6 +78,30 @@ bool ReadConfigAccelSettings(const Config& cfg, ChassisInterface::MotorCtrlAccel
 	return true;
 }
 
+bool ReadConfigChassisControlSettings(const Config& cfg, ChassisSettings::ControlSettings outSettings)
+{
+	ChassisSettings::ControlSettings s;
+
+	const char* pSteerOutputMax = cfg.FindValue("ctrl_SteerOutputMax");
+	const char* pSpeedSlow = cfg.FindValue("ctrl_SpeedSlow_Hz");
+	const char* pSpeedCruise = cfg.FindValue("ctrl_SpeedCruise_Hz");
+	const char* pSpeedFast = cfg.FindValue("ctrl_SpeedFast_Hz");
+
+	if (!pSteerOutputMax || !pSpeedSlow || !pSpeedCruise || !pSpeedFast)
+	{
+		fprintf(stderr, "Error: Failed to read chassis control settings from config\n");
+		return false;
+	}
+
+	s.m_fSteerOutputMax = static_cast<float>(std::atof(pSteerOutputMax));
+	s.m_fSpeedSlow_Hz = static_cast<float>(std::atof(pSpeedSlow));
+	s.m_fSpeedCruise_Hz = static_cast<float>(std::atof(pSpeedCruise));
+	s.m_fSpeedFast_Hz = static_cast<float>(std::atof(pSpeedFast));
+	
+	outSettings = s;
+	return true;
+}
+
 int main(int argc, char** argv)
 {
 	printf("Program started. PID: %i\n", getpid());
@@ -103,9 +128,12 @@ int main(int argc, char** argv)
 		initDone = false;
 	ChassisInterface::MotorCtrlPidSettings pidSettings;
 	ChassisInterface::MotorCtrlAccelSettings accelSettings;
+	ChassisSettings::ControlSettings chassisControlSettings;
 	if (!ReadConfigPidSettings(config, pidSettings))
 		initDone = false;
 	if (!ReadConfigAccelSettings(config, accelSettings))
+		initDone = false;
+	if (!ReadConfigChassisControlSettings(config, chassisControlSettings))
 		initDone = false;
 
 	// Sensor interface
@@ -127,7 +155,7 @@ int main(int argc, char** argv)
 	ctrlPanelServer.Start();
 
 	// Control inputs
-	ControlInputsSocket inputsSocket(&chassis);
+	ControlInputsSocket inputsSocket(&chassis, &chassisControlSettings);
 	inputsSocket.Start();
 
 	if (initDone)

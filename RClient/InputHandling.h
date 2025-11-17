@@ -3,11 +3,13 @@
 
 #endif // INPUTHANDLING_H
 
+#include "../Common/ControlInputsProtocol.h"
+
 namespace InputHandling
 {
-bool GetKeyStateDown(int nVirtKey);
+    bool GetKeyStateDown(int nVirtKey);
 
-float GetMotorInputNorm();
-float GetSteerInputNorm();
-bool GetBrakeInput();
+    bool GetMoveInput(ControlInputsProtocol::Message::MoveSpeed& outMoveSpeed, bool& outMoveDirFwd);
+    float GetSteerInputNorm();
+    bool GetBrakeInput();
 }
