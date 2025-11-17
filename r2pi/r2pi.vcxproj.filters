@@ -43,6 +43,9 @@
     <ClCompile Include="ControlInputsSocket.cpp">
       <Filter>Platform</Filter>
     </ClCompile>
+    <ClCompile Include="ChassisInterface.cpp">
+      <Filter>Platform</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\Common.h">
@@ -1013,6 +1016,9 @@
     </ClInclude>
     <ClInclude Include="..\Common\ControlInputsProtocol.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="ChassisInterface.h">
+      <Filter>Platform</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -54,6 +54,12 @@ bool SensorInterface::Start()
 	printf("SensorInterface: Initializing sensor. Serial device: %s\n", serialDevicePath);
 	m_SerialPortFd = open(serialDevicePath, O_RDWR);
 
+	if (m_SerialPortFd < 0)
+	{
+		fprintf(stderr, "SensorInterface: open() error\n");
+		return false;
+	}
+
 	// Create new termios struct, we call it 'tty' for convention
 	struct termios tty;
 
@@ -86,7 +92,7 @@ bool SensorInterface::Start()
 	tty.c_cc[VTIME] = 2;    // Wait for up to X deciseconds, returning as soon as any data is received.
 	tty.c_cc[VMIN] = 0;
 
-	// Set in/out baud rate to be 9600
+	// Set in/out baud rate
 	cfsetispeed(&tty, B115200);
 	cfsetospeed(&tty, B115200);
 

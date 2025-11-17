@@ -1,8 +1,11 @@
 #include "ControlInputsSocket.h"
+
+#include "ChassisInterface.h"
 #include "../Common/ControlInputsProtocol.h"
 
 #include <thread>
 #include <algorithm>
+#include <mutex>
 
 #include <unistd.h>
 #include <stdio.h>
@@ -15,7 +18,8 @@
 #include <fcntl.h>
 
 
-ControlInputsSocket::ControlInputsSocket()
+ControlInputsSocket::ControlInputsSocket(ChassisInterface* pChassisInterface)
+	: m_pChassisInterface(pChassisInterface)
 {
 	m_PipeFd[0] = -1;
 	m_PipeFd[1] = -1;
@@ -118,13 +122,48 @@ void ControlInputsSocket::ThreadFunction()
 				if (nBytesRead < 0)
 					fprintf(stderr, "Error: ControlInputsSocket recvfrom() error: %i\n", errno);
 
-				printf("ControlInputsSocket: Received %i bytes\n", static_cast<int>(nBytesRead));
+				if (!ProcessMessage(readBuffer, static_cast<uint>(nBytesRead)))
+					fprintf(stderr, "Error: ControlInputsSocket received invalid message");
 			}
 		}
 	} // while loopRead
 	
 	close(sockFd);
 	printf("ControlInputsSocket: Thread terminated\n");
+}
+
+bool ControlInputsSocket::ProcessMessage(const char* pMsg, uint msgSize)
+{
+	if (msgSize != sizeof(ControlInputsProtocol::Message))
+		return false;
+
+	const ControlInputsProtocol::Message* pControlInputsMsg =
+		reinterpret_cast<const ControlInputsProtocol::Message*>(pMsg);
+
+	if (!pControlInputsMsg->IsValid())
+		return false;
+
+	{
+		std::unique_lock chassisLock(m_pChassisInterface->GetMutex());
+
+		// WIP control limits
+		const float STEER_MAX = 0.7f;
+		const float MOVE_FREQ_MAX_HZ = 500.0f;
+
+		if (pControlInputsMsg->m_bBrake)
+			m_pChassisInterface->SendCommand_MotorBrake();
+		else
+		{
+			float moveCmdValue = std::clamp(pControlInputsMsg->m_fMotorSpeed * MOVE_FREQ_MAX_HZ,
+				-MOVE_FREQ_MAX_HZ, MOVE_FREQ_MAX_HZ);
+			m_pChassisInterface->SendCommand_MotorMove(moveCmdValue);
+		}
+
+		float steerCmdValue = std::clamp(pControlInputsMsg->m_fSteer, -STEER_MAX, STEER_MAX);
+		m_pChassisInterface->SendCommand_Steer(steerCmdValue);
+	}
+
+	return true;
 }
 
 void ControlInputsSocket::ClosePipe()

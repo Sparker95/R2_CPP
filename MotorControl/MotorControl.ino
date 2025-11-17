@@ -4,15 +4,19 @@
 
 /*
 Serial commands
-Command:   Data:    Return:
-ST_RAW     <int>    ACK;
-ST         <float>  ACK;
-MT_MV      <float>  ACK;
-MT_BR               ACK;
-MT_ODO              ODO <int>;
-MT_LOG     0/1      ACK;         periodic: LOG ... ... ... ;
-PING                MT_CTRL;
-STOP_ON_DC 0/1      ACK;
+Command:   Data:      Return:      Extra:
+ST_RAW     <int>      ACK;
+ST         <float>    ACK;
+MT_MV      <float>    ACK;
+MT_BR                 ACK;
+MT_ODO                ODO <int>;
+MT_LOG     0/1        ACK;         periodic: LOG ... ... ... ;
+PING                  MT_CTRL;
+STOP_ON_DC 0/1        ACK;
+SET_ACCEL  2x<float>  ACK;        AccelMove AccelBrake
+SET_PID    5x<float>  ACK;        P I D ErrorScale ErrorIntegralMax
+
+Empty command ";" resets communication state, without reply.
 */
 
 #define MAIN_CLOCK_HZ 16000000
@@ -100,11 +104,9 @@ class MotorController
 {
   private:
   
-  constexpr static uint8_t STOPPED_COUNTER_THRESHOLD = 20;
+  constexpr static uint8_t STOPPED_COUNTER_THRESHOLD = 10;
   
   constexpr static float DT_S = 1 / 50.0f;
-  constexpr static float ACCELERATION_MOVING = DT_S * 400.0f;
-  constexpr static float ACCELERATION_BRAKING = DT_S * 800.0f;
   
   enum Command : uint8_t
   {
@@ -120,6 +122,11 @@ class MotorController
   
   //--------------------------------------------------------
   // Member variables
+  
+  //--------------------------------------
+  // Settings:
+  float m_fAccelMoving = 1.0f;
+  float m_fAccelBraking = 1.0f;
   
   //--------------------------------------
   // Command data:
@@ -144,14 +151,16 @@ class MotorController
     if (current == tgt)
       return;
     
-    if (fabs(current - tgt) < speed)
+    float speedPerUpdate = DT_S * speed;
+    
+    if (fabs(current - tgt) < speedPerUpdate)
       current = tgt;
     else
     {
       if (current < tgt)
-        current += speed;
+        current += speedPerUpdate;
       else
-        current -= speed;
+        current -= speedPerUpdate;
     }
   }
   
@@ -159,16 +168,23 @@ class MotorController
   // Public
   
   public:
-  void Init(const PidController::Settings& pidSettings)
-  {
-    m_PidController.Setup(pidSettings);
-  }
-  
   // Trivial getters
   float GetOutput() const { return m_fOutput; }
   float GetSmoothFrequency_Hz() const { return m_fSmoothFrequency_Hz; }
   const PidController& GetPidController() const { return m_PidController; }
   bool GetCurrentMoveDirectionForward() const { return m_CurrentMoveDir == MoveDir::FWD; }
+  
+  // Settings
+  void SetAcceleration(float accelMoving, float accelBraking)
+  {
+    m_fAccelMoving = accelMoving;
+    m_fAccelBraking = accelBraking;
+  }
+  
+  void SetPidSettings(const PidController::Settings& pidSettings)
+  {
+    m_PidController.Setup(pidSettings);
+  }
   
   // Interface for commands
   void SetCommand_Brake()
@@ -204,12 +220,19 @@ class MotorController
       if (m_CmdMoveDir == m_CurrentMoveDir)
       {
         // Linearly smooth the m_fSmoothFrequency_Hz towards m_fCmdTargetFrequency_Hz
-        SmoothLinear(m_fSmoothFrequency_Hz, m_fCmdTargetFrequency_Hz, ACCELERATION_MOVING);
+        SmoothLinear(m_fSmoothFrequency_Hz, m_fCmdTargetFrequency_Hz, m_fAccelMoving);
+        
+        // Special case when decelerating to 0
+        if (m_fCmdTargetFrequency_Hz == 0.0f && m_fSmoothFrequency_Hz == 0.0f && IsStopped())
+        {
+          // We don't want leftover values inside
+          m_PidController.Reset();
+        }
       }
       else
       {
         // Brake
-        SmoothLinear(m_fSmoothFrequency_Hz, 0.0f, ACCELERATION_BRAKING);
+        SmoothLinear(m_fSmoothFrequency_Hz, 0.0f, m_fAccelBraking);
         
         // When finally stopped, reverse the direction
         if (m_fSmoothFrequency_Hz == 0.0f && IsStopped())
@@ -222,7 +245,7 @@ class MotorController
     }
     else if (m_CmdType == Command::BRAKE)
     {
-      SmoothLinear(m_fSmoothFrequency_Hz, 0.0f, ACCELERATION_BRAKING);
+      SmoothLinear(m_fSmoothFrequency_Hz, 0.0f, m_fAccelBraking);
       if (m_fSmoothFrequency_Hz == 0.0f)
       {
         // When finally stopped, reset PID, we don't want any leftover values inside
@@ -288,7 +311,10 @@ volatile bool g_bEncoderTimerOverflow = true;
 volatile bool g_bTimer1InterruptFlag = false;
 
 // Serial communications
-constexpr uint8_t SERIAL_COMMAND_BUFFER_SIZE = 32;
+constexpr uint8_t SERIAL_COMMAND_BUFFER_SIZE = 64;
+constexpr uint8_t SERIAL_COMMAND_MAX_ARGUMENTS = 6;   // Max count of arguments in command
+const char SERIAL_COMMAND_SEPARATOR = ';';     // Separator of commands, command ends with this character
+const char SERIAL_COMMAND_ARG_SEPARATOR = ' '; // Separator of arguments
 Stream* g_pCurrentSerial = &Serial; // Current serial stream where data will be sent
 char g_SerialCmdBuffer[SERIAL_COMMAND_BUFFER_SIZE]; // Buffer for reading serial commands
 uint8_t g_iSerialCmdBufferId = 0;
@@ -377,7 +403,8 @@ void setup() {
   pidSettings.m_fKD = 0.0f;
   pidSettings.m_fErrorScale = 0.001f;
   pidSettings.m_fErrorIntegralMax = 1.0f;
-  g_MotorController.Init(pidSettings);
+  g_MotorController.SetPidSettings(pidSettings);
+  g_MotorController.SetAcceleration(400.0, 800.0);
 }
 
 void loop()
@@ -408,21 +435,57 @@ void loop()
       // We always use custom separator which is not newline: ';'
       if (serialByte != '\n')
       {
-        if (serialByte == ';')
+        if (serialByte == SERIAL_COMMAND_SEPARATOR)
         {
           // Received command separator, process command
           g_SerialCmdBuffer[g_iSerialCmdBufferId] = 0; // Null terminate string for safety
           
-          // Find space ' ', it separates command from arguments
-          char* pArgs = strchr(g_SerialCmdBuffer, ' ');
-          if (pArgs)
+          // Find if command has arguments
+          uint8_t argOffsets[SERIAL_COMMAND_MAX_ARGUMENTS] = {};
+          uint8_t nArgs = 0;
+          
           {
-            *pArgs = 0; // Replace space with 0, then everything before space can be treated as separate string
-            pArgs++;
+            uint8_t argSearchId = 0;
+            while (true)
+            {
+              if (g_SerialCmdBuffer[argSearchId] == 0) // End of command, nothing more to search
+                break;
+              
+              if (g_SerialCmdBuffer[argSearchId] == SERIAL_COMMAND_ARG_SEPARATOR)
+              {
+                // Found argument
+                // To do: remove double spaces, now it's not handled
+                argOffsets[nArgs] = argSearchId + 1; // Argument starts after this character
+                nArgs++;
+                
+                // Place nulls for separation of data
+                // !!! This also ensures correct detection of commands downwards, strcmp() relies on this !!!
+                g_SerialCmdBuffer[argSearchId] = 0;
+                if (nArgs == SERIAL_COMMAND_MAX_ARGUMENTS)
+                  break;
+              }
+              argSearchId++;
+            }
           }
           
+          // testing
+          /*{
+            char testBuffer[32];
+            g_pCurrentSerial->print("Arguments: ");
+            utoa(nArgs, testBuffer, 10);
+            g_pCurrentSerial->print(testBuffer);
+            g_pCurrentSerial->print(": ");
+            for (uint8_t i = 0; i < nArgs && i < SERIAL_COMMAND_MAX_ARGUMENTS; i++)
+            {
+              utoa(argOffsets[i], testBuffer, 10);
+              g_pCurrentSerial->print(testBuffer);
+              g_pCurrentSerial->print(" ");
+            }
+          }*/
+          /////////////
+          
           bool printAck = true; // Most commands print back "ACK;"
-          if (ProcessSerialCommand(g_SerialCmdBuffer, pArgs, printAck))
+          if (ProcessSerialCommand(g_SerialCmdBuffer, argOffsets, nArgs, printAck))
           {
             if (printAck)
               g_pCurrentSerial->print("ACK;\n");
@@ -548,30 +611,31 @@ void UpdateMotorController()
   }
 }
 
-bool ProcessSerialCommand(char* pCmd, char* pArgs, bool& outPrintAck)
+bool ProcessSerialCommand(char* pCmd, uint8_t* argOffsets, uint8_t nArgs, bool& outPrintAck)
 {
   if (strcmp(pCmd, "ST_RAW") == 0)
   {
-    if (!pArgs)
+    if (nArgs != 1)
       return false;
     
-    int cmdValue = atoi(pArgs);
+    int cmdValue = atoi(&pCmd[argOffsets[0]]);
     Steer_SetRawValue(static_cast<uint16_t>(cmdValue));
   }
   else if (strcmp(pCmd, "ST") == 0)
   {
-    if (!pArgs)
+    if (nArgs != 1)
       return false;
     
-    float cmdValue = atof(pArgs);
+    float cmdValue = atof(&pCmd[argOffsets[0]]);
     uint16_t steerRawValue = PwmControl::FloatToRawPwm(cmdValue);
     Steer_SetRawValue(steerRawValue);
   }
   else if (strcmp(pCmd, "MT_MV") == 0)
   {
-    if (!pArgs)
+    if (nArgs != 1)
       return false;
-    float freq_Hz = atof(pArgs);
+    
+    float freq_Hz = atof(&pCmd[argOffsets[0]]);
     bool moveDirFwd = freq_Hz > 0.0f;
     g_MotorController.SetCommand_Move(moveDirFwd, abs(freq_Hz));
   }
@@ -595,7 +659,10 @@ bool ProcessSerialCommand(char* pCmd, char* pArgs, bool& outPrintAck)
   }
   else if (strcmp(pCmd, "MT_LOG") == 0) // Toggles motor controller logging
   {
-    char value = *pArgs;
+    if (nArgs != 1)
+      return false;
+    
+    char value = pCmd[argOffsets[0]];
     if (value != '0' && value != '1')
       return false;
     
@@ -608,14 +675,42 @@ bool ProcessSerialCommand(char* pCmd, char* pArgs, bool& outPrintAck)
   }
   else if (strcmp(pCmd, "STOP_ON_DC") == 0)
   {
-    if (!pArgs)
+    if (nArgs != 1)
       return false;
     
-    char value = *pArgs;
+    char value = pCmd[argOffsets[0]];
     if (value != '0' && value != '1')
       return false;
     
     g_bStopOnDisconnect = value == '1';
+  }
+  else if (strcmp(pCmd, "SET_ACCEL") == 0)
+  {
+    if (nArgs != 2)
+      return false;
+    
+    float accelMove = atof(&pCmd[argOffsets[0]]);
+    float accelBrake = atof(&pCmd[argOffsets[1]]);
+    g_MotorController.SetAcceleration(accelMove, accelBrake);
+  }
+  else if (strcmp(pCmd, "SET_PID") == 0)
+  {
+    if (nArgs != 5)
+      return false;
+    
+    PidController::Settings s;
+    s.m_fKP = atof(&pCmd[argOffsets[0]]);
+    s.m_fKI = atof(&pCmd[argOffsets[1]]);
+    s.m_fKD = atof(&pCmd[argOffsets[2]]);
+    s.m_fErrorScale = atof(&pCmd[argOffsets[3]]);
+    s.m_fErrorIntegralMax = atof(&pCmd[argOffsets[4]]);
+    g_MotorController.SetPidSettings(s);
+  }
+  else if (*pCmd == 0)
+  {
+    // Silently consume ";" command, don't reply.
+    // This resets communication
+    outPrintAck = false;
   }
   else
     return false; // No command recognized

@@ -2,6 +2,7 @@
 #include "ControlInputsSocket.h"
 #include "SensorInterface.h"
 #include "MainMessageLoop.h"
+#include "ChassisInterface.h"
 
 #include <cstring>
 #include <thread>
@@ -43,6 +44,11 @@ int main(int argc, char** argv)
 	if (!sensor.Start())
 		initDone = false;
 
+	// Chassis interface
+	ChassisInterface chassis;
+	if (!chassis.Init())
+		initDone = false;
+
 	// Main message loop
 	MainMessageLoop msgLoop(&sensor);
 	g_pMsgLoop = &msgLoop;
@@ -52,7 +58,7 @@ int main(int argc, char** argv)
 	ctrlPanelServer.Start();
 
 	// Control inputs
-	ControlInputsSocket inputsSocket;
+	ControlInputsSocket inputsSocket(&chassis);
 	inputsSocket.Start();
 
 	if (initDone)
@@ -66,6 +72,7 @@ int main(int argc, char** argv)
 	ctrlPanelServer.TerminateWait();
 	inputsSocket.TerminateWait();
 	sensor.TerminateWait();
+	chassis.Terminate();
 	printf("Program has been terminated\n");
 	g_pMsgLoop = nullptr;
 	return 0;
