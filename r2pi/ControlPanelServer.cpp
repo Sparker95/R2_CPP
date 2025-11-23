@@ -1,5 +1,6 @@
 #include "ControlPanelServer.h"
 #include "../Common/ControlPanelProtocol.h"
+#include "SensorInterface.h"
 
 #include <thread>
 #include <algorithm>
@@ -20,7 +21,8 @@ bool ControlPanelServer::Start()
 		return true;
 
 	// Create pipes
-	if (pipe2(m_PipeFd, O_NONBLOCK) == -1)
+	// O_DIRECT - Pipe works in packet mode
+	if (pipe2(m_PipeFd, O_NONBLOCK | O_DIRECT) == -1)
 	{
 		fprintf(stderr, "Error: ControlPanelServer pipe creation error\n");
 		return false;
@@ -39,18 +41,23 @@ void ControlPanelServer::TerminateWait()
 	if (!m_bRunning)
 		return;
 
-	char termCmd = PIPE_CMD_TERMINATE;
-	write(m_PipeFd[1], &termCmd, 1);
+	PipeMsgTerminate* pMsg = new PipeMsgTerminate();
+	SendPipeMessage(pMsg);
 	m_pThread->join();
 
 	ClosePipe();
 }
 
-ControlPanelServer::ControlPanelServer(MainMessageLoop* pMainMsgLoop)
-	: m_pMainMsgLoop(pMainMsgLoop)
+ControlPanelServer::ControlPanelServer(MainMessageLoop* pMainMsgLoop, SensorInterface* pSensorInterface)
+	: m_pMainMsgLoop(pMainMsgLoop),
+	m_pSensorInterface(pSensorInterface)
 {
 	m_PipeFd[0] = -1;
 	m_PipeFd[1] = -1;
+
+	m_pSensorInterface->BindOnReceivedScan(
+		[this](const Sensor::ScanSample* pSamples, uint nValidSamples, uint nRawSamples)
+		{ OnSensorReceivedScan_mt(pSamples, nValidSamples, nRawSamples); });
 }
 
 ControlPanelServer::~ControlPanelServer()
@@ -119,8 +126,11 @@ void ControlPanelServer::ThreadFunction()
 		}
 		else if (FD_ISSET(pipeReadFd, &readFds))
 		{
-			printf("ControlPanelServer: Received Terminate command\n");
-			loopAccept = false;
+			if (!ProcessPipeMessage())
+			{
+				printf("ControlPanelServer: Received Terminate command\n");
+				loopAccept = false;
+			}
 		}
 		else if (FD_ISSET(sockFd, &readFds))
 		{
@@ -162,9 +172,12 @@ void ControlPanelServer::ThreadFunction()
 					{
 						if (FD_ISSET(pipeReadFd, &readFds))
 						{
-							printf("ControlPanelServer: Received Terminate command\n");
-							loopAccept = false;
-							loopRead = false;
+							if (!ProcessPipeMessage())
+							{
+								printf("ControlPanelServer: Received Terminate command\n");
+								loopAccept = false;
+								loopRead = false;
+							}
 						}
 						else if (FD_ISSET(m_ClientSockFd, &readFds))
 						{
@@ -198,6 +211,7 @@ void ControlPanelServer::ThreadFunction()
 				} // while loopRead
 
 				close(m_ClientSockFd);
+				m_ClientSockFd = -1;
 			}
 		}
 	} // while loopAccept
@@ -214,6 +228,15 @@ void ControlPanelServer::ClosePipe()
 		close(m_PipeFd[1]);
 	m_PipeFd[0] = -1;
 	m_PipeFd[1] = -1;
+}
+
+void ControlPanelServer::SendPipeMessage(PipeMsgBase* pMsg)
+{
+	if (m_PipeFd[1] < 0)
+		return;
+
+	// Write raw pointer to pipe
+	write(m_PipeFd[1], &pMsg, sizeof(PipeMsgBase*));
 }
 
 void ControlPanelServer::OnProtocolError(uint8_t errorCode, unsigned int extraData)
@@ -257,4 +280,21 @@ bool ControlPanelServer::SendMessage(ControlPanelProtocol::MessageType msgType, 
 	}
 
 	return true;
+}
+
+
+void ControlPanelServer::OnSensorReceivedScan_mt(const Sensor::ScanSample* pSamples, uint nValidSamples, uint nRawSamples)
+{
+	// Called from SensorInterface thread!
+	// Copy data and send it into pipe. The rest is handled in our own thread.
+
+	if (!m_bRunning || !m_bStreamSensorData || m_ClientSockFd < 0)
+		return;
+
+	PipeMsgSensorScanData* pMsg = new PipeMsgSensorScanData();
+	pMsg->m_Samples.resize(nValidSamples);
+	for (uint i = 0; i < nValidSamples; i++)
+		pMsg->m_Samples[i] = pSamples[i];
+
+	SendPipeMessage(pMsg);
 }

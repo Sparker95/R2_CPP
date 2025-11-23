@@ -156,9 +156,9 @@ bool ControlInputsSocket::ProcessMessage(const char* pMsg, uint msgSize)
 			float moveCmdValue = 0;
 			switch (pControlInputsMsg->m_MoveSpeed)
 			{
-				case TMoveSpeed::SLOW:   moveCmdValue = m_pChassisCtrlSettings->m_fSpeedSlow_Hz; break;
-				case TMoveSpeed::CRUISE: moveCmdValue = m_pChassisCtrlSettings->m_fSpeedCruise_Hz; break;
-				case TMoveSpeed::FAST:   moveCmdValue = m_pChassisCtrlSettings->m_fSpeedFast_Hz; break;
+				case TMoveSpeed::SLOW:   moveCmdValue = m_pChassisCtrlSettings->m_SpeedSlow_Hz; break;
+				case TMoveSpeed::CRUISE: moveCmdValue = m_pChassisCtrlSettings->m_SpeedCruise_Hz; break;
+				case TMoveSpeed::FAST:   moveCmdValue = m_pChassisCtrlSettings->m_SpeedFast_Hz; break;
 			}
 
 			if (!(pControlInputsMsg->m_CmdFlags & ControlInputsProtocol::Message::CMD_FLAG_MOVE_DIR_FWD))
@@ -173,8 +173,8 @@ bool ControlInputsSocket::ProcessMessage(const char* pMsg, uint msgSize)
 		}
 
 		// Steering
-		float steerCmdValue = std::clamp(pControlInputsMsg->m_fSteerNorm * m_pChassisCtrlSettings->m_fSteerOutputMax,
-			-m_pChassisCtrlSettings->m_fSteerOutputMax, m_pChassisCtrlSettings->m_fSteerOutputMax);
+		float steerCmdValue = std::clamp(pControlInputsMsg->m_fSteerNorm * m_pChassisCtrlSettings->m_SteerOutputMax,
+			-m_pChassisCtrlSettings->m_SteerOutputMax, m_pChassisCtrlSettings->m_SteerOutputMax);
 		m_pChassisInterface->SendCommand_Steer(steerCmdValue);
 	}
 

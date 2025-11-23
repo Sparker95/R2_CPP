@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1041</width>
-    <height>781</height>
+    <width>1070</width>
+    <height>990</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -66,52 +66,13 @@
      <string>&lt;- click to connect</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="SendMsgButton">
-    <property name="geometry">
-     <rect>
-      <x>660</x>
-      <y>50</y>
-      <width>75</width>
-      <height>24</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>SendMsg</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="SendNewlineButton">
-    <property name="geometry">
-     <rect>
-      <x>740</x>
-      <y>50</y>
-      <width>75</width>
-      <height>24</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Send TEST0</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="RequestScanData">
-    <property name="geometry">
-     <rect>
-      <x>820</x>
-      <y>50</y>
-      <width>121</width>
-      <height>24</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Request Scan Data</string>
-    </property>
-   </widget>
    <widget class="QQuickWidget" name="QuickWidget">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>50</y>
-      <width>640</width>
-      <height>640</height>
+      <x>160</x>
+      <y>40</y>
+      <width>900</width>
+      <height>900</height>
      </rect>
     </property>
     <property name="resizeMode">
@@ -121,8 +82,8 @@
    <widget class="QPushButton" name="IcpTestStore">
     <property name="geometry">
      <rect>
-      <x>790</x>
-      <y>80</y>
+      <x>10</x>
+      <y>160</y>
       <width>121</width>
       <height>24</height>
      </rect>
@@ -134,8 +95,8 @@
    <widget class="QPushButton" name="IcpTestRun">
     <property name="geometry">
      <rect>
-      <x>660</x>
-      <y>80</y>
+      <x>10</x>
+      <y>190</y>
       <width>121</width>
       <height>24</height>
      </rect>
@@ -144,39 +105,13 @@
      <string>ICP Test: Run</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="SaveScansButton">
-    <property name="geometry">
-     <rect>
-      <x>660</x>
-      <y>110</y>
-      <width>121</width>
-      <height>24</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Save 3 Scans</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="InputsTestButton">
-    <property name="geometry">
-     <rect>
-      <x>660</x>
-      <y>140</y>
-      <width>121</width>
-      <height>24</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Inputs Test</string>
-    </property>
-   </widget>
    <widget class="QLabel" name="ControlInputsLabel">
     <property name="geometry">
      <rect>
-      <x>660</x>
-      <y>600</y>
-      <width>181</width>
-      <height>91</height>
+      <x>10</x>
+      <y>220</y>
+      <width>131</width>
+      <height>101</height>
      </rect>
     </property>
     <property name="frameShape">
@@ -195,13 +130,52 @@
      <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
     </property>
    </widget>
+   <widget class="QPushButton" name="EnableSensorStreamButton">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>50</y>
+      <width>141</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Enable Sensor Stream</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="DisableSensorStreamButton">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>80</y>
+      <width>141</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Disable Sensor Stream</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="SaveSensorStreamToFileCheck">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>110</y>
+      <width>161</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Save Stream to File</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1041</width>
+     <width>1070</width>
      <height>22</height>
     </rect>
    </property>
@@ -226,54 +200,6 @@
     <hint type="sourcelabel">
      <x>185</x>
      <y>43</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>399</x>
-     <y>299</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>SendMsgButton</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>SlotOnSendMsgButton()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>170</x>
-     <y>83</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>399</x>
-     <y>299</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>SendNewlineButton</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>SlotOnSendNewlineButton()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>170</x>
-     <y>113</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>399</x>
-     <y>299</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>RequestScanData</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>SlotOnRequestScanDataButton()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>170</x>
-     <y>147</y>
     </hint>
     <hint type="destinationlabel">
      <x>399</x>
@@ -314,14 +240,14 @@
    </hints>
   </connection>
   <connection>
-   <sender>SaveScansButton</sender>
+   <sender>DisableSensorStreamButton</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
-   <slot>SlotOnSaveScansButton()</slot>
+   <slot>SlotOnDisableSensorStreamButton()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>720</x>
-     <y>143</y>
+     <x>740</x>
+     <y>113</y>
     </hint>
     <hint type="destinationlabel">
      <x>520</x>
@@ -330,14 +256,14 @@
    </hints>
   </connection>
   <connection>
-   <sender>InputsTestButton</sender>
+   <sender>EnableSensorStreamButton</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
-   <slot>SlotOnInputsTestButton()</slot>
+   <slot>SlotOnEnableSensorStreamButton()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>720</x>
-     <y>173</y>
+     <x>740</x>
+     <y>83</y>
     </hint>
     <hint type="destinationlabel">
      <x>520</x>
@@ -348,12 +274,9 @@
  </connections>
  <slots>
   <slot>SlotOnConnectButtonClicked()</slot>
-  <slot>SlotOnSendMsgButton()</slot>
-  <slot>SlotOnSendNewlineButton()</slot>
-  <slot>SlotOnRequestScanDataButton()</slot>
   <slot>SlotOnIcpTestStoreButton()</slot>
   <slot>SlotOnIcpTestRunButton()</slot>
-  <slot>SlotOnSaveScansButton()</slot>
-  <slot>SlotOnInputsTestButton()</slot>
+  <slot>SlotOnEnableSensorStreamButton()</slot>
+  <slot>SlotOnDisableSensorStreamButton()</slot>
  </slots>
 </ui>

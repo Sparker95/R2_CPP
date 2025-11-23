@@ -3,6 +3,7 @@
 #include "../Common/Common.h"
 
 #include <mutex>
+#include <cstdint>
 
 // This class wraps serial communications with chassis motor controller.
 // It does not run its own thread.
@@ -11,23 +12,31 @@ class ChassisInterface
 {
 private:
 	constexpr static uint MESSAGE_SIZE_MAX = 64;
-	static const char MSG_ACK[];
-	static const char STR_UNEXPECTED_RESPONSE[];
 
 public:
+	// Public types
+	using TOdometerCounter = uint16_t;
+
 	struct MotorCtrlPidSettings
 	{
-		float m_fKP = 0.5f;
-		float m_fKI = 0.5f;
-		float m_fKD = 0.0f;
-		float m_fErrorScale = 0.001f;
-		float m_fErrorIntegralMax = 1.0f;
+		float m_KP = 0.5f;
+		float m_KI = 0.5f;
+		float m_KD = 0.0f;
+		float m_ErrorScale = 0.001f;
+		float m_ErrorIntegralMax = 1.0f;
 	};
 
 	struct MotorCtrlAccelSettings
 	{
-		float m_fAccelMove = 100.0f;
-		float m_fAccelBrake = 100.0f;
+		float m_AccelMove = 100.0f;
+		float m_AccelBrake = 100.0f;
+	};
+
+	enum class MoveState
+	{
+		STOP,
+		FORWARD,
+		BACKWARD
 	};
 
 	~ChassisInterface();
@@ -39,7 +48,9 @@ public:
 	bool SendCommand_Ping();
 	bool SendCommand_MotorMove(float freq_Hz);
 	bool SendCommand_MotorBrake();
+	bool SendCommand_GetOdometer(TOdometerCounter& outOdometerCounter, MoveState& outMoveState);
 	bool SendCommand_Steer(float steerNorm);
+	bool SendCommand_GetSteer(float& outSteerNorm);
 	bool SendCommand_SetPid(const MotorCtrlPidSettings& s);
 	bool SendCommand_SetAccel(const MotorCtrlAccelSettings& s);
 	

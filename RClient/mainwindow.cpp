@@ -15,6 +15,7 @@
 #include <QQuickItem>
 #include <QQmlContext>
 #include <QScatterSeries>
+#include <QtGraphs>
 #include <QtQml>
 
 #include "InputHandling.h"
@@ -153,6 +154,8 @@ void MainWindow::timerEvent(QTimerEvent *event)
 void MainWindow::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigned int msgPayloadSize)
 {
     //QMessageBox(QMessageBox::Icon icon, const QString &title, const QString &text,
+    ControlPanelProtocol::BufferReader reader(msgPayload, msgPayloadSize);
+
     switch (static_cast<ControlPanelProtocol::MessageType>(msgType))
     {
         case ControlPanelProtocol::MessageType::MSG_PRINT:
@@ -168,16 +171,15 @@ void MainWindow::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigne
             break;
         }
 
-        case ControlPanelProtocol::MessageType::MSG_SENSOR_SCAN_DATA:
+        case ControlPanelProtocol::MessageType::MSG_SENSOR_DATA:
         {
-            uint32_t nSamples = *reinterpret_cast<uint32_t*>(msgPayload);
-            Sensor::ScanSample* pScanSamplesReceiveBuffer = reinterpret_cast<Sensor::ScanSample*>(&msgPayload[4]);
+            uint32_t nSamples = reader.Read<uint32_t>();
 
             // Deserialize data, same way as it was sent
             QList<Sensor::ScanSample> scanSamples;
             scanSamples.resize(static_cast<qsizetype>(nSamples));
             for (uint i = 0; i < nSamples; i++)
-                scanSamples[i] = pScanSamplesReceiveBuffer[i];
+                scanSamples[i] = reader.Read<Sensor::ScanSample>();
 
             // Convert data to Cartesian form
             QList<QPointF> scanSamplesCart;
@@ -186,8 +188,9 @@ void MainWindow::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigne
             for (uint i = 0; i < nSamples; i++)
             {
                 Sensor::ScanSample& sCart = scanSamples[i];
-                float xPos = sCart.m_Dist_m * cosf(sCart.m_Angle_rad);
-                float yPos = sCart.m_Dist_m * sinf(sCart.m_Angle_rad);
+                float angleDisplay = sCart.m_Angle_rad + PI;
+                float xPos = sCart.m_Dist_m * cosf(angleDisplay);
+                float yPos = sCart.m_Dist_m * sinf(angleDisplay);
                 scanSamplesCart[i] = QPointF(xPos, yPos);
             }
 
@@ -222,101 +225,4 @@ bool MainWindow::SendMessage(ControlPanelProtocol::MessageType msgType, unsigned
         m_ControlPanelSocket.write(pPayload, payloadSize);
 
     return true;
-}
-
-//------------------------------------------------------------------------------------------------------------------------
-// Handling of button events
-
-void MainWindow::SlotOnConnectButtonClicked()
-{
-    if (m_ControlInputsSocket.state() != QAbstractSocket::SocketState::BoundState)
-    {
-        bool controlsSocketBindRes = m_ControlInputsSocket.bind();
-        if (!controlsSocketBindRes)
-        {
-            ui->ConnStateLabel->setText("UDP error");
-            return;
-        }
-    }
-
-    QString addressStr = ui->ConnAddress->text();
-    m_ControlPanelSocket.connectToHost(addressStr, ControlPanelProtocol::CONTROL_PANEL_PORT);
-    ui->ConnStateLabel->setText("Connecting ...");
-}
-
-void MainWindow::SlotOnSendMsgButton()
-{
-    if (m_ControlPanelSocket.state() == QAbstractSocket::SocketState::ConnectedState)
-    {
-        char msgText[] = "ABC"; // "Message from Client";
-        ControlPanelProtocol::MessageHeader header;
-        header.Init(ControlPanelProtocol::MessageType::MSG_PRINT, sizeof(msgText));
-
-        m_ControlPanelSocket.write(reinterpret_cast<const char*>(&header), ControlPanelProtocol::MessageHeader::SIZE_PACKED);
-        m_ControlPanelSocket.write(msgText, sizeof(msgText));
-    }
-}
-
-void MainWindow::SlotOnSendNewlineButton()
-{
-    if (m_ControlPanelSocket.state() == QAbstractSocket::SocketState::ConnectedState)
-    {
-        ControlPanelProtocol::MessageHeader header;
-        header.Init(ControlPanelProtocol::MessageType::MSG_TEST0, 0);
-        m_ControlPanelSocket.write(reinterpret_cast<const char*>(&header), ControlPanelProtocol::MessageHeader::SIZE_PACKED);
-    }
-}
-
-void MainWindow::SlotOnRequestScanDataButton()
-{
-    if (m_ControlPanelSocket.state() == QAbstractSocket::SocketState::ConnectedState)
-    {
-        ControlPanelProtocol::MessageHeader header;
-        header.Init(ControlPanelProtocol::MessageType::MSG_RQ_SENSOR_SCAN_DATA, 0);
-
-        m_ControlPanelSocket.write(reinterpret_cast<const char*>(&header), ControlPanelProtocol::MessageHeader::SIZE_PACKED);
-    }
-}
-
-void MainWindow::SlotOnIcpTestStoreButton()
-{
-    // Store one scan for future comparison
-    char payload = 0;
-    if (m_ControlPanelSocket.state() == QAbstractSocket::SocketState::ConnectedState)
-    {
-        SendMessage(ControlPanelProtocol::MessageType::MSG_ICP_TEST, 1, &payload);
-    }
-}
-
-void MainWindow::SlotOnIcpTestRunButton()
-{
-    // Store another scan and run ICP
-    char payload = 1;
-    if (m_ControlPanelSocket.state() == QAbstractSocket::SocketState::ConnectedState)
-    {
-        SendMessage(ControlPanelProtocol::MessageType::MSG_ICP_TEST, 1, &payload);
-    }
-}
-
-void MainWindow::SlotOnSaveScansButton()
-{
-    char payload = 3;
-    if (m_ControlPanelSocket.state() == QAbstractSocket::SocketState::ConnectedState)
-    {
-        SendMessage(ControlPanelProtocol::MessageType::MSG_SAVE_SCANS, 1, &payload);
-    }
-}
-
-void MainWindow::SlotOnInputsTestButton()
-{
-    if (m_ControlPanelSocket.state() != QAbstractSocket::SocketState::ConnectedState)
-        return;
-
-    if (m_ControlInputsSocket.state() != QAbstractSocket::SocketState::BoundState)
-        return;
-
-    char data[4] = {0, 1, 2, 3};
-    QByteArray dataArray(data, 4);
-    QHostAddress receiverAddr = m_ControlPanelSocket.peerAddress();
-    m_ControlInputsSocket.writeDatagram(dataArray, receiverAddr, ControlInputsProtocol::CONTROL_INPUTS_PORT);
 }

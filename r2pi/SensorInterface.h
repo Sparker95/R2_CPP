@@ -5,6 +5,7 @@
 
 #include <memory>
 #include <functional>
+#include <vector>
 #include <stdint.h>
 
 namespace std
@@ -33,11 +34,14 @@ public:
 	// !!! Invoked in thread of SensorInterface!
 	// Here we must copy scan data and return.
 	template<typename F>
-	void BindOnReceivedScan(F f) { m_OnReceivedScan = f; }
+	void BindOnReceivedScan(F f) { m_OnReceivedScan.push_back(f); }
 
 private:
 	constexpr static char PIPE_CMD_TERMINATE = 0x78; // Sent into pipe to termiante the thread
-	
+
+	// const Sensor::ScanSample* pSamples, uint nValidSamples, uint nRawSamples
+	using TOnReceivedScan = std::function<void(const Sensor::ScanSample*, uint, uint)>;
+
 	std::unique_ptr<std::thread> m_pThread;
 	int m_PipeFd[2]; // 0 - read, 1 - write
 	int m_SerialPortFd = -1;
@@ -55,7 +59,7 @@ private:
 
 	// Handling of events
 	// !!! Invoked in thread of SensorInterface!
-	std::function<void(const Sensor::ScanSample*, uint, uint)> m_OnReceivedScan;
+	std::vector<TOnReceivedScan> m_OnReceivedScan;
 
 	void ThreadFunction();
 	void ClosePipe();

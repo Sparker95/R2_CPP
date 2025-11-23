@@ -47,11 +47,11 @@ bool ReadConfigPidSettings(const Config& cfg, ChassisInterface::MotorCtrlPidSett
 		return false;
 	}
 
-	s.m_fKP = static_cast<float>(std::atof(pP));
-	s.m_fKI = static_cast<float>(std::atof(pI));
-	s.m_fKD = static_cast<float>(std::atof(pD));
-	s.m_fErrorScale = static_cast<float>(std::atof(pErrorScale));
-	s.m_fErrorIntegralMax = static_cast<float>(std::atof(pErrorIntegralMax));
+	s.m_KP = static_cast<float>(std::atof(pP));
+	s.m_KI = static_cast<float>(std::atof(pI));
+	s.m_KD = static_cast<float>(std::atof(pD));
+	s.m_ErrorScale = static_cast<float>(std::atof(pErrorScale));
+	s.m_ErrorIntegralMax = static_cast<float>(std::atof(pErrorIntegralMax));
 
 	// Try to preserve default values in case of failure
 	outSettings = s;
@@ -71,14 +71,14 @@ bool ReadConfigAccelSettings(const Config& cfg, ChassisInterface::MotorCtrlAccel
 		return false;
 	}
 
-	s.m_fAccelMove = static_cast<float>(std::atof(pAccelMove));
-	s.m_fAccelBrake = static_cast<float>(std::atof(pAccelBrake));
+	s.m_AccelMove = static_cast<float>(std::atof(pAccelMove));
+	s.m_AccelBrake = static_cast<float>(std::atof(pAccelBrake));
 
 	outSettings = s;
 	return true;
 }
 
-bool ReadConfigChassisControlSettings(const Config& cfg, ChassisSettings::ControlSettings outSettings)
+bool ReadConfigChassisControlSettings(const Config& cfg, ChassisSettings::ControlSettings& outSettings)
 {
 	ChassisSettings::ControlSettings s;
 
@@ -93,10 +93,10 @@ bool ReadConfigChassisControlSettings(const Config& cfg, ChassisSettings::Contro
 		return false;
 	}
 
-	s.m_fSteerOutputMax = static_cast<float>(std::atof(pSteerOutputMax));
-	s.m_fSpeedSlow_Hz = static_cast<float>(std::atof(pSpeedSlow));
-	s.m_fSpeedCruise_Hz = static_cast<float>(std::atof(pSpeedCruise));
-	s.m_fSpeedFast_Hz = static_cast<float>(std::atof(pSpeedFast));
+	s.m_SteerOutputMax = static_cast<float>(std::atof(pSteerOutputMax));
+	s.m_SpeedSlow_Hz = static_cast<float>(std::atof(pSpeedSlow));
+	s.m_SpeedCruise_Hz = static_cast<float>(std::atof(pSpeedCruise));
+	s.m_SpeedFast_Hz = static_cast<float>(std::atof(pSpeedFast));
 	
 	outSettings = s;
 	return true;
@@ -151,7 +151,7 @@ int main(int argc, char** argv)
 	g_pMsgLoop = &msgLoop;
 
 	// Control panel server
-	ControlPanelServer ctrlPanelServer(&msgLoop);
+	ControlPanelServer ctrlPanelServer(&msgLoop, &sensor);
 	ctrlPanelServer.Start();
 
 	// Control inputs

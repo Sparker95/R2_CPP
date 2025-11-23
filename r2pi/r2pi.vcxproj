@@ -74,6 +74,30 @@
   <ImportGroup Label="Shared" />
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <EnableIncrementalBuild>WithNinja</EnableIncrementalBuild>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <EnableIncrementalBuild>WithNinja</EnableIncrementalBuild>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <EnableIncrementalBuild>WithNinja</EnableIncrementalBuild>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+    <EnableIncrementalBuild>WithNinja</EnableIncrementalBuild>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <EnableIncrementalBuild>WithNinja</EnableIncrementalBuild>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <EnableIncrementalBuild>WithNinja</EnableIncrementalBuild>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <EnableIncrementalBuild>WithNinja</EnableIncrementalBuild>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+    <EnableIncrementalBuild>WithNinja</EnableIncrementalBuild>
+  </PropertyGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\Common.h" />
     <ClInclude Include="..\Common\ControlInputsProtocol.h" />

@@ -18,12 +18,17 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <errno.h>
 
 static char g_SendBuffer[16 * 1024];
+
+using BufferWriter = ControlPanelProtocol::BufferWriter;
+using BufferReader = ControlPanelProtocol::BufferReader;
 
 void ControlPanelServer::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigned int msgPayloadSize)
 {
 	using MessageType = ControlPanelProtocol::MessageType;
+	BufferReader reader(msgPayload, msgPayloadSize);
 	switch (static_cast<ControlPanelProtocol::MessageType>(msgType))
 	{
 		case (MessageType::MSG_PRINT):
@@ -50,25 +55,12 @@ void ControlPanelServer::OnProtocolNewMessage(uint8_t msgType, char* msgPayload,
 			send(m_ClientSockFd, static_cast<const void*>(text), static_cast<size_t>(header.m_PayloadSize), 0);
 			break;
 		}
-		case (MessageType::MSG_RQ_SENSOR_SCAN_DATA):
+		case (MessageType::MSG_ENABLE_STREAM_SENSOR_DATA):
 		{
-			// Send back sensor scan data
-			std::vector<Sensor::ScanSample> samples;
-			uint scanCounter;
-			m_pMainMsgLoop->GetScanSamples_mt(samples, scanCounter);
+			if (msgPayloadSize != 1)
+				return;
 
-			uint payloadSize = 4 + static_cast<uint>(sizeof(Sensor::ScanSample)) * static_cast<uint>(samples.size()); // First number is num of samples
-
-			*reinterpret_cast<uint32_t*>(g_SendBuffer) = static_cast<uint32_t>(samples.size());
-			Sensor::ScanSample* pOutSamples = reinterpret_cast<Sensor::ScanSample*>(&g_SendBuffer[4]);
-
-			for (Sensor::ScanSample& s : samples)
-			{
-				*pOutSamples = s;
-				pOutSamples++;
-			}
-
-			SendMessage(ControlPanelProtocol::MessageType::MSG_SENSOR_SCAN_DATA, payloadSize, g_SendBuffer);
+			m_bStreamSensorData = reader.Read<uint8_t>() == 1;
 			break;
 		}
 		case (MessageType::MSG_ICP_TEST):
@@ -102,54 +94,52 @@ void ControlPanelServer::OnProtocolNewMessage(uint8_t msgType, char* msgPayload,
 				SendMessage(ControlPanelProtocol::MessageType::MSG_PRINT, static_cast<uint>(strlen(str)), str);
 			}
 		}
-		case (MessageType::MSG_SAVE_SCANS):
-		{
-			if (msgPayloadSize != 1)
-				return;
-
-			char lineBuffer[256];
-
-			unsigned int nScansToSave = static_cast<unsigned int>(*msgPayload);
-			unsigned int scanCounter = m_pMainMsgLoop->GetScanCounter_mt();
-			for (unsigned int scanId = 0; scanId < nScansToSave; scanId++)
-			{
-				// Wait till next scan
-				while (true)
-				{
-					unsigned int newScanCounter = m_pMainMsgLoop->GetScanCounter_mt();
-					if (newScanCounter != scanCounter)
-						break;
-
-					std::this_thread::sleep_for(std::chrono::milliseconds(50));
-				}
-
-				// We have waited till new scan
-				std::vector<Sensor::ScanSample> samples;
-				m_pMainMsgLoop->GetScanSamples_mt(samples, scanCounter);
-
-				// Save to file
-				char filePath[32];
-				snprintf(filePath, 32, "Scan %i.txt", scanId);
-				int fd = open(filePath, O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
-				if (fd != -1)
-				{
-					snprintf(lineBuffer, 256, "%i\n", scanCounter);
-					write(fd, lineBuffer, strlen(lineBuffer));
-
-					for (const Sensor::ScanSample& sample : samples)
-					{
-						snprintf(lineBuffer, 256, "%.6f %.6f\n", sample.m_Angle_rad, sample.m_Dist_m);
-						write(fd, lineBuffer, strlen(lineBuffer));
-					}
-				}
-				close(fd);
-			}
-
-			// Finally report back that we have saved the scans
-			snprintf(lineBuffer, 256, "Saved %i scans to file(s)", nScansToSave);
-			SendMessage(ControlPanelProtocol::MessageType::MSG_PRINT, static_cast<uint>(strlen(lineBuffer)), lineBuffer);
-		}
 		default:
 			break;
+	}
+}
+
+// Called on pipe new message, also handles termination of thread
+bool ControlPanelServer::ProcessPipeMessage()
+{
+	PipeMsgBase* pMsg = nullptr;
+	ssize_t nBytesRead = read(m_PipeFd[0], &pMsg, sizeof(PipeMsgBase*));
+
+	if (nBytesRead != sizeof(PipeMsgBase*))
+	{
+		fprintf(stderr, "ControlPanelServer: pipe read error: %i\n", errno);
+		return false;
+	}
+
+	bool terminateThread = false;
+	OnPipeMessage(pMsg, terminateThread);
+
+	// Remember to delete message!
+	delete pMsg; // Virtual destructor!
+
+	return !terminateThread;
+}
+
+void ControlPanelServer::OnPipeMessage(PipeMsgBase* pMsg, bool& outTerminate)
+{
+	BufferWriter writer(g_SendBuffer, sizeof(g_SendBuffer));
+	
+	if (dynamic_cast<PipeMsgTerminate*>(pMsg))
+	{
+		outTerminate = true;
+		return;
+	}
+	else if (PipeMsgSensorScanData* pMsgScanData = dynamic_cast<PipeMsgSensorScanData*>(pMsg))
+	{
+		if (!m_bStreamSensorData || m_ClientSockFd < 0)
+			return;
+
+		uint nSamples = static_cast<uint>(pMsgScanData->m_Samples.size());
+
+		writer.Write<uint32_t>(nSamples);
+		for (uint i = 0; i < nSamples; i++)
+			writer.Write(pMsgScanData->m_Samples[i]);
+
+		SendMessage(ControlPanelProtocol::MessageType::MSG_SENSOR_DATA, writer.GetNumBytesWritten(), g_SendBuffer);
 	}
 }

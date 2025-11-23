@@ -42,13 +42,10 @@ private:
 
 private slots:
     void SlotOnConnectButtonClicked();
-    void SlotOnSendMsgButton();
-    void SlotOnSendNewlineButton();
-    void SlotOnRequestScanDataButton();
     void SlotOnIcpTestStoreButton();
     void SlotOnIcpTestRunButton();
-    void SlotOnSaveScansButton();
-    void SlotOnInputsTestButton();
+    void SlotOnEnableSensorStreamButton();
+    void SlotOnDisableSensorStreamButton();
 
     void SlotOnSocketConnected();
     void SlotOnSocketDisconnected();

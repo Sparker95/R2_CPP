@@ -18,13 +18,12 @@ namespace ControlPanelProtocol
 		MSG_PRINT = 1, // Receiver will print characters in UI
 
 		// Client to Server
-		MSG_RQ_SENSOR_SCAN_DATA, // Requests sensor scan data
+        MSG_ENABLE_STREAM_SENSOR_DATA,  // Enables sensor data streaming. Data is byte: 0 - disable, 1 - enable
 		MSG_ICP_TEST,            // Requests ICP test. Data is byte: 0 - store scan 0, 1 - store scan 1 and run ICP on them.
-		MSG_SAVE_SCANS,          // Requests to save N consecutive scans. Data is byte: N - count of scans.
+        MSG_TEST0,               // Not used any more
 
 		// Server to Client
-        MSG_TEST0,
-		MSG_SENSOR_SCAN_DATA // Sends whole scan data
+		MSG_SENSOR_DATA // Scan and odometer data from one cycle
 	};
 
 	struct MessageHeader
@@ -93,6 +92,64 @@ namespace ControlPanelProtocol
 		// Methods
 
 		void OnByte(char b);
+	};
+
+	// Serialization and deserialization helpers
+	class BufferWriter
+	{
+	private:
+		char* m_pBufferStart;
+		char* m_pBufferEnd;
+		char* m_pWritePtr;
+	public:
+		BufferWriter(char* pData, unsigned int bufferSize) :
+			m_pBufferStart(pData), m_pBufferEnd(pData + bufferSize), m_pWritePtr(pData)
+		{}
+		BufferWriter() = delete;
+
+		template<class T>
+		void Write(T& value)
+		{
+			if (m_pBufferEnd - m_pWritePtr < static_cast<long int>(sizeof(T)))
+				return;
+			*reinterpret_cast<T*>(m_pWritePtr) = value;
+			m_pWritePtr += sizeof(T);
+		}
+
+		unsigned int GetNumBytesWritten() const
+		{
+			return static_cast<unsigned int>(m_pWritePtr - m_pBufferStart);
+		}
+	};
+
+	class BufferReader
+	{
+	private:
+		const char* m_pBufferStart;
+		const char* m_pBufferEnd;
+		const char* m_pReadPtr;
+	public:
+		BufferReader(const char* pData, unsigned int bufferSize) :
+			m_pBufferStart(pData), m_pBufferEnd(pData + bufferSize), m_pReadPtr(pData)
+		{}
+		BufferReader() = delete;
+
+		template<class T>
+		const T& Read()
+		{
+			if (m_pBufferEnd - m_pReadPtr < static_cast<long int>(sizeof(T)))
+			{
+				// Force crash
+				T* null = nullptr;
+				return *null;
+			}
+
+			const T* returnPtr = reinterpret_cast<const T*>(m_pReadPtr);
+			m_pReadPtr += sizeof(T);
+			return *returnPtr;
+		}
+
+		unsigned int GetNumBytesRead() const { return static_cast<unsigned int>(m_pReadPtr - m_pBufferStart); }
 	};
 }
 

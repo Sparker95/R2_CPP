@@ -58,6 +58,7 @@ qt6_add_qml_module(RClient
         SOURCES ../Common/ControlInputsProtocol.h
         SOURCES InputHandling.h
         SOURCES InputHandling.cpp
+        SOURCES buttons.cpp
 )
 
 target_link_libraries(RClient PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)

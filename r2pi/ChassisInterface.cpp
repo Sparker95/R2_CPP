@@ -11,8 +11,8 @@
 #include <termios.h> // Contains POSIX terminal control definitions
 
 // Constants
-const char ChassisInterface::MSG_ACK[] = "ACK;";
-const char ChassisInterface::STR_UNEXPECTED_RESPONSE[] = "ChassisInterface: Unexpected response error: %s\n";
+const char MSG_ACK[] = "ACK;";
+const char STR_UNEXPECTED_RESPONSE[] = "ChassisInterface: Unexpected response error: %s\n";
 
 
 ChassisInterface::~ChassisInterface()
@@ -204,7 +204,7 @@ bool ChassisInterface::SendCommand_SetPid(const MotorCtrlPidSettings& s)
 {
 	char cmd[MESSAGE_SIZE_MAX];
 	sprintf(cmd, "SET_PID %.2f %.2f %.2f %.4f %.3f;",
-		s.m_fKP, s.m_fKI, s.m_fKD, s.m_fErrorScale, s.m_fErrorIntegralMax);
+		s.m_KP, s.m_KI, s.m_KD, s.m_ErrorScale, s.m_ErrorIntegralMax);
 	return SendCommand_VerifyResponse(cmd, MSG_ACK);
 }
 
@@ -212,8 +212,91 @@ bool ChassisInterface::SendCommand_SetAccel(const MotorCtrlAccelSettings& s)
 {
 	char cmd[MESSAGE_SIZE_MAX];
 	sprintf(cmd, "SET_ACCEL %.2f %.2f;",
-		s.m_fAccelMove, s.m_fAccelBrake);
+		s.m_AccelMove, s.m_AccelBrake);
 	return SendCommand_VerifyResponse(cmd, MSG_ACK);
+}
+
+bool ChassisInterface::SendCommand_GetOdometer(TOdometerCounter& outOdometerCounter, MoveState& outMoveState)
+{
+	char buf[MESSAGE_SIZE_MAX];
+	const char cmdGetOdo[] = "GET_ODO;";
+	write(m_SerialPortFd, static_cast<const void*>(cmdGetOdo), sizeof(cmdGetOdo) - 1);
+
+	uint responseSize;
+	if (!ReadResponse(buf, sizeof(buf), responseSize))
+		return false;
+
+	if (strncmp(buf, "ODO", 3) != 0)
+	{
+		fprintf(stderr, STR_UNEXPECTED_RESPONSE, buf);
+		return false;
+	}
+
+	// ODO <int> <moveDir>;
+
+	char* pArg0 = strchr(buf, ' ');
+	char* pArg1 = nullptr;
+	if (pArg0)
+		pArg0 = strchr(pArg0 + 1, ' ');
+	
+	if (!pArg0 || !pArg1)
+	{
+		fprintf(stderr, STR_UNEXPECTED_RESPONSE, buf);
+		return false;
+	}
+
+	pArg0++;    // Points to start of argument
+	*pArg1 = 0; // Null terminate for int conversion
+	pArg1++;
+
+	outOdometerCounter = static_cast<TOdometerCounter>(atol(pArg0));
+
+	switch (*pArg1)
+	{
+	case '+':
+		outMoveState = MoveState::FORWARD;
+		break;
+	case '-':
+		outMoveState = MoveState::BACKWARD;
+		break;
+	case '0':
+		outMoveState = MoveState::STOP;
+		break;
+	default:
+		fprintf(stderr, STR_UNEXPECTED_RESPONSE, buf);
+		return false;
+		break;
+	}
+
+	return true;
+}
+
+bool ChassisInterface::SendCommand_GetSteer(float& outSteerNorm)
+{
+	char buf[MESSAGE_SIZE_MAX];
+	const char cmdGetOdo[] = "GET_ST;";
+	write(m_SerialPortFd, static_cast<const void*>(cmdGetOdo), sizeof(cmdGetOdo) - 1);
+
+	uint responseSize;
+	if (!ReadResponse(buf, sizeof(buf), responseSize))
+		return false;
+
+	if (strncmp(buf, "ST", 2) != 0)
+	{
+		fprintf(stderr, STR_UNEXPECTED_RESPONSE, buf);
+		return false;
+	}
+
+	char* pArg = strchr(buf, ' ');
+	if (!pArg)
+	{
+		fprintf(stderr, STR_UNEXPECTED_RESPONSE, buf);
+		return false;
+	}
+	pArg++;
+
+	outSteerNorm = strtof(pArg, nullptr);
+	return true;
 }
 
 bool ChassisInterface::SendCommand_VerifyResponse(const char* pCmd, const char* pExpectedResponse)

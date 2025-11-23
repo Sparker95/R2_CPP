@@ -407,9 +407,9 @@ void SensorInterface::ProcessScanResult()
 
 	printf("SensorInterface: Received scan: total samples: %i, valid samples: %i\n", m_ScanSampleId, outSampleId);
 
-	if (m_OnReceivedScan != nullptr)
+	for (uint i = 0; i < m_OnReceivedScan.size(); i++)
 	{
-		m_OnReceivedScan(m_pOutScanSamples.get(), outSampleId, m_ScanSampleId); // data (only valid samples), n valid samples, n raw samples 
+		m_OnReceivedScan[i](m_pOutScanSamples.get(), outSampleId, m_ScanSampleId); // data (only valid samples), n valid samples, n raw samples 
 	}
 }
 

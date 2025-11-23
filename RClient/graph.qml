@@ -4,12 +4,12 @@ import QtGraphs
 GraphsView {
     anchors.fill: parent
     axisX: ValueAxis {
-        min: -10
-        max: 10
+        min: -3
+        max: 3
     }
     axisY: ValueAxis {
-        min: -10
-        max: 10
+        min: -3
+        max: 3
     }
 
     component GraphMarker : Rectangle {
@@ -25,9 +25,6 @@ GraphsView {
         color: "#00ff00"
         id: scatterSeries
         pointDelegate: GraphMarker { }
-        XYPoint { x: 0.5; y: 0.5 }
-        XYPoint { x: 1; y: 1 }
-        XYPoint { x: 2; y: 2 }
-        XYPoint { x: 2.5; y: 1.5 }
+        XYPoint { x: 0; y: 0 }
     }
 }

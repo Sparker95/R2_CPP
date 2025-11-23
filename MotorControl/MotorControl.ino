@@ -4,17 +4,17 @@
 
 /*
 Serial commands
-Command:   Data:      Return:      Extra:
-ST_RAW     <int>      ACK;
+Command:   Data:      Return:                Extra:
 ST         <float>    ACK;
+GET_ST                ST <float>;
 MT_MV      <float>    ACK;
 MT_BR                 ACK;
-MT_ODO                ODO <int>;
-MT_LOG     0/1        ACK;         periodic: LOG ... ... ... ;
+GET_ODO               ODO <int> <moveDir>;   <moveDir> - '0' - stopped, '+' - fwd, '-' - bwd
+MT_LOG     0/1        ACK;                   periodic: LOG ... ... ... ;
 PING                  MT_CTRL;
 STOP_ON_DC 0/1        ACK;
-SET_ACCEL  2x<float>  ACK;        AccelMove AccelBrake
-SET_PID    5x<float>  ACK;        P I D ErrorScale ErrorIntegralMax
+SET_ACCEL  2x<float>  ACK;                   AccelMove AccelBrake
+SET_PID    5x<float>  ACK;                   P I D ErrorScale ErrorIntegralMax
 
 Empty command ";" resets communication state, without reply.
 */
@@ -26,6 +26,9 @@ Empty command ";" resets communication state, without reply.
 #define PORTF_TIMESTAMP_0 0
 #define PORTF_TIMESTAMP_1 1
 
+// Most logic is updated at this interval
+constexpr float UPDATE_INTERVAL_S = 1 / 50.0f;
+
 float clampf(float v, float min, float max)
 {
   if (v < min)
@@ -33,6 +36,22 @@ float clampf(float v, float min, float max)
   else if (v > max)
     v = max;
   return v;
+}
+
+void AnimateLinear(float& current, const float& tgt, float maxChange)
+{
+  if (current == tgt)
+    return;
+  
+  if (fabs(current - tgt) < maxChange)
+    current = tgt;
+  else
+  {
+    if (current < tgt)
+      current += maxChange;
+    else
+      current -= maxChange;
+  }
 }
 
 class PidController
@@ -103,11 +122,8 @@ Output: float control value for ESC -1.0f .. +1.0f
 class MotorController
 {
   private:
-  
   constexpr static uint8_t STOPPED_COUNTER_THRESHOLD = 10;
-  
-  constexpr static float DT_S = 1 / 50.0f;
-  
+    
   enum Command : uint8_t
   {
     BRAKE = 0,
@@ -125,8 +141,8 @@ class MotorController
   
   //--------------------------------------
   // Settings:
-  float m_fAccelMoving = 1.0f;
-  float m_fAccelBraking = 1.0f;
+  float m_fAccelMoving_Upd = 1.0f;  // Values are per update, not per second!
+  float m_fAccelBraking_Upd = 1.0f;
   
   //--------------------------------------
   // Command data:
@@ -142,29 +158,6 @@ class MotorController
   uint8_t m_iStoppedCounter = 0;           // Detection of stopped state
   
   //--------------------------------------------------------
-  
-  
-  bool IsStopped() { return m_iStoppedCounter == STOPPED_COUNTER_THRESHOLD; }
-  
-  void SmoothLinear(float& current, float tgt, float speed)
-  {
-    if (current == tgt)
-      return;
-    
-    float speedPerUpdate = DT_S * speed;
-    
-    if (fabs(current - tgt) < speedPerUpdate)
-      current = tgt;
-    else
-    {
-      if (current < tgt)
-        current += speedPerUpdate;
-      else
-        current -= speedPerUpdate;
-    }
-  }
-  
-  //--------------------------------------------------------
   // Public
   
   public:
@@ -173,12 +166,14 @@ class MotorController
   float GetSmoothFrequency_Hz() const { return m_fSmoothFrequency_Hz; }
   const PidController& GetPidController() const { return m_PidController; }
   bool GetCurrentMoveDirectionForward() const { return m_CurrentMoveDir == MoveDir::FWD; }
+  bool GetStopped() { return m_iStoppedCounter == STOPPED_COUNTER_THRESHOLD; }
   
   // Settings
-  void SetAcceleration(float accelMoving, float accelBraking)
+  // Values are per second^2
+  void SetAcceleration(float accelMoving_inv_s2, float accelBraking_inv_s2)
   {
-    m_fAccelMoving = accelMoving;
-    m_fAccelBraking = accelBraking;
+    m_fAccelMoving_Upd = UPDATE_INTERVAL_S * accelMoving_inv_s2;
+    m_fAccelBraking_Upd = UPDATE_INTERVAL_S * accelBraking_inv_s2;
   }
   
   void SetPidSettings(const PidController::Settings& pidSettings)
@@ -221,10 +216,10 @@ class MotorController
         m_fCmdTargetFrequency_Hz == 0.0f) // Prevents braking when going in reverse and then switching to 0
       {
         // Linearly smooth the m_fSmoothFrequency_Hz towards m_fCmdTargetFrequency_Hz
-        SmoothLinear(m_fSmoothFrequency_Hz, m_fCmdTargetFrequency_Hz, m_fAccelMoving);
+        AnimateLinear(m_fSmoothFrequency_Hz, m_fCmdTargetFrequency_Hz, m_fAccelMoving_Upd);
         
         // Special case when decelerating to 0
-        if (m_fCmdTargetFrequency_Hz == 0.0f && m_fSmoothFrequency_Hz == 0.0f && IsStopped())
+        if (m_fCmdTargetFrequency_Hz == 0.0f && m_fSmoothFrequency_Hz == 0.0f && GetStopped())
         {
           // We don't want leftover values inside
           m_PidController.Reset();
@@ -233,10 +228,10 @@ class MotorController
       else
       {
         // Brake
-        SmoothLinear(m_fSmoothFrequency_Hz, 0.0f, m_fAccelBraking);
+        AnimateLinear(m_fSmoothFrequency_Hz, 0.0f, m_fAccelBraking_Upd);
         
         // When finally stopped, reverse the direction
-        if (m_fSmoothFrequency_Hz == 0.0f && IsStopped())
+        if (m_fSmoothFrequency_Hz == 0.0f && GetStopped())
         {
           m_CurrentMoveDir = m_CmdMoveDir;
           // We start moving again, reset PID,  we don't want any leftover values inside
@@ -246,7 +241,7 @@ class MotorController
     }
     else if (m_CmdType == Command::BRAKE)
     {
-      SmoothLinear(m_fSmoothFrequency_Hz, 0.0f, m_fAccelBraking);
+      AnimateLinear(m_fSmoothFrequency_Hz, 0.0f, m_fAccelBraking_Upd);
       if (m_fSmoothFrequency_Hz == 0.0f)
       {
         // When finally stopped, reset PID, we don't want any leftover values inside
@@ -322,6 +317,13 @@ uint8_t g_iSerialCmdBufferId = 0;
 
 // Motor control
 MotorController g_MotorController;
+
+// Steering
+float m_fSteerTgt = 0.0f;
+float m_fSteerEst = 0.0f; // Estimation of real value, it is linearly animated to reach m_fSteerTgt
+constexpr float STEER_SPEED_DEG_PER_S = 60.0f / 0.17f; // https://servodatabase.com/servo/traxxas/2075x
+constexpr float STEER_FULL_RANGE_DEG = 90.0f;      // -1 .. 1.0 input
+constexpr float STEER_SPEED_INPUT_PER_S = STEER_SPEED_DEG_PER_S / (STEER_FULL_RANGE_DEG / 2.0f); // Turn speed converted into input units per second. 
 
 // Settings, modes of operation
 bool g_bMotorLogEnabled = false;
@@ -469,22 +471,6 @@ void loop()
             }
           }
           
-          // testing
-          /*{
-            char testBuffer[32];
-            g_pCurrentSerial->print("Arguments: ");
-            utoa(nArgs, testBuffer, 10);
-            g_pCurrentSerial->print(testBuffer);
-            g_pCurrentSerial->print(": ");
-            for (uint8_t i = 0; i < nArgs && i < SERIAL_COMMAND_MAX_ARGUMENTS; i++)
-            {
-              utoa(argOffsets[i], testBuffer, 10);
-              g_pCurrentSerial->print(testBuffer);
-              g_pCurrentSerial->print(" ");
-            }
-          }*/
-          /////////////
-          
           bool printAck = true; // Most commands print back "ACK;"
           if (ProcessSerialCommand(g_SerialCmdBuffer, argOffsets, nArgs, printAck))
           {
@@ -537,8 +523,13 @@ void loop()
     {
       g_MotorController.SetCommand_Brake();
       Steer_SetRawValue(PwmControl::PWM_VALUE_NEUTRAL);
+      m_fSteerTgt = 0.0f;
     }
     
+    // Steer real value animation
+    AnimateLinear(m_fSteerEst, m_fSteerTgt, UPDATE_INTERVAL_S*STEER_SPEED_INPUT_PER_S);
+    
+    // Update motor controller
     UpdateMotorController();
     
     // <<< Timestamp 0
@@ -567,7 +558,7 @@ void UpdateMotorController()
   // Write log every update
   if (g_bMotorLogEnabled)
   {
-    char txtBuffer[64];
+    char txtBuffer[16];
     const char strSeparator[] = ", ";
     
     // Smooth target frequency, Current Frequency, PID Error Scaled, PID Error Integral, Controller Output, Current Move Direction
@@ -614,21 +605,13 @@ void UpdateMotorController()
 
 bool ProcessSerialCommand(char* pCmd, uint8_t* argOffsets, uint8_t nArgs, bool& outPrintAck)
 {
-  if (strcmp(pCmd, "ST_RAW") == 0)
+  if (strcmp(pCmd, "ST") == 0)
   {
     if (nArgs != 1)
       return false;
     
-    int cmdValue = atoi(&pCmd[argOffsets[0]]);
-    Steer_SetRawValue(static_cast<uint16_t>(cmdValue));
-  }
-  else if (strcmp(pCmd, "ST") == 0)
-  {
-    if (nArgs != 1)
-      return false;
-    
-    float cmdValue = atof(&pCmd[argOffsets[0]]);
-    uint16_t steerRawValue = PwmControl::FloatToRawPwm(cmdValue);
+    m_fSteerTgt = atof(&pCmd[argOffsets[0]]);
+    uint16_t steerRawValue = PwmControl::FloatToRawPwm(m_fSteerTgt);
     Steer_SetRawValue(steerRawValue);
   }
   else if (strcmp(pCmd, "MT_MV") == 0)
@@ -644,7 +627,18 @@ bool ProcessSerialCommand(char* pCmd, uint8_t* argOffsets, uint8_t nArgs, bool& 
   {
     g_MotorController.SetCommand_Brake();
   }
-  else if (strcmp(pCmd, "MT_ODO") == 0)
+  else if (strcmp(pCmd, "GET_ST") == 0)
+  {
+    g_pCurrentSerial->write("ST ");
+    char txtBuffer[16];
+    dtostrf(m_fSteerEst, 2, 2, txtBuffer);
+    g_pCurrentSerial->write(txtBuffer);
+    g_pCurrentSerial->write(";\n");
+    
+    // Don't print ACK here
+    outPrintAck = false;
+  }
+  else if (strcmp(pCmd, "GET_ODO") == 0)
   {
     uint16_t encoderCounter = g_iEncoderCounter;
     int encoderCounter_int = encoderCounter;
@@ -653,6 +647,18 @@ bool ProcessSerialCommand(char* pCmd, uint8_t* argOffsets, uint8_t nArgs, bool& 
     utoa(encoderCounter_int, txtBuffer, 10);
     g_pCurrentSerial->print("ODO ");
     g_pCurrentSerial->print(txtBuffer);
+    g_pCurrentSerial->write(' ');
+    char moveDirChar;
+    if (g_MotorController.GetStopped())
+      moveDirChar = '0';
+    else
+    {
+      if (g_MotorController.GetCurrentMoveDirectionForward())
+        moveDirChar = '+';
+      else
+        moveDirChar = '-';
+    }
+    g_pCurrentSerial->write(moveDirChar);
     g_pCurrentSerial->print(";\n");
     
     // Don't print ACK here
