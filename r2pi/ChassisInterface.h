@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../Common/Common.h"
+#include "../Common/Chassis.h"
 
 #include <mutex>
 #include <cstdint>
@@ -15,7 +16,8 @@ private:
 
 public:
 	// Public types
-	using TOdometerCounter = uint16_t;
+	using TOdometerCounter = Chassis::TOdometerCounter;
+	using MoveState = Chassis::MoveState;
 
 	struct MotorCtrlPidSettings
 	{
@@ -32,19 +34,14 @@ public:
 		float m_AccelBrake = 100.0f;
 	};
 
-	enum class MoveState
-	{
-		STOP,
-		FORWARD,
-		BACKWARD
-	};
-
 	~ChassisInterface();
 	bool Init(const MotorCtrlPidSettings& pidSettings, const MotorCtrlAccelSettings& accelSettings);
 	bool Terminate();
 
 	std::mutex& GetMutex();
 
+	// !!! Remember to aquire lock when sending commands !!!
+	// std::unique_lock chassisLock(m_pChassisInterface->GetMutex());
 	bool SendCommand_Ping();
 	bool SendCommand_MotorMove(float freq_Hz);
 	bool SendCommand_MotorBrake();

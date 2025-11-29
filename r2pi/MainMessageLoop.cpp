@@ -1,20 +1,30 @@
 #include "MainMessageLoop.h"
 
 #include "SensorInterface.h"
+#include "ChassisInterface.h"
+#include "ControlPanelServer.h"
 
 #include <stdio.h>
 
 //------------------------------------------------------------------------------------------------------------------------
 // Constructor, destructor
 
-MainMessageLoop::MainMessageLoop(SensorInterface* pSensorInterface)
+MainMessageLoop::MainMessageLoop(SensorInterface* pSensorInterface, ChassisInterface* pChassisInterface)
 {
 	m_ScanSamples.reserve(Sensor::SCAN_N_SAMPLES_MAX);
 	m_pSensorInterface = pSensorInterface;
+	m_pChassisInterface = pChassisInterface;
 
 	m_pSensorInterface->BindOnReceivedScan(
 		[this](const Sensor::ScanSample* pSamples, uint nValidSamples, uint nRawSamples)
 		{ OnReceivedScan_mt(pSamples, nValidSamples, nRawSamples); } );
+
+	m_TimeStart = std::chrono::high_resolution_clock::now();
+}
+
+void MainMessageLoop::Init(ControlPanelServer* pCtrlPanelServer)
+{
+	m_pCtrlPanelServer = pCtrlPanelServer;
 }
 
 MainMessageLoop::~MainMessageLoop()
@@ -85,9 +95,42 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 {
 	if (MessageNewSensorScanData* pMsg = dynamic_cast<MessageNewSensorScanData*>(&msgBase))
 	{
+		// WIP later sensor itself will provide time stamp
+		auto timeNow = std::chrono::high_resolution_clock::now();
+		uint timestamp_ms = static_cast<uint>(std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - m_TimeStart).count());
+
 		m_ScanSamples.swap(pMsg->m_Scan);
 		m_ScanCounter++;
 		//printf("MainMessageLoop: Received new scan: %i raw samples\n", pMsg->m_RawSampleCount);
+
+		// Read chassis data
+		using TMoveState = ChassisInterface::MoveState;
+		TMoveState moveState = {};
+		ChassisInterface::TOdometerCounter odoCounter = 0;
+		float steer = 0;
+
+		{
+			std::unique_lock chassisLock(m_pChassisInterface->GetMutex());
+			m_pChassisInterface->SendCommand_GetOdometer(odoCounter, moveState);
+			m_pChassisInterface->SendCommand_GetSteer(steer);
+
+			if (m_pCtrlPanelServer->GetConnected() && m_pCtrlPanelServer->GetStreamSensorData())
+			{
+				m_pCtrlPanelServer->SendSensorData_mt(timestamp_ms, pMsg->m_Scan, odoCounter, moveState, steer);
+			}
+		}
+
+		// Print debug text
+		const char* moveStateText = "";
+		switch (moveState)
+		{
+		case TMoveState::BACKWARD: moveStateText = "BWD"; break;
+		case TMoveState::FORWARD: moveStateText = "FWD"; break;
+		case TMoveState::STOP: moveStateText = "STOP"; break;
+		}
+		printf("%i, Scan Size: %i, Odometer: %i, MoveState: %s, Steer: %.2f\n",
+			timestamp_ms, pMsg->m_Scan.size(), static_cast<int>(odoCounter), moveStateText, steer);
+
 		return;
 	}
 

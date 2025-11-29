@@ -99,6 +99,7 @@
     <EnableIncrementalBuild>WithNinja</EnableIncrementalBuild>
   </PropertyGroup>
   <ItemGroup>
+    <ClInclude Include="..\Common\Chassis.h" />
     <ClInclude Include="..\Common\Common.h" />
     <ClInclude Include="..\Common\ControlInputsProtocol.h" />
     <ClInclude Include="..\Common\ControlPanelProtocol.h" />

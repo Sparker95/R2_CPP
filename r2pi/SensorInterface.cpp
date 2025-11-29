@@ -405,7 +405,7 @@ void SensorInterface::ProcessScanResult()
 		//printf("%.3f %.2f %i\n", angle_rad, dist_m, static_cast<int>(m_pRawScanSampleBuffer[i].m_Quality));
 	}
 
-	printf("SensorInterface: Received scan: total samples: %i, valid samples: %i\n", m_ScanSampleId, outSampleId);
+	// printf("SensorInterface: Received scan: total samples: %i, valid samples: %i\n", m_ScanSampleId, outSampleId);
 
 	for (uint i = 0; i < m_OnReceivedScan.size(); i++)
 	{

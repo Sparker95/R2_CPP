@@ -48,16 +48,23 @@ void ControlPanelServer::TerminateWait()
 	ClosePipe();
 }
 
+
+bool ControlPanelServer::GetConnected() const
+{
+	return m_bRunning && m_ClientSockFd > 0;
+}
+
+bool ControlPanelServer::GetStreamSensorData() const
+{
+	return m_bStreamSensorData;
+}
+
 ControlPanelServer::ControlPanelServer(MainMessageLoop* pMainMsgLoop, SensorInterface* pSensorInterface)
 	: m_pMainMsgLoop(pMainMsgLoop),
 	m_pSensorInterface(pSensorInterface)
 {
 	m_PipeFd[0] = -1;
 	m_PipeFd[1] = -1;
-
-	m_pSensorInterface->BindOnReceivedScan(
-		[this](const Sensor::ScanSample* pSamples, uint nValidSamples, uint nRawSamples)
-		{ OnSensorReceivedScan_mt(pSamples, nValidSamples, nRawSamples); });
 }
 
 ControlPanelServer::~ControlPanelServer()
@@ -283,18 +290,21 @@ bool ControlPanelServer::SendMessage(ControlPanelProtocol::MessageType msgType, 
 }
 
 
-void ControlPanelServer::OnSensorReceivedScan_mt(const Sensor::ScanSample* pSamples, uint nValidSamples, uint nRawSamples)
+void ControlPanelServer::SendSensorData_mt(uint timestamp_ms, const std::vector<Sensor::ScanSample>& scan,
+	Chassis::TOdometerCounter odometer, Chassis::MoveState moveState, float steer)
 {
-	// Called from SensorInterface thread!
-	// Copy data and send it into pipe. The rest is handled in our own thread.
-
-	if (!m_bRunning || !m_bStreamSensorData || m_ClientSockFd < 0)
+	if (!GetConnected() || !GetStreamSensorData())
 		return;
 
-	PipeMsgSensorScanData* pMsg = new PipeMsgSensorScanData();
-	pMsg->m_Samples.resize(nValidSamples);
-	for (uint i = 0; i < nValidSamples; i++)
-		pMsg->m_Samples[i] = pSamples[i];
+	// Called from Main thread!
+	// Copy data and send it into pipe. The rest is handled in our own thread.
+
+	PipeMsgSensorData* pMsg = new PipeMsgSensorData();
+	pMsg->m_Samples = scan;
+	pMsg->m_Odometer = odometer;
+	pMsg->m_MoveState = moveState;
+	pMsg->m_Timestamp_ms = timestamp_ms;
+	pMsg->m_Steer = steer;
 
 	SendPipeMessage(pMsg);
 }

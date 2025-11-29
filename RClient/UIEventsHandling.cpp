@@ -15,7 +15,6 @@
 #include <QQuickItem>
 #include <QQmlContext>
 #include <QScatterSeries>
-#include <QtQml>
 
 #include "InputHandling.h"
 
@@ -79,3 +78,19 @@ void MainWindow::SlotOnDisableSensorStreamButton()
         SendMessage(ControlPanelProtocol::MessageType::MSG_ENABLE_STREAM_SENSOR_DATA, 1, &payload);
     }
 }
+
+void MainWindow::SlotOnSaveSensorStreamToFileCheck(bool checked)
+{
+    // Open or close file and update UI
+    if (checked)
+    {
+        QString fileNameEdit = ui->StreamFileNameEdit->text();
+        std::string fileNameEditStd = fileNameEdit.toStdString();
+        m_SensorFileWriter.Start(fileNameEditStd.data());
+    }
+    else
+        m_SensorFileWriter.Stop();
+    UpdateSensorFileStatsLabel();
+}
+
+

@@ -3,6 +3,8 @@
 
 #include "../Common/ControlPanelProtocol.h"
 
+#include "SensorDataFileWriter.h"
+
 #include <QMainWindow>
 #include <QTcpSocket>
 #include <QUdpSocket>
@@ -28,6 +30,7 @@ private:
     ControlPanelProtocol::MessageDecoder m_MsgDecoder;
     QTcpSocket m_ControlPanelSocket;
     QUdpSocket m_ControlInputsSocket;
+    SensorDataFileWriter m_SensorFileWriter;
     int m_iControlInputsTimerId = 0;
 
     // Other UI elements
@@ -40,12 +43,15 @@ private:
 
     void timerEvent(QTimerEvent *event) override;
 
+    void UpdateSensorFileStatsLabel();
+
 private slots:
     void SlotOnConnectButtonClicked();
     void SlotOnIcpTestStoreButton();
     void SlotOnIcpTestRunButton();
     void SlotOnEnableSensorStreamButton();
     void SlotOnDisableSensorStreamButton();
+    void SlotOnSaveSensorStreamToFileCheck(bool checked);
 
     void SlotOnSocketConnected();
     void SlotOnSocketDisconnected();

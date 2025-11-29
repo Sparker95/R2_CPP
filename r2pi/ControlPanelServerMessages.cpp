@@ -129,16 +129,23 @@ void ControlPanelServer::OnPipeMessage(PipeMsgBase* pMsg, bool& outTerminate)
 		outTerminate = true;
 		return;
 	}
-	else if (PipeMsgSensorScanData* pMsgScanData = dynamic_cast<PipeMsgSensorScanData*>(pMsg))
+	else if (PipeMsgSensorData* pMsgScanData = dynamic_cast<PipeMsgSensorData*>(pMsg))
 	{
-		if (!m_bStreamSensorData || m_ClientSockFd < 0)
+		if (!GetConnected() || !GetStreamSensorData())
 			return;
 
-		uint nSamples = static_cast<uint>(pMsgScanData->m_Samples.size());
+		ControlPanelProtocol::SensorDataHeader header;
 
-		writer.Write<uint32_t>(nSamples);
-		for (uint i = 0; i < nSamples; i++)
-			writer.Write(pMsgScanData->m_Samples[i]);
+		header.m_Timestamp_ms = pMsgScanData->m_Timestamp_ms;
+		header.m_Odometer = pMsgScanData->m_Odometer;
+		header.m_MoveState = pMsgScanData->m_MoveState;
+		header.m_Steer = pMsgScanData->m_Steer;
+		header.m_nSamples = static_cast<uint32_t>(pMsgScanData->m_Samples.size());
+
+		writer.Write(header);
+
+		for (const auto& sample : pMsgScanData->m_Samples)
+			writer.Write(sample);
 
 		SendMessage(ControlPanelProtocol::MessageType::MSG_SENSOR_DATA, writer.GetNumBytesWritten(), g_SendBuffer);
 	}

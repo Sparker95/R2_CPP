@@ -22,6 +22,7 @@
 
 #include "../Common/ControlPanelProtocol.h"
 #include "../Common/ControlInputsProtocol.h"
+#include "../Common/Chassis.h"
 #include "../Common/Sensor.h"
 #include "../Common/Common.h"
 
@@ -92,6 +93,23 @@ void MainWindow::SlotOnSocketReadyRead()
         qint64 nBytesRead = m_ControlPanelSocket.read(readBuffer, sizeof(readBuffer));
         m_MsgDecoder.ReadStream(readBuffer, nBytesRead);
     }
+}
+
+void MainWindow::UpdateSensorFileStatsLabel()
+{
+    if (!m_SensorFileWriter.GetIsOpen())
+    {
+        ui->StreamFileStateLabel->setText("Stream file: closed");
+        return;
+    }
+
+    QString fileName = QString::fromStdString(m_SensorFileWriter.GetFileName());
+    uint nBytes, nBlocks;
+    m_SensorFileWriter.GetStats(nBytes, nBlocks);
+
+    QString labelText = QString("%1\n%2 Blocks, %3 kB").arg(fileName, QString::number(nBlocks), QString::number(nBytes / 1024));
+
+    ui->StreamFileStateLabel->setText(labelText);
 }
 
 void MainWindow::timerEvent(QTimerEvent *event)
@@ -173,19 +191,19 @@ void MainWindow::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigne
 
         case ControlPanelProtocol::MessageType::MSG_SENSOR_DATA:
         {
-            uint32_t nSamples = reader.Read<uint32_t>();
-
             // Deserialize data, same way as it was sent
+            ControlPanelProtocol::SensorDataHeader header = reader.Read<ControlPanelProtocol::SensorDataHeader>();
+
             QList<Sensor::ScanSample> scanSamples;
-            scanSamples.resize(static_cast<qsizetype>(nSamples));
-            for (uint i = 0; i < nSamples; i++)
+            scanSamples.resize(static_cast<qsizetype>(header.m_nSamples));
+            for (uint i = 0; i < header.m_nSamples; i++)
                 scanSamples[i] = reader.Read<Sensor::ScanSample>();
 
             // Convert data to Cartesian form
             QList<QPointF> scanSamplesCart;
-            scanSamplesCart.resize(static_cast<qsizetype>(nSamples));
+            scanSamplesCart.resize(static_cast<qsizetype>(header.m_nSamples));
 
-            for (uint i = 0; i < nSamples; i++)
+            for (uint i = 0; i < header.m_nSamples; i++)
             {
                 Sensor::ScanSample& sCart = scanSamples[i];
                 float angleDisplay = sCart.m_Angle_rad + PI;
@@ -197,9 +215,13 @@ void MainWindow::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigne
             m_pScatterSeries->clear();
             m_pScatterSeries->append(scanSamplesCart);
 
-            //QString msgBoxTest = QString::asprintf("Received scan data.\nNumber of samples: %i", nSamples);
-            //QMessageBox msgBox(QMessageBox::Icon::Information, "Received data", msgBoxTest);
-            //msgBox.exec();
+            // Write to file
+            if (m_SensorFileWriter.GetIsOpen())
+            {
+                m_SensorFileWriter.WriteData(header, scanSamples);
+                UpdateSensorFileStatsLabel();
+            }
+
             break;
         }
 

@@ -111,6 +111,22 @@ bool ChassisInterface::Init(const MotorCtrlPidSettings& pidSettings, const Motor
 		return false;
 	}
 
+	// It's not needed to send these commands, but it's good to verify the interface fully works
+	float steerValue;
+	if (!SendCommand_GetSteer(steerValue))
+	{
+		fprintf(stderr, "ChassisInterface: initialization error, failed to get steering value\n");
+		return false;
+	}
+
+	TOdometerCounter odometer;
+	Chassis::MoveState moveState;
+	if (!SendCommand_GetOdometer(odometer, moveState))
+	{
+		fprintf(stderr, "ChassisInterface: initialization error, failed to get odometer state\n");
+		return false;
+	}
+
 	printf("ChassisInterface: Motor Controller has been initialized\n");
 
 	m_bInitSuccess = true;
@@ -216,7 +232,7 @@ bool ChassisInterface::SendCommand_SetAccel(const MotorCtrlAccelSettings& s)
 	return SendCommand_VerifyResponse(cmd, MSG_ACK);
 }
 
-bool ChassisInterface::SendCommand_GetOdometer(TOdometerCounter& outOdometerCounter, MoveState& outMoveState)
+bool ChassisInterface::SendCommand_GetOdometer(TOdometerCounter& outOdometerCounter, Chassis::MoveState& outMoveState)
 {
 	char buf[MESSAGE_SIZE_MAX];
 	const char cmdGetOdo[] = "GET_ODO;";
@@ -237,7 +253,7 @@ bool ChassisInterface::SendCommand_GetOdometer(TOdometerCounter& outOdometerCoun
 	char* pArg0 = strchr(buf, ' ');
 	char* pArg1 = nullptr;
 	if (pArg0)
-		pArg0 = strchr(pArg0 + 1, ' ');
+		pArg1 = strchr(pArg0 + 1, ' ');
 	
 	if (!pArg0 || !pArg1)
 	{
@@ -254,13 +270,13 @@ bool ChassisInterface::SendCommand_GetOdometer(TOdometerCounter& outOdometerCoun
 	switch (*pArg1)
 	{
 	case '+':
-		outMoveState = MoveState::FORWARD;
+		outMoveState = Chassis::MoveState::FORWARD;
 		break;
 	case '-':
-		outMoveState = MoveState::BACKWARD;
+		outMoveState = Chassis::MoveState::BACKWARD;
 		break;
 	case '0':
-		outMoveState = MoveState::STOP;
+		outMoveState = Chassis::MoveState::STOP;
 		break;
 	default:
 		fprintf(stderr, STR_UNEXPECTED_RESPONSE, buf);

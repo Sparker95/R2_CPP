@@ -147,7 +147,7 @@ int main(int argc, char** argv)
 		initDone = false;
 
 	// Main message loop
-	MainMessageLoop msgLoop(&sensor);
+	MainMessageLoop msgLoop(&sensor, &chassis);
 	g_pMsgLoop = &msgLoop;
 
 	// Control panel server
@@ -157,6 +157,9 @@ int main(int argc, char** argv)
 	// Control inputs
 	ControlInputsSocket inputsSocket(&chassis, &chassisControlSettings);
 	inputsSocket.Start();
+
+	// Finish message loop init
+	msgLoop.Init(&ctrlPanelServer);
 
 	if (initDone)
 	{

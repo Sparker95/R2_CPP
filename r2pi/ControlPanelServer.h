@@ -2,8 +2,10 @@
 
 #include <memory>
 
+#include "../Common/Common.h"
 #include "../Common/ControlPanelProtocol.h"
 #include "../Common/Sensor.h"
+#include "../Common/Chassis.h"
 
 namespace std
 {
@@ -21,6 +23,13 @@ public:
 	ControlPanelServer(MainMessageLoop* pMainMsgLoop, SensorInterface* pSensorInterface);
 	~ControlPanelServer();
 
+	bool GetConnected() const;
+	bool GetStreamSensorData() const;
+
+	// Called from SensorInterface thread!
+	void SendSensorData_mt(uint timestamp_ms, const std::vector<Sensor::ScanSample>& scan, Chassis::TOdometerCounter odometer,
+		Chassis::MoveState moveState, float steer);
+
 private:
 	constexpr static const char PIPE_CMD_TERMINATE = 0x78; // Sent into pipe to termiante the thread
 
@@ -32,9 +41,14 @@ private:
 	struct PipeMsgTerminate : PipeMsgBase
 	{
 	};
-	struct PipeMsgSensorScanData : PipeMsgBase
+	struct PipeMsgSensorData : PipeMsgBase
 	{
 		std::vector<Sensor::ScanSample> m_Samples;
+		float m_Steer = 0;
+		Chassis::TOdometerCounter m_Odometer = 0;
+		Chassis::MoveState m_MoveState = {};
+		uint m_Timestamp_ms = 0;
+		// Timestamp
 	};
 
 
@@ -67,9 +81,6 @@ private:
 	// Sends all data. Handles calling send() many times if it didn't send instantly.
 	bool SendAll(const char* pData, unsigned int nBytes);
 	bool SendMessage(ControlPanelProtocol::MessageType msgType, unsigned int payloadSize, const char* pPayload);
-
-	// Called from SensorInterface thread!
-	void OnSensorReceivedScan_mt(const Sensor::ScanSample* pSamples, uint nValidSamples, uint nRawSamples);
 
 	// Other data
 	std::vector<Sensor::ScanSample> m_IcpTestScan; // Used for ICP_TEST message

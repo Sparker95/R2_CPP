@@ -1029,6 +1029,9 @@
     <ClInclude Include="ChassisSettings.h">
       <Filter>Platform</Filter>
     </ClInclude>
+    <ClInclude Include="..\Common\Chassis.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Common">

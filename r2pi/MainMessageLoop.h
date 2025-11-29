@@ -9,8 +9,11 @@
 #include <vector>
 #include <atomic>
 #include <condition_variable>
+#include <chrono>
 
 class SensorInterface;
+class ChassisInterface;
+class ControlPanelServer;
 
 class MainMessageLoop
 {
@@ -26,8 +29,9 @@ public:
 		uint m_RawSampleCount; // Count of all samples, including invalid
 	};
 
-	MainMessageLoop(SensorInterface* pSensorInterface);
+	MainMessageLoop(SensorInterface* pSensorInterface, ChassisInterface* pChassisInterface);
 	~MainMessageLoop();
+	void Init(ControlPanelServer* pCtrlPanelServer);
 	void Execute();
 	void HandleOsSignal(int signalValue); // Called from interrupt!
 	void PostMessage(std::unique_ptr<MessageBase>&& pMsg);
@@ -39,6 +43,11 @@ public:
 private:
 	// Other components
 	SensorInterface* m_pSensorInterface;
+	ChassisInterface* m_pChassisInterface;
+	ControlPanelServer* m_pCtrlPanelServer = nullptr;
+
+	// Timestamp
+	std::chrono::high_resolution_clock::time_point m_TimeStart = {};
 
 	// Queue
 	std::mutex m_QueueMutex;
