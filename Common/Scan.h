@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Common.h"
+#include "IntTypes.h"
 #include "Vector2.h"
 #include <Eigen/Dense>
 
@@ -8,8 +8,6 @@ namespace Scan
 {
 	using TScanCart = Eigen::Matrix<float, 2, -1>;
 	using TScanPolar = Eigen::Matrix<float, 2, -1>;
-
-	constexpr static uint SCAN_SIZE = 256;
 
 	// Special value when scan ray didn't hit anything
 	constexpr static float SCAN_RAY_NO_HIT_VALUE = 0.0f;

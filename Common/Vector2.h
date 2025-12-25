@@ -21,6 +21,8 @@ struct Vector2Base
 	Vector2Base& operator*=(T r) { x *= r; y *= r; return *this; }
 	Vector2Base operator/(T r) { return Vector2Base(x / r, y / r); }
 	Vector2Base& operator/=(T r) { x /= r; y /= r; return *this; }
+
+	static T Distance(Vector2Base<T> v0, Vector2Base<T> v1);
 };
 
 using Vector2 = Vector2Base<float>;

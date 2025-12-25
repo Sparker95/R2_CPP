@@ -7,9 +7,8 @@
 
 namespace MapUtils
 {
-	void FillCircle(Map& map, float cellSize, Vector2 centerWorld, float radiusWorld, Map::TCellData value);
-	void FillRect(Map& map, float cellSize, Vector2 minsWorld, Vector2 maxsWorld, Map::TCellData value);
+	void FillCircle(Map& map, Vector2 centerWorld, float radiusWorld, Map::TCellData value);
+	void FillRect(Map& map, Vector2 minsWorld, Vector2 maxsWorld, Map::TCellData value);
 
-	char CellDataToChar(Map::TCellData value);
-	void MapToString(const Map* pMap, std::string& outString);
+	bool WriteMapToFile_L2Int(const Map& map, const char* pFilePath, uint l2IntQuantization);
 }

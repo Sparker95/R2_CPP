@@ -1,86 +1,111 @@
 #include "MapUtils.h"
 
+#include "StringWordWriter.h"
+
+#include <fstream>
+
 namespace MapUtils
 {
-	void FillCircle(Map& map, float cellSize, Vector2 centerWorld, float radiusWorld, Map::TCellData value)
+	void FillCircle(Map& map, Vector2 centerWorld, float radiusWorld, Map::TCellData value)
 	{
+		float cellSize = map.GetResolution_w();
+
 		Vector2 centerLocal = centerWorld / cellSize;
 		float radiusLocal = radiusWorld / cellSize;
 
-		Map::CellPos minMap = Map::GetCellIndex(Vector2(centerLocal.x - radiusLocal, centerLocal.y - radiusLocal));
-		Map::CellPos maxMap = Map::GetCellIndex(Vector2(centerLocal.x + radiusLocal, centerLocal.y + radiusLocal));
+		Map::TCellPos minMap = map.PosWorldToMap(Vector2(centerLocal.x - radiusLocal, centerLocal.y - radiusLocal));
+		Map::TCellPos maxMap = map.PosWorldToMap(Vector2(centerLocal.x + radiusLocal, centerLocal.y + radiusLocal));
 
 		for (int y = minMap.y; y <= maxMap.y; y++)
 		{
 			for (int x = minMap.x; x <= maxMap.x; x++)
 			{
-				Map::CellPos cellPosMap(x, y);
-				if (!map.IsCellPosWithinBounds(cellPosMap))
+				Map::TCellPos cellPosMap(x, y);
+				if (!map.IsMapPosWithinBounds(cellPosMap))
 					continue;
 
-				Vector2 cellPosLocal = Map::GetCellCenterPos(cellPosMap);
+				Vector2 cellPosLocal = map.PosMapToWorld(cellPosMap);
 				Vector2 diffLocal = cellPosLocal - centerLocal;
 
 				if ((diffLocal.x * diffLocal.x + diffLocal.y * diffLocal.y) > radiusLocal*radiusLocal)
 					continue;
 
-				map.SetCellData(cellPosMap, value);
+				map.SetDataAtPos(cellPosMap, value);
 			}
 		}
 	}
 
-	void FillRect(Map& map, float cellSize, Vector2 minsWorld, Vector2 maxsWorld, Map::TCellData value)
+	void FillRect(Map& map, Vector2 minsWorld, Vector2 maxsWorld, Map::TCellData value)
 	{
-		Vector2 minsLocal = minsWorld / cellSize;
-		Vector2 maxsLocal = maxsWorld / cellSize;
-
-		Map::CellPos minMap = Map::GetCellIndex(minsLocal);
-		Map::CellPos maxMap = Map::GetCellIndex(maxsLocal);
+		Map::TCellPos minMap = map.PosWorldToMap(minsWorld);
+		Map::TCellPos maxMap = map.PosWorldToMap(maxsWorld);
 		for (int y = minMap.y; y <= maxMap.y; y++)
 		{
 			for (int x = minMap.x; x <= maxMap.x; x++)
 			{
-				Map::CellPos cellPosMap(x, y);
-				if (!map.IsCellPosWithinBounds(cellPosMap))
+				Map::TCellPos cellPosMap(x, y);
+				if (!map.IsMapPosWithinBounds(cellPosMap))
 					continue;
 
-				map.SetCellData(cellPosMap, value);
+				map.SetDataAtPos(cellPosMap, value);
 			}
 		}
 	}
 
-	char CellDataToChar(Map::TCellData value)
+	bool WriteMapToFile_L2Int(const Map& map, const char* pFilePath, uint l2IntQuantization)
 	{
-		if (value < Map::CELL_VALUE_UNKNOWN)
-			return 'X';
-		else if (value > Map::CELL_VALUE_UNKNOWN)
-			return '-';
-		else return '?';
+		// Remember binary flag! Otherwise size measurement goes wrong, because of CRLF conversions.
+		std::ofstream f(pFilePath, std::ios_base::out | std::ios_base::binary);
+		if (!f.is_open())
+			return false;
 
-		/*
-		const char HexChars[16] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-			'A', 'B', 'C', 'D', 'E', 'F' };
+		std::string outString;
+		StringWordWriter writer(outString);
 
-		int lowestHalfByte = 0xF & static_cast<int>(value >> 4);
-		return HexChars[lowestHalfByte];
-		*/
-	}
+		Map::TCellSize mapSize = map.GetSize();
+		Map::TCellSize mapCenter = map.GetCenter();
 
-	void MapToString(const Map* pMap, std::string& outString)
-	{
-		int sizeMap = pMap->GetSize();
-		int nCharsExpected = sizeMap * (sizeMap + 1); // +1 because of newlines
-		outString.reserve(nCharsExpected);
+		writer.Write("MAP");
+		writer.Write("FORMAT");
+		writer.Write("L2INT");
+		writer.Write("QUANT");
+		writer.Write<uint>(l2IntQuantization);
+		writer.WriteNewLine();
 
-		for (int y = sizeMap-1; y >= 0; y--) // Iterate Y in reverse, because bigger Y are printed at top
+		writer.Write("RES_W");
+		writer.Write(map.GetResolution_w());
+		
+		writer.Write("XSIZE");
+		writer.Write(mapSize.x);
+		writer.Write("YSIZE");
+		writer.Write(mapSize.y);
+
+		writer.Write("XCENTER");
+		writer.Write(mapCenter.x);
+		writer.Write("YCENTER");
+		writer.Write(mapCenter.y);
+		writer.WriteNewLine();
+
+		writer.Write("MAP_DATA");
+		writer.WriteNewLine();
+
+		for (uint y = 0; y < mapSize.y; y++)
 		{
-			for (int x = 0; x < sizeMap; x++)
+			writer.Write("ROW_ID");
+			writer.Write(y);
+			writer.Write("ROW_DATA");
+
+			for (uint x = 0; x < mapSize.x; x++)
 			{
-				Map::TCellData cellData = pMap->GetCellData(Map::CellPos(x, y));
-				char c = CellDataToChar(cellData);
-				outString.push_back(c);
+				Map::TCellPos cellPos(x, y);
+				writer.Write<int>(static_cast<int>(map.GetDataAtPos(cellPos)));
 			}
-			outString.push_back('\n');
+			writer.WriteNewLine();
 		}
+
+		f.seekp(0);
+		f.write(outString.data(), outString.size());
+
+		return true;
 	}
 }

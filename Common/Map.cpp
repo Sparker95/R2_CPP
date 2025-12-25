@@ -1,66 +1,84 @@
 #include "Map.h"
 
-#include <cmath>
 #include "Vector2.h"
 
-Map::Map(int mapSideSizeCells) :
-	m_Size(mapSideSizeCells)
+#include <cmath>
+#include <cstdio>
+#include <iostream>
+#include <algorithm>
+#include <stdexcept>
+
+Map::Map(float resolution_w) :
+	m_xSize(SIZE_INITIAL),
+	m_ySize(SIZE_INITIAL),
+	m_Res_w(resolution_w)
 {
-	m_Data = new TCellData[m_Size * m_Size];
+	m_Data = new TCellData[m_xSize * m_ySize];
+
+	m_xCenter = m_xSize / 2;
+	m_yCenter = m_ySize / 2;
 
 	// Init data
-	m_DataSize = m_Size * m_Size;
-	for (uint i = 0; i < m_DataSize; i++)
-		m_Data[i] = CELL_VALUE_UNKNOWN;
+	uint ttlSize = m_xSize * m_ySize;
+	for (uint i = 0; i < ttlSize; i++)
+		m_Data[i] = CELL_VALUE_DEFAULT;
 }
 
 // Copy
 Map::Map(const Map& other) noexcept
 {
-	m_Size = other.m_Size;
+	m_Res_w = other.m_Res_w;
+	m_xSize = other.m_xSize;
+	m_ySize = other.m_ySize;
+	m_xCenter = other.m_xCenter;
+	m_yCenter = other.m_yCenter;
 
-	m_Data = new TCellData[m_Size * m_Size];
-	m_DataSize = other.m_DataSize;
+	m_Data = new TCellData[m_xSize * m_ySize];
 
-	CopyData(m_Data, other.m_Data, m_DataSize);
+	uint ttlSize = m_xSize * m_ySize;
+	for (uint i = 0; i < ttlSize; i++)
+		m_Data[i] = other.m_Data[i];
 }
+
 // Assignment
 Map& Map::operator=(const Map& other) noexcept
 {
 	if (m_Data)
 	{
-		if (m_Size != other.m_Size)
+		if (m_xSize * m_ySize != other.m_xSize * other.m_ySize)
 		{
 			delete[] m_Data;
 			m_Data = nullptr;
 		}
 	}
 
-	m_Size = other.m_Size;
+	m_Res_w = other.m_Res_w;
+	m_xSize = other.m_xSize;
+	m_ySize = other.m_ySize;
+	m_xCenter = other.m_xCenter;
+	m_yCenter = other.m_yCenter;
 
 	if (!m_Data)
-		m_Data = new TCellData[m_Size * m_Size];
-	
-	m_DataSize = other.m_DataSize;
+		m_Data = new TCellData[m_xSize * m_ySize];
 
-	CopyData(m_Data, other.m_Data, m_DataSize);
+	uint ttlSize = m_xSize * m_ySize;
+	for (uint i = 0; i < ttlSize; i++)
+		m_Data[i] = other.m_Data[i];
+	
 	return *this;
 }
 
 // Move
 Map::Map(Map&& other) noexcept
 {
-	m_Size = other.m_Size;
-	
+	m_Res_w = other.m_Res_w;
+	m_xSize = other.m_xSize;
+	m_ySize = other.m_ySize;
+	m_xCenter = other.m_xCenter;
+	m_yCenter = other.m_yCenter;
+
 	m_Data = other.m_Data;
 	other.m_Data = nullptr;
-}
-
-void Map::CopyData(TCellData* to, const TCellData* from, uint size)
-{
-	// todo replace with memcpy
-	for (uint i = 0; i < size; i++)
-		to[i] = from[i];
 }
 
 Map::~Map()
@@ -69,34 +87,183 @@ Map::~Map()
 		delete[] m_Data;
 }
 
-void Map::SetCellData(CellPos mapPos, TCellData value)
+
+Map::TCellData Map::GetDataAtPos(TCellPos mapPos) const
 {
-	m_Data[m_Size * mapPos.y + mapPos.x] = value;
+#ifdef _DEBUG
+	if (!IsMapPosWithinBounds(mapPos))
+	{
+		std::fprintf(stderr, "Map: Error: GetDataAtPos: Invalid map position: %i, %i\n", mapPos.x, mapPos.y);
+		TCellData _default = {};
+		throw std::runtime_error("Map: GetDataAtPos: Index is out of map bounds\n");
+		return _default;
+	}
+#endif
+
+	return m_Data[m_xSize * mapPos.y + mapPos.x];
 }
 
-void Map::SetAllCellsData(TCellData value)
+void Map::SetDataAtPos(TCellPos mapPos, TCellData value)
 {
-	for (int x = 0; x < m_Size; x++)
+#ifdef _DEBUG
+	if (!IsMapPosWithinBounds(mapPos))
 	{
-		for (int y = 0; y < m_Size; y++)
+		std::fprintf(stderr, "Map: Error: GetDataAtPos: Invalid map position: %i, %i\n", mapPos.x, mapPos.y);
+		throw std::runtime_error("Map: SetDataAtPos: Index is out of map bounds\n");
+		return;
+	}
+#endif
+
+	m_Data[m_xSize * mapPos.y + mapPos.x] = value;
+}
+
+void Map::SetAllData(TCellData value)
+{
+	if (!m_Data)
+		return;
+
+	uint ttlSize = m_xSize * m_ySize;
+	for (uint i = 0; i < ttlSize; i++)
+		m_Data[i] = value;
+}
+
+Vector2 Map::PosMapToWorld(TCellPos mapPos) const
+{
+	float halfres = 0.5f * m_Res_w;
+	int dxMap = mapPos.x - m_xCenter;
+	int dyMap = mapPos.y - m_yCenter;
+
+	return Vector2(static_cast<float>(dxMap) * m_Res_w + halfres,
+		static_cast<float>(dyMap) * m_Res_w + halfres);
+}
+
+Vector2 Map::PosMapToWorldUnscaled(TCellPos mapPos) const
+{
+	float halfCell = 0.5f;
+	int dxMap = mapPos.x - m_xCenter;
+	int dyMap = mapPos.y - m_yCenter;
+
+	return Vector2(static_cast<float>(dxMap) + halfCell,
+		static_cast<float>(dyMap) + halfCell);
+}
+
+Map::TCellPos Map::PosWorldToMap(Vector2 pos) const
+{
+	return TCellPos(m_xCenter + static_cast<int>(floorf(pos.x / m_Res_w)),
+		m_yCenter + static_cast<int>(floorf(pos.y / m_Res_w)));
+}
+
+Map::TCellPos Map::PosWorldUnscaledToMap(Vector2 pos_u) const
+{
+	return TCellPos(m_xCenter + static_cast<int>(floorf(pos_u.x)),
+		m_yCenter + static_cast<int>(floorf(pos_u.y)));
+}
+
+void Map::GetWorldBounds(Vector2& outMins, Vector2& outMaxs) const
+{
+	outMins.x = -m_Res_w * m_xCenter;
+	outMins.y = -m_Res_w * m_yCenter;
+
+	outMaxs.x = m_Res_w * (m_xSize - m_xCenter);
+	outMaxs.y = m_Res_w * (m_ySize - m_yCenter);
+}
+
+bool Map::IsMapPosWithinBounds(TCellPos mapPos) const
+{
+	return mapPos.x >= 0 && mapPos.x < static_cast<int>(m_xSize) &&
+		mapPos.y >= 0 && mapPos.y < static_cast<int>(m_ySize);
+}
+
+void Map::EnsureWorldBounds_Rect(Vector2 mins_w, Vector2 maxs_w)
+{
+	TCellPos mins = PosWorldToMap(mins_w);
+	TCellPos maxs = PosWorldToMap(maxs_w);
+
+	mins.x = std::min(mins.x, 0);
+	maxs.x = std::max(maxs.x, static_cast<int>(m_xSize));
+	mins.y = std::min(mins.y, 0);
+	maxs.y = std::max(maxs.y, static_cast<int>(m_ySize));
+
+	bool extendRight = maxs.x > static_cast<int>(m_xSize);
+	bool extendLeft = mins.x < 0;
+	bool extendUp = maxs.y > static_cast<int>(m_ySize);
+	bool extendDown = mins.y < 0;
+
+	if (!extendRight && !extendLeft && !extendUp && !extendDown)
+		return; // No need to increase size
+
+	// Calculate new size, find new center position.
+	uint newxSize = m_xSize;
+	uint newySize = m_ySize;
+	uint newxCenter = m_xCenter;
+	uint newyCenter = m_yCenter;
+
+	if (extendLeft || extendRight)
+	{
+		newxSize = SIZE_INCREMENT + m_xSize; // Ensure size is always increased
+		while (newxSize < static_cast<uint>(maxs.x - mins.x + 1))
+			newxSize = SIZE_INCREMENT + newxSize;
+
+		newxCenter = m_xCenter;
+
+		if (extendLeft && extendRight)
 		{
-			SetCellData(CellPos(x, y), value);
+			uint newxCenterInNewBounds = m_xCenter + static_cast<uint>(-mins.x); // xmin is negative
+			newxCenter = newxCenterInNewBounds + int((newxSize - static_cast<uint>(maxs.x - mins.x)) >> 1); // Equally extend both ways
+		}
+		else if (extendLeft)
+			newxCenter = newxSize - (m_xSize - m_xCenter);
+	}
+
+	if (extendDown || extendUp)
+	{
+		newySize = SIZE_INCREMENT + m_ySize; // Ensure size is always increased
+		while (newySize < static_cast<uint>(maxs.y - mins.y + 1))
+			newySize = SIZE_INCREMENT + newySize;
+
+		newyCenter = m_yCenter;
+
+		if (extendDown && extendUp)
+		{
+			uint newyCenterInNewBounds = m_yCenter + static_cast<uint>(-mins.y); // ymin is negative
+			newyCenter = newyCenterInNewBounds + int((newySize - static_cast<uint>(maxs.y - mins.y)) >> 1); // Equally extend both ways
+		}
+		else if (extendDown)
+			newyCenter = newySize - (m_ySize - m_yCenter);
+	}
+
+	// Copy data
+	TCellData* newData = new TCellData[newxSize * newySize];
+	for (uint i = 0, ttlSize = newxSize * newySize; i < ttlSize; i++)
+		newData[i] = CELL_VALUE_DEFAULT;
+
+	uint xCopyStart = newxCenter - m_xCenter;
+	//uint xCopyEnd = newxCenter + m_xSize - m_xCenter;
+	uint yCopyStart = newyCenter - m_yCenter;
+	//uint yCopyEnd = newyCenter + m_ySize - m_yCenter;
+	
+	for (uint ySrc = 0; ySrc < m_ySize; ySrc++)
+	{
+		for (uint xSrc = 0; xSrc < m_xSize; xSrc++)
+		{
+			uint xDst = xCopyStart + xSrc;
+			uint yDst = yCopyStart + ySrc;
+			newData[newxSize * yDst + xDst] = m_Data[m_xSize * ySrc + xSrc];
 		}
 	}
+
+	// Update member variables
+	delete[] m_Data;
+	m_Data = newData;
+	m_xCenter = newxCenter;
+	m_yCenter = newyCenter;
+	m_xSize = newxSize;
+	m_ySize = newySize;
 }
 
-Vector2 Map::GetCellCenterPos(CellPos mapPos)
+void Map::EnsureWorldBounds_Circle(Vector2 center_w, float radius_w)
 {
-	constexpr float halfCell = 0.5f;
-	return Vector2(static_cast<float>(mapPos.x) + halfCell, static_cast<float>(mapPos.y) + halfCell);
-}
-
-Map::CellPos Map::GetCellIndex(Vector2 pos)
-{
-	return CellPos(static_cast<int>(floorf(pos.x)), static_cast<int>(floorf(pos.y)));
-}
-
-bool Map::IsCellPosWithinBounds(CellPos mapPos) const
-{
-	return mapPos.x >= 0 && mapPos.x < m_Size && mapPos.y >= 0 && mapPos.y < m_Size;
+	Vector2 mins_w(center_w.x - radius_w, center_w.y - radius_w);
+	Vector2 maxs_w(center_w.x + radius_w, center_w.y + radius_w);
+	EnsureWorldBounds_Rect(mins_w, maxs_w);
 }

@@ -1,4 +1,5 @@
 #include "Scan.h"
+#include "MathUtils.h"
 
 #include <cmath>
 

@@ -15,7 +15,6 @@ private:
 public:
 	LineRasterizer(float startx, float starty, float dirx, float diry);
 	void operator++();
-	void GetGridPos(int& outx, int& outy); // todo remove later, world to grid conversions should happen through map
 	Vector2 GetPos() { return Vector2(m_x, m_y); };
 
 	float GetDistance() { return m_dist; }

@@ -25,10 +25,3 @@ void LineRasterizer::operator++()
 	m_y += m_incy;
 	m_dist += m_incDist;
 }
-
-void LineRasterizer::GetGridPos(int& outx, int& outy)
-{
-	// Simple static_cast converts towards zero!
-	outx = static_cast<int>(std::floor(m_x));
-	outy = static_cast<int>(std::floor(m_y));
-}

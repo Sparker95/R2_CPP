@@ -1,45 +1,64 @@
 #pragma once
 
 #include <vector>
+#include <random>
 
 #include "Common.h"
 #include "Map.h"
+#include "Sensor.h"
+
+class CarStatsModel;
 
 class Localizer
 {
 public:
 	struct Particle
 	{
-		Pose m_Pose;
+		Pose m_Pose; // Pose of car, not pose of sensor!
 		float m_Weight = 0;
 		Map m_Map;
 
 		Particle() = default;
 	};
 
+	struct Config
+	{
+		float m_SensorStdDev = 0.1f;
+		Pose m_SensorOffset_LS = {};
+		float m_SensorScanRange = 5.0f;
+		float m_MapRes_w = 0.125f;
+		Pose m_StartPose = {};
+		uint m_nParticles = 64;
+		int m_L2IntOccupiedCell = 1; // Use Utils::L2FloatToL2Int()
+		int m_L2IntFreeCell = 1;
+	};
+
 private:
+	CarStatsModel* m_pCarStatsModel = nullptr;
 	std::vector<Particle> m_Particles;
-	float m_SensorProbNoHitLog;
-	float m_SensorPdfCoef;
-	float m_ScanRange;
-	
-	float m_MapCellSize;
+	const Config m_Config;
+	std::minstd_rand m_RngResample;
+
+	// Arrays reused during Update()
+	std::vector<Particle> m_NewParticles;
+	std::vector<uint> m_CopyOldParticles;
+	std::vector<uint> m_OldParticlesCopyCount;
+	std::vector<float> m_ExpectedScanDists;
 
 public:
-	Localizer(uint nParticles, float sensorStdDev, float scanRange, float mapSizeWorld, float mapCellSize);
+	Localizer(const Config& config, CarStatsModel& pCarStatsModel);
 
-	void Update(const float* realScanPolar);
-
+	void Update(Pose odoPoseDiffLocal, const std::vector<Sensor::ScanSample>& realScanPolar);
 	void NormalizeWeights();
+	void ResampleParticles();
 
 	const std::vector<Particle>& GetParticles() const { return m_Particles; }
 	std::vector<Particle>& GetParticles() { return m_Particles; }
 
-
-//private:
-	static void GetScan(const Pose& pose, float* outScanPolar, uint scanSize, float maxDistWorld, const Map& map, float mapCellSize);
-	static void ApplyScan(const Pose& pose, const float* scanPolar, uint scanSize, float maxDistWorld, Map& map, float mapCellSize);
+	const Particle& GetMostLikelyParticle() const;
 
 private:
-	float CalculateParticleWeight(const Particle& p, const float* realScanPolar) const;
+	void GetScan(const Pose& sensorPose, const Map& map, const std::vector<Sensor::ScanSample>& scanAngles, std::vector<float>& outScanDistances);
+	void ApplyScan(const Pose& sensorPose, Map& map, std::vector<Sensor::ScanSample> scanPolar);
+	float CalculateParticleWeight(const Particle& p, const std::vector<Sensor::ScanSample>& realScanPolar);
 };

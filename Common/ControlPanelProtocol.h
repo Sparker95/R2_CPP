@@ -113,7 +113,7 @@ namespace ControlPanelProtocol
 		void Write(const T& value)
 		{
 			if (m_pBufferEnd - m_pWritePtr < static_cast<long int>(sizeof(T)))
-                return;
+				return;
 			*reinterpret_cast<T*>(m_pWritePtr) = value;
 			m_pWritePtr += sizeof(T);
 		}
@@ -162,14 +162,14 @@ namespace ControlPanelProtocol
 		BACKWARD = 2
 	};
 
-    struct SensorDataHeader
-    {
-        uint32_t m_Timestamp_ms;
-        uint16_t m_Odometer;
-        Chassis::MoveState m_MoveState;
-        uint8_t _padding;
+	struct SensorDataHeader
+	{
+		uint32_t m_Timestamp_ms;
+		uint16_t m_Odometer;
+		Chassis::MoveState m_MoveState;
+		uint8_t _padding;
 		float m_Steer;
-        uint32_t m_nSamples;
-    };
+		uint32_t m_nSamples;
+	};
 }
 
