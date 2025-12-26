@@ -4,11 +4,11 @@
     <ShowAllFiles>false</ShowAllFiles>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-inStreamFile "D:\Projects\Robot2\Python\RealData\Office\AllRoomsNoKitchen_StartArma.txt" -outMapFile "TestMap.rmap"</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-inStreamFile ""D:\Projects\Robot2\Python\RealData\WholeApt.txt"" -outMapFile "TestMap.rmap"</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-inStreamFile "D:\Projects\Robot2\Python\RealData\Office\AllRoomsNoKitchen_StartArma.txt" -outMapFile "TestMap.rmap"</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-inStreamFile "D:\Projects\Robot2\Python\RealData\WholeApt.txt" -outMapFile "TestMap.rmap"</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

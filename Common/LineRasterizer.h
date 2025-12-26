@@ -2,11 +2,16 @@
 
 #include "Vector2.h"
 
+#include <vector>
+
 class LineRasterizer
 {
 private:
+	unsigned int m_index = 0;
 	float m_x;
 	float m_y;
+	float m_xStart;
+	float m_yStart;
 	float m_dist;
 	float m_incx;
 	float m_incy;
@@ -20,3 +25,7 @@ public:
 	float GetDistance() { return m_dist; }
 };
 
+namespace BresenhamLine
+{
+	void GetLine(Vector2Base<int> start, Vector2Base<int> end, std::vector<Vector2Base<int>>& outPoints);
+}

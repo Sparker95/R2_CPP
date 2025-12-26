@@ -13,6 +13,7 @@
 #include "MapUtils.h"
 #include "MathUtils.h"
 #include "Utils.h"
+#include "LineRasterizer.h"
 
 void TestReadStreamFile(const char* pFilePath)
 {
@@ -49,23 +50,40 @@ void TestCarStatsModel()
 	}
 }
 
+void TestBresenhamLine()
+{
+	using TCellPos = Vector2Base<int>;
+	TCellPos start(50, 100);
+	TCellPos end(100, 40);
+	std::vector<TCellPos> points;
+	BresenhamLine::GetLine(start, end, points);
+
+	printf("Bresenham line from %i, %i to %i, %i:\n", start.x, start.y, end.x, end.y);
+	for (const auto& p : points)
+		printf("%i, %i\n", p.x, p.y);
+
+}
+
 void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapFilePath)
 {
 	Chassis::ChassisConfig chassisConfig;
 	
 	Pose startPose(0, 0, 0);
 	
+	//CarStatsModel carStatsModel(0.2f, 40.0f * PI / 180.0f);
 	CarStatsModel carStatsModel(0.2f, 40.0f * PI / 180.0f);
-	
+	//CarStatsModel carStatsModel(1e-5, 1e-5);
+
+
 	Localizer::Config localizerConfig;
 	localizerConfig.m_SensorStdDev = 0.8f;
 	localizerConfig.m_SensorOffset_LS = Pose(chassisConfig.m_sensorOffsetFwd, chassisConfig.m_sensorOffsetSide, chassisConfig.m_sensorOffsetDir_rad);
 	localizerConfig.m_SensorScanRange = 12.0f;
 	localizerConfig.m_MapRes_w = 0.0625f;
 	localizerConfig.m_StartPose = startPose;
-	localizerConfig.m_nParticles = 128;
+	localizerConfig.m_nParticles = 128; // 128
 	localizerConfig.m_L2IntOccupiedCell = Utils::L2FloatToL2Int(3.0f);
-	localizerConfig.m_L2IntFreeCell = Utils::L2FloatToL2Int(0.3f);
+	localizerConfig.m_L2IntFreeCell = Utils::L2FloatToL2Int(0.5f); // 0.3f);
 
 	Localizer localizer(localizerConfig, carStatsModel);
 
@@ -136,6 +154,7 @@ int main(int argc, char* argv[])
 
 	ProcessSensorStreamFile(pInStreamFilePath, pOutMapFilePath);
 
+	//TestBresenhamLine();
 	//const char* pFilePath = argv[1];
 	//TestReadStreamFile(pFilePath);
 	//TestWriteMap(pFilePath); // Warning: Don't enable both! File will be overridden.

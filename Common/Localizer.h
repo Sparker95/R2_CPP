@@ -39,11 +39,16 @@ private:
 	const Config m_Config;
 	std::minstd_rand m_RngResample;
 
+	// Precomputed coefficients
+	float m_SensorProbNoHitLog;
+	float m_SensorPdfCoef;
+
 	// Arrays reused during Update()
 	std::vector<Particle> m_NewParticles;
 	std::vector<uint> m_CopyOldParticles;
 	std::vector<uint> m_OldParticlesCopyCount;
 	std::vector<float> m_ExpectedScanDists;
+	//std::vector<Vector2Base<int>> m_LineCells;
 
 public:
 	Localizer(const Config& config, CarStatsModel& pCarStatsModel);

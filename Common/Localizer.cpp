@@ -23,16 +23,20 @@ Localizer::Localizer(const Config& config, CarStatsModel& carStatsModel)
 	}
 
 	m_RngResample.seed(123);
+
+	float a = -logf(m_Config.m_SensorStdDev) - 0.5f * logf(PI_2X);
+	m_SensorProbNoHitLog = logf(1.0f / m_Config.m_SensorScanRange) - a;
+	m_SensorPdfCoef = 1.0f / (2.0f * m_Config.m_SensorStdDev * m_Config.m_SensorStdDev);
 }
 
 void Localizer::Update(Pose odoPoseDiffLocal, const std::vector<Sensor::ScanSample>& realScanPolar)
 {
 	uint nParticles = static_cast<uint>(m_Particles.size());
-	
+
 	for (uint i = 0; i < nParticles; i++)
 	{
 		Particle& p = m_Particles[i];
-		
+
 		// Apply motion model to particle
 		Pose poseRandomized = m_pCarStatsModel->GetPoseSample(p.m_Pose, odoPoseDiffLocal);
 		// WIP Push history of this particle
@@ -72,7 +76,7 @@ void Localizer::NormalizeWeights()
 	uint nParticles = static_cast<uint>(m_Particles.size());
 	for (uint i = 0; i < nParticles; i++)
 		sumWeights += m_Particles[i].m_Weight;
-	
+
 	if (sumWeights == 0.0f)
 	{
 		float weight = 1.0f / static_cast<float>(nParticles);
@@ -133,6 +137,7 @@ void Localizer::ResampleParticles()
 	m_NewParticles.clear();
 }
 
+
 void Localizer::GetScan(const Pose& sensorPose, const Map& map, const std::vector<Sensor::ScanSample>& scanAngles, std::vector<float>& outScanDistances)
 {
 	// Full polar scan is passed, but we need from it only angles.
@@ -145,7 +150,7 @@ void Localizer::GetScan(const Pose& sensorPose, const Map& map, const std::vecto
 	Vector2 lineStart_w(sensorPose.x, sensorPose.y);
 	Vector2 lineStart_u = lineStart_w / m_Config.m_MapRes_w;
 	float scanRange_u = m_Config.m_SensorScanRange / m_Config.m_MapRes_w;
-	
+
 	for (uint i = 0; i < nSamples; i++)
 	{
 		float lineDir = sensorPose.dir + scanAngles[i].m_Angle_rad;
@@ -186,6 +191,56 @@ void Localizer::GetScan(const Pose& sensorPose, const Map& map, const std::vecto
 	}
 }
 
+
+
+// Bresenham line variant, still has some problems
+/*
+void Localizer::GetScan(const Pose& sensorPose, const Map& map, const std::vector<Sensor::ScanSample>& scanAngles, std::vector<float>& outScanDistances)
+{
+	// Full polar scan is passed, but we need from it only angles.
+	// This avoids extra allocation.
+
+	uint nSamples = static_cast<uint>(scanAngles.size());
+	outScanDistances.resize(nSamples);
+
+	// _u - means Unscaled - means: 1.0 equals cell size
+	Vector2 lineStart_w(sensorPose.x, sensorPose.y);
+	Map::TCellPos mapStartPos = map.PosWorldToMap(lineStart_w);
+
+	for (uint i = 0; i < nSamples; i++)
+	{
+		float lineDirAngle = sensorPose.dir + scanAngles[i].m_Angle_rad;
+		Vector2 lineDir(std::cos(lineDirAngle), std::sin(lineDirAngle));
+		Vector2 lineEnd_w = lineStart_w + lineDir * m_Config.m_SensorScanRange;
+		Map::TCellPos mapEndPos = map.PosWorldToMap(lineEnd_w);
+
+		BresenhamLine::GetLine(mapStartPos, mapEndPos, m_LineCells);
+
+		float hitDist_w = Scan::SCAN_RAY_NO_HIT_VALUE;
+		for (const auto& cellPos : m_LineCells)
+		{
+			// Went beyond map bounds
+			if (!map.IsMapPosWithinBounds(cellPos))
+				break;
+
+			Map::TCellData cellData = map.GetDataAtPos(cellPos);
+
+			// We've hit cell which is known to be occupied
+			if (cellData > 0)
+			{
+				// Calculate dist to this grid pos
+				Vector2 cellCenterPos_w = map.PosMapToWorld(cellPos);
+				hitDist_w = Vector2::Distance(lineStart_w, cellCenterPos_w);
+				break;
+			}
+		}
+
+		outScanDistances[i] = hitDist_w;
+	}
+}
+*/
+
+
 void Localizer::ApplyScan(const Pose& sensorPose, Map& map, std::vector<Sensor::ScanSample> scanPolar)
 {
 	uint nSamples = static_cast<uint>(scanPolar.size());
@@ -205,11 +260,10 @@ void Localizer::ApplyScan(const Pose& sensorPose, Map& map, std::vector<Sensor::
 
 	for (uint i = 0; i < nSamples; i++)
 	{
-		float lineDir = sensorPose.dir + scanPolar[i].m_Angle_rad;
-		float lineDirx = std::cos(lineDir);
-		float lineDiry = std::sin(lineDir);
+		float lineDirAngle = sensorPose.dir + scanPolar[i].m_Angle_rad;
+		Vector2 lineDir(std::cos(lineDirAngle), std::sin(lineDirAngle));
 
-		LineRasterizer lineRasterizer(lineStart_u.x, lineStart_u.y, lineDirx, lineDiry);
+		LineRasterizer lineRasterizer(lineStart_u.x, lineStart_u.y, lineDir.x, lineDir.y);
 		float rayDist_w = scanPolar[i].m_Dist_m;
 		bool rayHit = rayDist_w != Scan::SCAN_RAY_NO_HIT_VALUE; // Did ray hit something?
 
@@ -220,40 +274,100 @@ void Localizer::ApplyScan(const Pose& sensorPose, Map& map, std::vector<Sensor::
 		// _u means Unscaled
 		float rayDist_u = rayDist_w / m_Config.m_MapRes_w;
 
+		Map::TCellPos lastMapCellPos = map.PosWorldUnscaledToMap(lineStart_u + lineDir * rayDist_u);
+
 		while (true)
 		{
 			Vector2 rasterizerPos = lineRasterizer.GetPos();
 			Map::TCellPos mapCellPos = map.PosWorldUnscaledToMap(rasterizerPos);
 
-			// No need to check if mapCellPos is within map bounds, this was ensured outside
-
-			// Advance one cell further
-			++lineRasterizer;
-
-			// Note that mapCellPos is not current cell of lineRasterizer at this point, but previous one
-
-			// If next cell is outside limit, resolve what to do with last cell
-			if (lineRasterizer.GetDistance() > rayDist_u)
-			{
-				// Set value of final cell
-				int cellData = static_cast<int>(map.GetDataAtPos(mapCellPos));
-				cellData += m_Config.m_L2IntOccupiedCell;
-				if (cellData >= 127)
-					cellData = 127;
-
-				map.SetDataAtPos(mapCellPos, static_cast<Map::TCellData>(cellData));
+			if (mapCellPos == lastMapCellPos)
 				break;
-			}
 
-			// Next cell is not out of limit, this is free space
+			// Update cell as free space
+			// No need to check if mapCellPos is within map bounds, this was ensured outside
 			int cellData = static_cast<int>(map.GetDataAtPos(mapCellPos));
 			cellData -= m_Config.m_L2IntFreeCell;
 			if (cellData <= -128)
 				cellData = -128;
 			map.SetDataAtPos(mapCellPos, static_cast<Map::TCellData>(cellData));
+
+			// Advance one cell further
+			++lineRasterizer;
+
+			// If next cell is outside limit, break
+			if (lineRasterizer.GetDistance() > rayDist_u)
+				break;
 		}
+
+		// Handle last cell
+		int cellData = static_cast<int>(map.GetDataAtPos(lastMapCellPos));
+		cellData += m_Config.m_L2IntOccupiedCell;
+		if (cellData >= 127)
+			cellData = 127;
+
+		map.SetDataAtPos(lastMapCellPos, static_cast<Map::TCellData>(cellData));
 	}
 }
+
+
+// Bresenham line variant, still has some problems
+/*
+void Localizer::ApplyScan(const Pose& sensorPose, Map& map, std::vector<Sensor::ScanSample> scanPolar)
+{
+	uint nSamples = static_cast<uint>(scanPolar.size());
+	Vector2 lineStart_w(sensorPose.x, sensorPose.y);
+	Map::TCellPos mapStartPos = map.PosWorldToMap(lineStart_w);
+
+	// Find max distance of scan from actual data
+	float scanMaxDist_w = scanPolar[0].m_Dist_m;
+	for (uint i = 0; i < nSamples; i++)
+	{
+		if (scanPolar[i].m_Dist_m > scanMaxDist_w)
+			scanMaxDist_w = scanPolar[i].m_Dist_m;
+	}
+
+	// Ensure map can represent the scan boundaries
+	map.EnsureWorldBounds_Circle(lineStart_w, scanMaxDist_w);
+	for (uint i = 0; i < nSamples; i++)
+	{
+		float rayDist_w = scanPolar[i].m_Dist_m;
+		bool rayHit = rayDist_w != Scan::SCAN_RAY_NO_HIT_VALUE; // Did ray hit something?
+
+		// No-hit rays are ignored
+		if (!rayHit)
+			continue;
+
+		float lineDirAngle = sensorPose.dir + scanPolar[i].m_Angle_rad;
+		Vector2 lineDir(std::cos(lineDirAngle), std::sin(lineDirAngle));
+		Vector2 lineEnd_w = lineStart_w + lineDir * rayDist_w;
+
+		Map::TCellPos mapEndPos = map.PosWorldToMap(lineEnd_w);
+		BresenhamLine::GetLine(mapStartPos, mapEndPos, m_LineCells);
+
+		uint nCellsInLine = static_cast<uint>(m_LineCells.size());
+		for (uint cellId = 0; cellId < nCellsInLine - 1; cellId++) // All except last
+		{
+			// Update cell as free space
+			// No need to check if mapCellPos is within map bounds, this was ensured outside
+			Map::TCellPos cellPos = m_LineCells[cellId];
+			int cellData = static_cast<int>(map.GetDataAtPos(cellPos));
+			cellData -= m_Config.m_L2IntFreeCell;
+			if (cellData <= -128)
+				cellData = -128;
+			map.SetDataAtPos(cellPos, static_cast<Map::TCellData>(cellData));
+		}
+
+		// Handle last cell
+		int cellData = static_cast<int>(map.GetDataAtPos(mapEndPos));
+		cellData += m_Config.m_L2IntOccupiedCell;
+		if (cellData >= 127)
+			cellData = 127;
+
+		map.SetDataAtPos(mapEndPos, static_cast<Map::TCellData>(cellData));
+	}
+}
+*/
 
 float Localizer::CalculateParticleWeight(const Particle& p, const std::vector<Sensor::ScanSample>& realScanPolar)
 {
@@ -266,11 +380,6 @@ float Localizer::CalculateParticleWeight(const Particle& p, const std::vector<Se
 	// - Therefore, in case of no-hit, the scaling coefficient is substracted from probability value of that ray.
 	// - Finally the scaling coefficient is removed completely, since it doesn't affect ratio of particle weights in the end.
 
-	// WIP optimize: precompute these
-	float a = -logf(m_Config.m_SensorStdDev) - 0.5f * logf(PI_2X);
-	float sensorProbNoHitLog = logf(1.0f / m_Config.m_SensorScanRange) - a;
-	float sensorPdfCoef = 1.0f / (2.0f * m_Config.m_SensorStdDev * m_Config.m_SensorStdDev);
-
 	float weightLog = 0.0f;
 	uint nSamples = static_cast<uint>(realScanPolar.size());
 	for (uint i = 0; i < nSamples; i++)
@@ -278,11 +387,11 @@ float Localizer::CalculateParticleWeight(const Particle& p, const std::vector<Se
 		float expectedDist = m_ExpectedScanDists[i];
 		if (expectedDist == Scan::SCAN_RAY_NO_HIT_VALUE)
 		{
-			weightLog += sensorProbNoHitLog;
+			weightLog += m_SensorProbNoHitLog;
 			continue;
 		}
 		float diff = realScanPolar[i].m_Dist_m - expectedDist;
-		weightLog -= diff * diff * sensorPdfCoef;
+		weightLog -= diff * diff * m_SensorPdfCoef;
 	}
 
 	return expf(weightLog);
