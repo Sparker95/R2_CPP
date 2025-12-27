@@ -11,4 +11,6 @@ struct Pose
 
 	Pose() = default;
 	Pose(float x, float y, float dir) : x(x), y(y), dir(dir) {}
+	bool operator==(const Pose& other) const { return x == other.x && y == other.y && dir == other.dir; }
+	bool operator!=(const Pose& other) const { return x != other.x || y != other.y || dir != other.dir; }
 };

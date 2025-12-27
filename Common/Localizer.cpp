@@ -428,17 +428,49 @@ const Localizer::Particle& Localizer::GetMostLikelyParticle() const
 #if LOCALIZER_STORE_HISTORY
 void Localizer::StoreParticlesHistory(bool afterResampling)
 {
+	// Try to advance m_HistoryDivergeId
+	uint nParticles = static_cast<uint>(m_Particles.size());
+	uint poseHistorySize = static_cast<uint>(m_Particles[0].m_PoseHistory.size());
+	while (m_PoseHistoryDivergeId < poseHistorySize)
+	{
+		// Increase index if all poses are now same
+		const Pose& pose0 = m_Particles[0].m_PoseHistory[m_PoseHistoryDivergeId];
+		bool allPosesEqual = true;
+		for (const Particle& particle : m_Particles)
+		{
+			if (particle.m_PoseHistory[m_PoseHistoryDivergeId] != pose0)
+			{
+				allPosesEqual = false;
+				break;
+			}
+		}
+		if (allPosesEqual)
+		{
+			m_CommonPoseHistory.push_back(pose0);
+			m_PoseHistoryDivergeId++;
+		}
+		else
+			break;
+	}
+
 	m_History.push_back(HistoryEntry());
 	HistoryEntry& historyEntry = m_History.back();
 	historyEntry.m_bAfterResampling = afterResampling;
 	historyEntry.m_Id = static_cast<uint>(m_History.size() - 1);
+	historyEntry.m_CommonPoseHistory = m_CommonPoseHistory;
 	for (const Particle& p : m_Particles)
 	{
 		historyEntry.m_Particles.push_back(HistoryEntry::ParticleEntry());
 		HistoryEntry::ParticleEntry& particleEntry = historyEntry.m_Particles.back();
 		particleEntry.m_Pose = p.m_Pose;
 		particleEntry.m_Weight = p.m_Weight;
-		particleEntry.m_PoseHistory = p.m_PoseHistory;
+
+		particleEntry.m_UniquePoseHistory.reserve(p.m_PoseHistory.size() - m_CommonPoseHistory.size());
+
+		uint copyId = static_cast<uint>(m_CommonPoseHistory.size());
+		uint copyEnd = static_cast<uint>(p.m_PoseHistory.size());
+		for (; copyId < copyEnd; copyId++)
+			particleEntry.m_UniquePoseHistory.push_back(p.m_PoseHistory[copyId]);
 	}
 }
 #endif

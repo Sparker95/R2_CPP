@@ -8,6 +8,8 @@
 // Writes one entry
 void WriteLocalizerHistoryEntry(const Localizer::HistoryEntry& historyEntry, StringWordWriter& writer)
 {
+	const char* pPoseFmt = "%.5f";
+
 	writer.Write("HISTORY_ENTRY");
 
 	writer.Write("ENTRY_ID");
@@ -17,12 +19,34 @@ void WriteLocalizerHistoryEntry(const Localizer::HistoryEntry& historyEntry, Str
 	writer.Write<uint>(static_cast<uint>(historyEntry.m_bAfterResampling));
 	writer.WriteNewLine();
 
+	writer.Write("COMMON_POSE_HISTORY");
+	writer.Write("N_POSES");
+	writer.Write<uint>(static_cast<uint>(historyEntry.m_CommonPoseHistory.size()));
+	writer.WriteNewLine();
+	{
+		uint newlineCounter = 0;
+		for (const Pose& commonPose : historyEntry.m_CommonPoseHistory)
+		{
+			writer.Write("POSE");
+			writer.Write(commonPose.x, pPoseFmt);
+			writer.Write(commonPose.y, pPoseFmt);
+			writer.Write(commonPose.dir, pPoseFmt);
+
+			newlineCounter++;
+			if (newlineCounter > 8)
+			{
+				writer.WriteNewLine();
+				newlineCounter = 0;
+			}
+		}
+	}
+	writer.WriteNewLine();
+
 	writer.Write("PARTICLES");
 	writer.Write("N_PARTICLES");
 	writer.Write<uint>(static_cast<uint>(historyEntry.m_Particles.size()));
 	writer.WriteNewLine();
 
-	const char* pPoseFmt = "%.5f";
 	for (const Localizer::HistoryEntry::ParticleEntry& p : historyEntry.m_Particles)
 	{
 		writer.Write("PTCL");
@@ -34,23 +58,25 @@ void WriteLocalizerHistoryEntry(const Localizer::HistoryEntry& historyEntry, Str
 		writer.Write("WT");
 		writer.Write(p.m_Weight);
 
-		writer.Write("POS_HIST");
+		writer.Write("UNIQUE_POS_HIST");
 		writer.Write("N_POSES");
-		writer.Write<uint>(static_cast<uint>(p.m_PoseHistory.size()));
+		writer.Write<uint>(static_cast<uint>(p.m_UniquePoseHistory.size()));
 
-		uint _newlineCounter = 0;
-		for (const Pose& poseHist : p.m_PoseHistory)
 		{
-			writer.Write("POSE");
-			writer.Write(poseHist.x, pPoseFmt);
-			writer.Write(poseHist.y, pPoseFmt);
-			writer.Write(poseHist.dir, pPoseFmt);
-
-			_newlineCounter++;
-			if (_newlineCounter > 8)
+			uint newlineCounter = 0;
+			for (const Pose& uniquePose : p.m_UniquePoseHistory)
 			{
-				writer.WriteNewLine();
-				_newlineCounter = 0;
+				writer.Write("POSE");
+				writer.Write(uniquePose.x, pPoseFmt);
+				writer.Write(uniquePose.y, pPoseFmt);
+				writer.Write(uniquePose.dir, pPoseFmt);
+
+				newlineCounter++;
+				if (newlineCounter > 8)
+				{
+					writer.WriteNewLine();
+					newlineCounter = 0;
+				}
 			}
 		}
 
@@ -71,7 +97,7 @@ bool LocalizerUtils::WriteLocalizerHistoryToFile(const Localizer& localizer, con
 	writer.Write("LOCALIZER_HISTORY");
 
 	writer.Write("VERSION");
-	writer.Write<uint>(1);
+	writer.Write<uint>(2);
 
 	const auto& historyEntries = localizer.GetHistory();
 

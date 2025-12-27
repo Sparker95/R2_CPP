@@ -9,7 +9,7 @@
 
 class CarStatsModel;
 
-#define LOCALIZER_STORE_HISTORY 1
+#define LOCALIZER_STORE_HISTORY 0
 
 class Localizer
 {
@@ -33,10 +33,11 @@ public:
 		{
 			Pose m_Pose;
 			float m_Weight;
-			std::vector<Pose> m_PoseHistory;
+			std::vector<Pose> m_UniquePoseHistory;
 		};
 
 		std::vector<ParticleEntry> m_Particles;
+		std::vector<Pose> m_CommonPoseHistory;
 		uint m_Id = 0;
 		bool m_bAfterResampling = false;
 	};
@@ -72,6 +73,8 @@ private:
 
 	// Diagnostics
 	std::vector<HistoryEntry> m_History;
+	uint m_PoseHistoryDivergeId = 0;       // Pose history diverges starting from this index
+	std::vector<Pose> m_CommonPoseHistory; // Poses which are same in history of all particles
 
 public:
 	Localizer(const Config& config, CarStatsModel& pCarStatsModel);
@@ -87,6 +90,7 @@ public:
 
 	// Diagnostics
 	const std::vector<HistoryEntry>& GetHistory() const { return m_History; }
+	const std::vector<Pose>& GetCommonPoseHistory() const { return m_CommonPoseHistory; }
 
 private:
 	void GetScan(const Pose& sensorPose, const Map& map, const std::vector<Sensor::ScanSample>& scanAngles, std::vector<float>& outScanDistances);
