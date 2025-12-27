@@ -9,6 +9,8 @@
 
 class CarStatsModel;
 
+#define LOCALIZER_STORE_HISTORY 1
+
 class Localizer
 {
 public:
@@ -18,7 +20,25 @@ public:
 		float m_Weight = 0;
 		Map m_Map;
 
+#if LOCALIZER_STORE_HISTORY
+		std::vector<Pose> m_PoseHistory;
+#endif
+
 		Particle() = default;
+	};
+
+	struct HistoryEntry
+	{
+		struct ParticleEntry
+		{
+			Pose m_Pose;
+			float m_Weight;
+			std::vector<Pose> m_PoseHistory;
+		};
+
+		std::vector<ParticleEntry> m_Particles;
+		uint m_Id = 0;
+		bool m_bAfterResampling = false;
 	};
 
 	struct Config
@@ -50,6 +70,9 @@ private:
 	std::vector<float> m_ExpectedScanDists;
 	//std::vector<Vector2Base<int>> m_LineCells;
 
+	// Diagnostics
+	std::vector<HistoryEntry> m_History;
+
 public:
 	Localizer(const Config& config, CarStatsModel& pCarStatsModel);
 
@@ -62,8 +85,15 @@ public:
 
 	const Particle& GetMostLikelyParticle() const;
 
+	// Diagnostics
+	const std::vector<HistoryEntry>& GetHistory() const { return m_History; }
+
 private:
 	void GetScan(const Pose& sensorPose, const Map& map, const std::vector<Sensor::ScanSample>& scanAngles, std::vector<float>& outScanDistances);
 	void ApplyScan(const Pose& sensorPose, Map& map, std::vector<Sensor::ScanSample> scanPolar);
 	float CalculateParticleWeight(const Particle& p, const std::vector<Sensor::ScanSample>& realScanPolar);
+
+#if LOCALIZER_STORE_HISTORY
+	void StoreParticlesHistory(bool afterResampling);
+#endif
 };

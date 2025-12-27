@@ -139,6 +139,7 @@
     <ClCompile Include="..\Common\Chassis.cpp" />
     <ClCompile Include="..\Common\LineRasterizer.cpp" />
     <ClCompile Include="..\Common\Localizer.cpp" />
+    <ClCompile Include="..\Common\LocalizerUtils.cpp" />
     <ClCompile Include="..\Common\Map.cpp" />
     <ClCompile Include="..\Common\MapUtils.cpp" />
     <ClCompile Include="..\Common\Scan.cpp" />
@@ -154,6 +155,7 @@
     <ClInclude Include="..\Common\CarStatsModel.h" />
     <ClInclude Include="..\Common\Chassis.h" />
     <ClInclude Include="..\Common\Common.h" />
+    <ClInclude Include="..\Common\LocalizerUtils.h" />
     <ClInclude Include="..\Common\MathUtils.h" />
     <ClInclude Include="..\Common\IntTypes.h" />
     <ClInclude Include="..\Common\LineRasterizer.h" />

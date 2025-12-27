@@ -1,11 +1,18 @@
 // r2offline_win.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
+// Heap memory leak detection
+// https://learn.microsoft.com/en-us/cpp/c-runtime-library/find-memory-leaks-using-the-crt-library?view=msvc-170
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+
 #include <cstdio>
 #include <string>
 
 #include "Chassis.h"
 #include "Localizer.h"
+#include "LocalizerUtils.h"
 #include "CarStatsModel.h"
 #include "IntTypes.h"
 #include "Map.h"
@@ -64,7 +71,7 @@ void TestBresenhamLine()
 
 }
 
-void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapFilePath)
+void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapFilePath, const char* pOutLocHistoryPath)
 {
 	Chassis::ChassisConfig chassisConfig;
 	
@@ -120,10 +127,15 @@ void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapF
 	printf("Finished processing data, writing results to files\n");
 	const Localizer::Particle& bestParticle = localizer.GetMostLikelyParticle();
 	MapUtils::WriteMapToFile_L2Int(bestParticle.m_Map, pOutMapFilePath, Utils::LOG2_PROB_QUANTIZATION);
+
+	// Write particles history
+	LocalizerUtils::WriteLocalizerHistoryToFile(localizer, pOutLocHistoryPath, 32);
 }
 
 int main(int argc, char* argv[])
 {
+	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+
 	if (argc == 1)
 	{
 		printf("Provide path to file!\n");
@@ -133,6 +145,7 @@ int main(int argc, char* argv[])
 	// Extract arguments
 	const char* pInStreamFilePath = nullptr;
 	const char* pOutMapFilePath = nullptr;
+	const char* pOutLocHistoryPath = nullptr;
 	for (int i = 1; i < argc - 1; i++)
 	{
 		std::string arg(argv[i]);
@@ -140,19 +153,22 @@ int main(int argc, char* argv[])
 			pInStreamFilePath = argv[i + 1];
 		else if (arg == "-outMapFile")
 			pOutMapFilePath = argv[i + 1];
+		else if (arg == "-outLocHistoryFile")
+			pOutLocHistoryPath = argv[i + 1];
 	}
 
-	if (!pInStreamFilePath || !pOutMapFilePath)
+	if (!pInStreamFilePath || !pOutMapFilePath || !pOutLocHistoryPath)
 	{
 		printf("Not all arguments are provided!\n");
 		return 1;
 	}
 
 	printf("Arguments:\n");
-	printf("-inStreamFile : %s\n", pInStreamFilePath);
-	printf("-outMapFile   : %s\n", pOutMapFilePath);
+	printf("-inStreamFile      : %s\n", pInStreamFilePath);
+	printf("-outMapFile        : %s\n", pOutMapFilePath);
+	printf("-outLocHistoryFile : %s\n", pOutLocHistoryPath);
 
-	ProcessSensorStreamFile(pInStreamFilePath, pOutMapFilePath);
+	ProcessSensorStreamFile(pInStreamFilePath, pOutMapFilePath, pOutLocHistoryPath);
 
 	//TestBresenhamLine();
 	//const char* pFilePath = argv[1];
@@ -160,7 +176,7 @@ int main(int argc, char* argv[])
 	//TestWriteMap(pFilePath); // Warning: Don't enable both! File will be overridden.
 	//TestCarStatsModel();
 
-
+	_CrtDumpMemoryLeaks();
 
 	return 0;
 }

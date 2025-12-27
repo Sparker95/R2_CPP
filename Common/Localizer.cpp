@@ -39,7 +39,9 @@ void Localizer::Update(Pose odoPoseDiffLocal, const std::vector<Sensor::ScanSamp
 
 		// Apply motion model to particle
 		Pose poseRandomized = m_pCarStatsModel->GetPoseSample(p.m_Pose, odoPoseDiffLocal);
-		// WIP Push history of this particle
+#if LOCALIZER_STORE_HISTORY
+		p.m_PoseHistory.push_back(p.m_Pose);
+#endif
 		p.m_Pose = poseRandomized;
 
 		// Calculate weight
@@ -53,6 +55,11 @@ void Localizer::Update(Pose odoPoseDiffLocal, const std::vector<Sensor::ScanSamp
 	}
 
 	NormalizeWeights();
+
+	// Store history
+#if LOCALIZER_STORE_HISTORY
+	StoreParticlesHistory(false);
+#endif
 
 	// Resample particles, use value of effective particles
 	float sumWeightSq = 0.0f;
@@ -68,6 +75,11 @@ void Localizer::Update(Pose odoPoseDiffLocal, const std::vector<Sensor::ScanSamp
 	}
 	else
 		std::printf("N effective particles: %.2f, NO resampling\n", nEff);
+
+	// Store history
+#if LOCALIZER_STORE_HISTORY
+	StoreParticlesHistory(true);
+#endif
 }
 
 void Localizer::NormalizeWeights()
@@ -412,3 +424,21 @@ const Localizer::Particle& Localizer::GetMostLikelyParticle() const
 
 	return *bestp;
 }
+
+#if LOCALIZER_STORE_HISTORY
+void Localizer::StoreParticlesHistory(bool afterResampling)
+{
+	m_History.push_back(HistoryEntry());
+	HistoryEntry& historyEntry = m_History.back();
+	historyEntry.m_bAfterResampling = afterResampling;
+	historyEntry.m_Id = static_cast<uint>(m_History.size() - 1);
+	for (const Particle& p : m_Particles)
+	{
+		historyEntry.m_Particles.push_back(HistoryEntry::ParticleEntry());
+		HistoryEntry::ParticleEntry& particleEntry = historyEntry.m_Particles.back();
+		particleEntry.m_Pose = p.m_Pose;
+		particleEntry.m_Weight = p.m_Weight;
+		particleEntry.m_PoseHistory = p.m_PoseHistory;
+	}
+}
+#endif
