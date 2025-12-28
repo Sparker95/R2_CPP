@@ -74,25 +74,27 @@ void TestBresenhamLine()
 void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapFilePath, const char* pOutLocHistoryPath)
 {
 	Chassis::ChassisConfig chassisConfig;
-	
+	Chassis::ChassisStatsConfig chassisStatsConfig;
+
 	Pose startPose(0, 0, 0);
 	
 	//CarStatsModel carStatsModel(0.2f, 40.0f * PI / 180.0f);
-	CarStatsModel carStatsModel(0.2f, 40.0f * PI / 180.0f);
+	//CarStatsModel carStatsModel(0.2f, 40.0f * PI / 180.0f);
 	//CarStatsModel carStatsModel(1e-5, 1e-5);
 
+	Chassis::ChassisStatsModel chassisStatsModel(chassisConfig, chassisStatsConfig);
 
 	Localizer::Config localizerConfig;
-	localizerConfig.m_SensorStdDev = 0.8f;
+	localizerConfig.m_SensorStdDev = 0.6f;
 	localizerConfig.m_SensorOffset_LS = Pose(chassisConfig.m_sensorOffsetFwd, chassisConfig.m_sensorOffsetSide, chassisConfig.m_sensorOffsetDir_rad);
 	localizerConfig.m_SensorScanRange = 12.0f;
 	localizerConfig.m_MapRes_w = 0.0625f;
 	localizerConfig.m_StartPose = startPose;
 	localizerConfig.m_nParticles = 128; // 128
 	localizerConfig.m_L2IntOccupiedCell = Utils::L2FloatToL2Int(3.0f);
-	localizerConfig.m_L2IntFreeCell = Utils::L2FloatToL2Int(0.5f); // 0.3f);
+	localizerConfig.m_L2IntFreeCell = Utils::L2FloatToL2Int(0.5f);
 
-	Localizer localizer(localizerConfig, carStatsModel);
+	Localizer localizer(localizerConfig, chassisStatsModel);
 
 	// Read all blocks
 	std::vector<SensorStreamBlock> sensorStreamBlocks;
@@ -110,15 +112,19 @@ void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapF
 		SensorStreamBlock& block = sensorStreamBlocks[blockId];
 
 		Chassis::TOdometerCounter odoDiff = Chassis::CalculateOdometerDifference(block.m_Odometer, pPrevBlock->m_Odometer);
-		Pose odoPoseDiff_LS = Chassis::CalculatePoseDiff_LS(chassisConfig, odoDiff, block.m_MoveState, block.m_Steer);
+		//Pose odoPoseDiff_LS = Chassis::CalculatePoseDiff_LS(chassisConfig, odoDiff, block.m_MoveState, block.m_Steer);
 
-		if (odoPoseDiff_LS.x == 0 && odoPoseDiff_LS.y == 0 /*& odoPoseDiff_LS.dir == 0*/)
+		if (odoDiff == 0)
 		{
 			pPrevBlock = &block;
 			continue;
 		}
 
-		localizer.Update(odoPoseDiff_LS, block.m_ScanSamples);
+		Chassis::ChassisInputs inputs;
+		inputs.m_MoveState = block.m_MoveState;
+		inputs.m_OdoDiff = odoDiff;
+		inputs.m_Steer = block.m_Steer;
+		localizer.Update(inputs, block.m_ScanSamples);
 
 		pPrevBlock = &block;
 	}

@@ -6,10 +6,11 @@
 #include "MathUtils.h"
 #include "Scan.h"
 #include "LineRasterizer.h"
-#include "CarStatsModel.h"
+//#include "CarStatsModel.h"
+#include "Chassis.h"
 
-Localizer::Localizer(const Config& config, CarStatsModel& carStatsModel)
-	: m_Config(config), m_pCarStatsModel(&carStatsModel)
+Localizer::Localizer(const Config& config, Chassis::ChassisStatsModel& statsModel)
+	: m_Config(config), m_pChassisStatsModel(&statsModel)
 {
 	m_Particles.reserve(config.m_nParticles);
 	for (uint i = 0; i < config.m_nParticles; i++)
@@ -29,7 +30,7 @@ Localizer::Localizer(const Config& config, CarStatsModel& carStatsModel)
 	m_SensorPdfCoef = 1.0f / (2.0f * m_Config.m_SensorStdDev * m_Config.m_SensorStdDev);
 }
 
-void Localizer::Update(Pose odoPoseDiffLocal, const std::vector<Sensor::ScanSample>& realScanPolar)
+void Localizer::Update(const Chassis::ChassisInputs& inputs, const std::vector<Sensor::ScanSample>& realScanPolar)
 {
 	uint nParticles = static_cast<uint>(m_Particles.size());
 
@@ -38,7 +39,8 @@ void Localizer::Update(Pose odoPoseDiffLocal, const std::vector<Sensor::ScanSamp
 		Particle& p = m_Particles[i];
 
 		// Apply motion model to particle
-		Pose poseRandomized = m_pCarStatsModel->GetPoseSample(p.m_Pose, odoPoseDiffLocal);
+		Pose randomPoseDiff_LS = m_pChassisStatsModel->GetPoseDiffSample_LS(inputs);
+		Pose poseRandomized = Utils::AddPoseDiff(p.m_Pose, randomPoseDiff_LS);
 #if LOCALIZER_STORE_HISTORY
 		p.m_PoseHistory.push_back(p.m_Pose);
 #endif

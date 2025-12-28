@@ -3,6 +3,7 @@
 // Code related to chassis, common on Raspberry Pi and control panel
 
 #include <stdint.h>
+#include <random>
 
 #include "Common.h"
 #include "IntTypes.h"
@@ -54,6 +55,39 @@ namespace Chassis
 		uint m_encoderPulses = 8; // Per revolution
 	};
 
+	struct ChassisStatsConfig
+	{
+		float m_WheelRadiusTol_abs = 0.003f;           // +- Meters
+		float m_OdoFreeplay_abs = 1.0f;                // +- Number of pulses
+		float m_WheelFreeplay_rad = 6.0f * PI / 90.0f; // +- Radians
+		float m_SteerTolStraight_abs = 0.15f;          // +- Steering units
+		float m_SteerTolTurn_abs = 0.4f;               // +- Steering units
+	};
+
+	struct ChassisInputs
+	{
+		TOdometerCounter m_OdoDiff;
+		MoveState m_MoveState;
+		float m_Steer;
+	};
+
+	class ChassisStatsModel
+	{
+	private:
+		const ChassisConfig m_ChassisConfig;
+		const ChassisStatsConfig m_StatsConfig;
+		std::minstd_rand m_Rng;
+
+	public:
+		ChassisStatsModel(const ChassisConfig& chassisConfig, const ChassisStatsConfig& statsConfig);
+
+		Pose GetPoseDiffSample_LS(const ChassisInputs& inputs);
+	};
+
+	//------------------------------------------------------------------------------------------------------------------------
+	// Various functions
+
+	// Calculates ideal pose difference, without noise applied
 	Pose CalculatePoseDiff_LS(const ChassisConfig& config, TOdometerCounter odoDiff, MoveState moveState, float steerInput);
 	
 	// Converts pose difference from Local Space to Sensor Space

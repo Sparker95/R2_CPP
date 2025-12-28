@@ -4,11 +4,11 @@
     <ShowAllFiles>false</ShowAllFiles>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-inStreamFile "D:\Projects\Robot2\Python\RealData\Office\Enf_to_MyRoom.txt" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist"</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-inStreamFile "D:\Projects\Robot2\Python\RealData\Office\MyRoom_to_MR_DayZ (1).txt" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist"</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-inStreamFile "D:\Projects\Robot2\Python\RealData\Office\Enf_to_MyRoom.txt" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist"</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-inStreamFile "D:\Projects\Robot2\Python\RealData\Office\MyRoom_to_MR_DayZ (1).txt" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist"</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

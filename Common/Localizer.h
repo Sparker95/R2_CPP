@@ -7,9 +7,13 @@
 #include "Map.h"
 #include "Sensor.h"
 
-class CarStatsModel;
+namespace Chassis
+{
+	class ChassisStatsModel;
+	struct ChassisInputs;
+}
 
-#define LOCALIZER_STORE_HISTORY 0
+#define LOCALIZER_STORE_HISTORY 1
 
 class Localizer
 {
@@ -55,7 +59,7 @@ public:
 	};
 
 private:
-	CarStatsModel* m_pCarStatsModel = nullptr;
+	Chassis::ChassisStatsModel* m_pChassisStatsModel = nullptr;
 	std::vector<Particle> m_Particles;
 	const Config m_Config;
 	std::minstd_rand m_RngResample;
@@ -77,9 +81,9 @@ private:
 	std::vector<Pose> m_CommonPoseHistory; // Poses which are same in history of all particles
 
 public:
-	Localizer(const Config& config, CarStatsModel& pCarStatsModel);
+	Localizer(const Config& config, Chassis::ChassisStatsModel& statsModel);
 
-	void Update(Pose odoPoseDiffLocal, const std::vector<Sensor::ScanSample>& realScanPolar);
+	void Update(const Chassis::ChassisInputs& inputs, const std::vector<Sensor::ScanSample>& realScanPolar);
 	void NormalizeWeights();
 	void ResampleParticles();
 
