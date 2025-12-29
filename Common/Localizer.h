@@ -48,7 +48,8 @@ public:
 
 	struct Config
 	{
-		float m_SensorStdDev = 0.1f;
+		float m_SensorPdfStdDev = 0.1f;
+		float m_SensorPdfFloor = 0.1f;
 		Pose m_SensorOffset_LS = {};
 		float m_SensorScanRange = 5.0f;
 		float m_MapRes_w = 0.125f;
@@ -56,6 +57,7 @@ public:
 		uint m_nParticles = 64;
 		int m_L2IntOccupiedCell = 1; // Use Utils::L2FloatToL2Int()
 		int m_L2IntFreeCell = 1;
+		uint m_ScanDecimation = 1;
 	};
 
 private:
@@ -63,10 +65,6 @@ private:
 	std::vector<Particle> m_Particles;
 	const Config m_Config;
 	std::minstd_rand m_RngResample;
-
-	// Precomputed coefficients
-	float m_SensorProbNoHitLog;
-	float m_SensorPdfCoef;
 
 	// Arrays reused during Update()
 	std::vector<Particle> m_NewParticles;
@@ -100,6 +98,7 @@ private:
 	void GetScan(const Pose& sensorPose, const Map& map, const std::vector<Sensor::ScanSample>& scanAngles, std::vector<float>& outScanDistances);
 	void ApplyScan(const Pose& sensorPose, Map& map, std::vector<Sensor::ScanSample> scanPolar);
 	float CalculateParticleWeight(const Particle& p, const std::vector<Sensor::ScanSample>& realScanPolar);
+	float SensorRayPdf(float realDist, float expectedDist);
 
 #if LOCALIZER_STORE_HISTORY
 	void StoreParticlesHistory(bool afterResampling);

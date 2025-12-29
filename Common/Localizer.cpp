@@ -24,10 +24,6 @@ Localizer::Localizer(const Config& config, Chassis::ChassisStatsModel& statsMode
 	}
 
 	m_RngResample.seed(123);
-
-	float a = -logf(m_Config.m_SensorStdDev) - 0.5f * logf(PI_2X);
-	m_SensorProbNoHitLog = logf(1.0f / m_Config.m_SensorScanRange) - a;
-	m_SensorPdfCoef = 1.0f / (2.0f * m_Config.m_SensorStdDev * m_Config.m_SensorStdDev);
 }
 
 void Localizer::Update(const Chassis::ChassisInputs& inputs, const std::vector<Sensor::ScanSample>& realScanPolar)
@@ -394,21 +390,30 @@ float Localizer::CalculateParticleWeight(const Particle& p, const std::vector<Se
 	// - Therefore, in case of no-hit, the scaling coefficient is substracted from probability value of that ray.
 	// - Finally the scaling coefficient is removed completely, since it doesn't affect ratio of particle weights in the end.
 
-	float weightLog = 0.0f;
+	float weight = powf(2.0f, 96.0f); // It's big number because weights only decrease.
 	uint nSamples = static_cast<uint>(realScanPolar.size());
-	for (uint i = 0; i < nSamples; i++)
+	uint decimationCounter = 0;
+	for (uint i = 0; i < nSamples; i+= m_Config.m_ScanDecimation)
 	{
 		float expectedDist = m_ExpectedScanDists[i];
-		if (expectedDist == Scan::SCAN_RAY_NO_HIT_VALUE)
-		{
-			weightLog += m_SensorProbNoHitLog;
-			continue;
-		}
-		float diff = realScanPolar[i].m_Dist_m - expectedDist;
-		weightLog -= diff * diff * m_SensorPdfCoef;
+		float pdfValue = SensorRayPdf(realScanPolar[i].m_Dist_m, expectedDist);
+		weight *= pdfValue;
+		decimationCounter = 0;
 	}
 
-	return expf(weightLog);
+	return weight;
+}
+
+float Localizer::SensorRayPdf(float realDist, float expectedDist)
+{
+	if (expectedDist == Scan::SCAN_RAY_NO_HIT_VALUE)
+		return m_Config.m_SensorPdfFloor;
+
+	float normPdfDiff = realDist - expectedDist;
+	float normPdfStdDev = m_Config.m_SensorPdfStdDev;
+	float normPdfExp = std::expf(-(normPdfDiff * normPdfDiff) / (2.0f * normPdfStdDev * normPdfStdDev));
+	float totalPdf = m_Config.m_SensorPdfFloor + (1.0f - m_Config.m_SensorPdfFloor) * normPdfExp;
+	return totalPdf;
 }
 
 const Localizer::Particle& Localizer::GetMostLikelyParticle() const
