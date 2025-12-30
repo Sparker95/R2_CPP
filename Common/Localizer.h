@@ -13,7 +13,7 @@ namespace Chassis
 	struct ChassisInputs;
 }
 
-#define LOCALIZER_STORE_HISTORY 1
+//#define LOCALIZER_STORE_HISTORY
 
 class Localizer
 {
@@ -24,7 +24,7 @@ public:
 		float m_Weight = 0;
 		Map m_Map;
 
-#if LOCALIZER_STORE_HISTORY
+#ifdef LOCALIZER_STORE_HISTORY
 		std::vector<Pose> m_PoseHistory;
 #endif
 
@@ -71,6 +71,7 @@ private:
 	std::vector<uint> m_CopyOldParticles;
 	std::vector<uint> m_OldParticlesCopyCount;
 	std::vector<float> m_ExpectedScanDists;
+	std::vector<Vector2> m_ScanDirections; // x, y - cos, sin of scan sample direction
 	//std::vector<Vector2Base<int>> m_LineCells;
 
 	// Diagnostics
@@ -95,12 +96,12 @@ public:
 	const std::vector<Pose>& GetCommonPoseHistory() const { return m_CommonPoseHistory; }
 
 private:
-	void GetScan(const Pose& sensorPose, const Map& map, const std::vector<Sensor::ScanSample>& scanAngles, std::vector<float>& outScanDistances);
-	void ApplyScan(const Pose& sensorPose, Map& map, std::vector<Sensor::ScanSample> scanPolar);
-	float CalculateParticleWeight(const Particle& p, const std::vector<Sensor::ScanSample>& realScanPolar);
+	void GetScan(const Pose& sensorPose, const Map& map, const std::vector<Vector2>& scanDirections, std::vector<float>& outScanDistances);
+	void ApplyScan(const Pose& particleSensorPose, Map& map, const std::vector<Vector2>& scanDirections, const std::vector<Sensor::ScanSample>& scanPolar);
+	float CalculateParticleWeight(const Pose& particleSensorPose, const Map& map, const std::vector<Vector2>& scanDirections, const std::vector<Sensor::ScanSample>& realScanPolar);
 	float SensorRayPdf(float realDist, float expectedDist);
 
-#if LOCALIZER_STORE_HISTORY
+#ifdef LOCALIZER_STORE_HISTORY
 	void StoreParticlesHistory(bool afterResampling);
 #endif
 };

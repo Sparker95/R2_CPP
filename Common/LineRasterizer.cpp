@@ -4,7 +4,7 @@
 #include <algorithm>
 
 LineRasterizer::LineRasterizer(float startx, float starty, float dirx, float diry)
-	: m_x(startx), m_y(starty), m_xStart(startx), m_yStart(starty), m_dist(0)
+	: m_x(startx), m_y(starty), m_dist(0)
 {
 	if (std::fabs(dirx) > std::fabs(diry))
 	{
@@ -22,11 +22,9 @@ LineRasterizer::LineRasterizer(float startx, float starty, float dirx, float dir
 
 void LineRasterizer::operator++()
 {
-    m_index++;
-    float findex = static_cast<float>(m_index);
-	m_x = m_xStart + findex * m_incx;
-	m_y = m_yStart + findex * m_incy;
-	m_dist = findex * m_incDist;
+	m_x += m_incx;
+	m_y += m_incy;
+	m_dist += m_incDist;
 }
 
 void BresenhamLine::GetLine(Vector2Base<int> start, Vector2Base<int> end, std::vector<Vector2Base<int>>& outPoints)

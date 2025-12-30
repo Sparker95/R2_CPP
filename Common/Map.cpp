@@ -42,6 +42,7 @@ Map::Map(const Map& other) noexcept
 
 	m_Data = new TCellData[m_xSize * m_ySize];
 
+	// memcpy takes majority of time here: ~100us
 	std::memcpy(m_Data, other.m_Data, m_xSize * m_ySize);
 }
 

@@ -46,25 +46,35 @@ void Localizer::Update(const Chassis::ChassisInputs& inputs, const std::vector<S
 		// Apply motion model to particle
 		Pose randomPoseDiff_LS = m_pChassisStatsModel->GetPoseDiffSample_LS(inputs);
 		Pose poseRandomized = Utils::AddPoseDiff(p.m_Pose, randomPoseDiff_LS);
-#if LOCALIZER_STORE_HISTORY
+#ifdef LOCALIZER_STORE_HISTORY
 		p.m_PoseHistory.push_back(p.m_Pose);
 #endif
 		p.m_Pose = poseRandomized;
 
+		// Common data reused in futher calls
+		uint nRealScanSamples = static_cast<uint>(realScanPolar.size());
+		Pose particleSensorPose = Utils::AddPoseDiff(p.m_Pose, m_Config.m_SensorOffset_LS);
+		m_ScanDirections.resize(realScanPolar.size());
+		for (uint sampleId = 0; sampleId < nRealScanSamples; sampleId++)
+		{
+			float sampleDir = particleSensorPose.dir + realScanPolar[sampleId].m_Angle_rad;
+			m_ScanDirections[sampleId].x = std::cos(sampleDir);
+			m_ScanDirections[sampleId].y = std::sin(sampleDir);
+		}
+
 		// Calculate weight
-		float weight = CalculateParticleWeight(p, realScanPolar);
+		float weight = CalculateParticleWeight(particleSensorPose, p.m_Map, m_ScanDirections, realScanPolar);
 		p.m_Weight = weight;
 
 		// Update map
 		// Scan is applied at pose where Sensor is in World Space
-		Pose sensorPoseRandomized = Utils::AddPoseDiff(poseRandomized, m_Config.m_SensorOffset_LS);
-		ApplyScan(sensorPoseRandomized, p.m_Map, realScanPolar);
+		ApplyScan(particleSensorPose, p.m_Map, m_ScanDirections, realScanPolar);
 	}
 
 	NormalizeWeights();
 
 	// Store history
-#if LOCALIZER_STORE_HISTORY
+#ifdef LOCALIZER_STORE_HISTORY
 	StoreParticlesHistory(false);
 #endif
 
@@ -84,7 +94,7 @@ void Localizer::Update(const Chassis::ChassisInputs& inputs, const std::vector<S
 		std::printf("N effective particles: %.2f, NO resampling\n", nEff);
 
 	// Store history
-#if LOCALIZER_STORE_HISTORY
+#ifdef LOCALIZER_STORE_HISTORY
 	StoreParticlesHistory(true);
 #endif
 }
@@ -174,12 +184,14 @@ void Localizer::ResampleParticles()
 }
 
 
-void Localizer::GetScan(const Pose& sensorPose, const Map& map, const std::vector<Sensor::ScanSample>& scanAngles, std::vector<float>& outScanDistances)
+void Localizer::GetScan(const Pose& sensorPose, const Map& map, const std::vector<Vector2>& scanDirections, std::vector<float>& outScanDistances)
 {
+	ZoneScopedN("Localizer::GetScan");
+
 	// Full polar scan is passed, but we need from it only angles.
 	// This avoids extra allocation.
 
-	uint nSamples = static_cast<uint>(scanAngles.size());
+	uint nSamples = static_cast<uint>(scanDirections.size());
 	outScanDistances.resize(nSamples);
 
 	// _u - means Unscaled - means: 1.0 equals cell size
@@ -189,9 +201,8 @@ void Localizer::GetScan(const Pose& sensorPose, const Map& map, const std::vecto
 
 	for (uint i = 0; i < nSamples; i++)
 	{
-		float lineDir = sensorPose.dir + scanAngles[i].m_Angle_rad;
-		float lineDirx = std::cos(lineDir);
-		float lineDiry = std::sin(lineDir);
+		float lineDirx = scanDirections[i].x;
+		float lineDiry = scanDirections[i].y;
 
 		LineRasterizer lineRasterizer(lineStart_u.x, lineStart_u.y, lineDirx, lineDiry);
 
@@ -277,7 +288,7 @@ void Localizer::GetScan(const Pose& sensorPose, const Map& map, const std::vecto
 */
 
 
-void Localizer::ApplyScan(const Pose& sensorPose, Map& map, std::vector<Sensor::ScanSample> scanPolar)
+void Localizer::ApplyScan(const Pose& sensorPose, Map& map, const std::vector<Vector2>& scanDirections, const std::vector<Sensor::ScanSample>& scanPolar)
 {
 	ZoneScopedN("Localizer::ApplyScan");
 
@@ -298,8 +309,7 @@ void Localizer::ApplyScan(const Pose& sensorPose, Map& map, std::vector<Sensor::
 
 	for (uint i = 0; i < nSamples; i++)
 	{
-		float lineDirAngle = sensorPose.dir + scanPolar[i].m_Angle_rad;
-		Vector2 lineDir(std::cos(lineDirAngle), std::sin(lineDirAngle));
+		Vector2 lineDir = scanDirections[i];
 
 		LineRasterizer lineRasterizer(lineStart_u.x, lineStart_u.y, lineDir.x, lineDir.y);
 		float rayDist_w = scanPolar[i].m_Dist_m;
@@ -407,18 +417,11 @@ void Localizer::ApplyScan(const Pose& sensorPose, Map& map, std::vector<Sensor::
 }
 */
 
-float Localizer::CalculateParticleWeight(const Particle& p, const std::vector<Sensor::ScanSample>& realScanPolar)
+float Localizer::CalculateParticleWeight(const Pose& particleSensorPose, const Map& map, const std::vector<Vector2>& scanDirections, const std::vector<Sensor::ScanSample>& realScanPolar)
 {
 	ZoneScopedN("Localizer::CalculateParticleWeight");
 
-	Pose particleSensorPose = Utils::AddPoseDiff(p.m_Pose, m_Config.m_SensorOffset_LS);
-	GetScan(particleSensorPose, p.m_Map, realScanPolar, m_ExpectedScanDists);
-
-	// Optimization is based on several points:
-	// - Multiplication of normal distribution PDF is replaced with sum of natural logarithms.
-	// - The scaling coefficient of normal distribution PDF is taken out of the loop and added to initial accumulator value.
-	// - Therefore, in case of no-hit, the scaling coefficient is substracted from probability value of that ray.
-	// - Finally the scaling coefficient is removed completely, since it doesn't affect ratio of particle weights in the end.
+	GetScan(particleSensorPose, map, scanDirections, m_ExpectedScanDists);
 
 	float weight = std::pow(2.0f, 96.0f); // It's big number because weights only decrease.
 	uint nSamples = static_cast<uint>(realScanPolar.size());
@@ -460,7 +463,7 @@ const Localizer::Particle& Localizer::GetMostLikelyParticle() const
 	return *bestp;
 }
 
-#if LOCALIZER_STORE_HISTORY
+#ifdef LOCALIZER_STORE_HISTORY
 void Localizer::StoreParticlesHistory(bool afterResampling)
 {
 	ZoneScopedN("Localizer::StoreParticlesHistory");

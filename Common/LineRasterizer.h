@@ -7,11 +7,8 @@
 class LineRasterizer
 {
 private:
-	unsigned int m_index = 0;
 	float m_x;
 	float m_y;
-	float m_xStart;
-	float m_yStart;
 	float m_dist;
 	float m_incx;
 	float m_incy;
