@@ -1,5 +1,5 @@
 #include "StringWordReader.h"
-#include "IntTypes.h"
+#include "CommonIntTypes.h"
 
 #include <cstdlib>
 #include <cstring>

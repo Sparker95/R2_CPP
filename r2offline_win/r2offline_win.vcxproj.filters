@@ -19,6 +19,9 @@
     <Filter Include="Common">
       <UniqueIdentifier>{da6a8340-c422-4957-8c22-91726471853a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Tracy">
+      <UniqueIdentifier>{88fe7f52-d6d4-4ec1-856f-4642d9a47062}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Common\Utils.cpp">
@@ -42,9 +45,6 @@
     <ClCompile Include="..\Common\SensorStreamUtils.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="main.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\Common\StringWordWriter.cpp">
       <Filter>Common</Filter>
     </ClCompile>
@@ -61,6 +61,15 @@
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="..\Common\Chassis.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="Tracy\TracyClient.cpp">
+      <Filter>Tracy</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\LocalizerUtils.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\r2offline.cpp">
       <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>
@@ -1019,7 +1028,7 @@
     <ClInclude Include="..\Common\MapUtils.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\IntTypes.h">
+    <ClInclude Include="..\Common\CommonIntTypes.h">
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\MathUtils.h">
@@ -1036,6 +1045,12 @@
     </ClInclude>
     <ClInclude Include="..\Common\Chassis.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\LocalizerUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Tracy\tracy\Tracy.hpp">
+      <Filter>Tracy</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

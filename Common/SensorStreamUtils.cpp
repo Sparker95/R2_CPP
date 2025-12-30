@@ -1,7 +1,7 @@
 #include "SensorStreamUtils.h"
-#include "IntTypes.h"
+#include "CommonIntTypes.h"
 
-#include <string>
+#include <cstring>
 #include <fstream>
 
 bool SensorStreamUtils::ReadBlockFromString(StringWordReader& reader, SensorStreamBlock& outBlock)

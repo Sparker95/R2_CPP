@@ -128,6 +128,14 @@ bool LocalizerUtils::WriteLocalizerHistoryToFile(const Localizer& localizer, con
 				entryId++;
 			}
 		}
+
+		// Always write last history entry
+		if (!historyEntries.empty())
+		{
+			const Localizer::HistoryEntry* pLastEntry = &historyEntries.back();
+			if (entriesToWrite.back() != pLastEntry)
+				entriesToWrite.push_back(pLastEntry);
+		}
 	}
 
 	for (const Localizer::HistoryEntry* pHistoryEntry: entriesToWrite)

@@ -1,5 +1,5 @@
 #include "StringWordWriter.h"
-#include "IntTypes.h"
+#include "CommonIntTypes.h"
 
 #include <cstdio>
 

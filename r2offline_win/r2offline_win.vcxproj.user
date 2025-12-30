@@ -4,11 +4,19 @@
     <ShowAllFiles>false</ShowAllFiles>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-inStreamFile "D:\Projects\Robot2\Python\RealData\WholeAptManyTimes.txt" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist"</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-inStreamFile "D:\Projects\Robot2\Records\Office\MyRoom_to_MR_DayZ (1).txt" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist"</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-inStreamFile "D:\Projects\Robot2\Python\RealData\WholeAptManyTimes.txt" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist"</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-inStreamFile "D:\Projects\Robot2\Records\Office\MyRoom_to_MR_DayZ (1).txt" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist"</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LocalDebuggerCommandArguments>-inStreamFile "D:\Projects\Robot2\Records\Office\MyRoom_to_MR_DayZ.txt" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist"</LocalDebuggerCommandArguments>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LocalDebuggerCommandArguments>-inStreamFile "D:\Projects\Robot2\Records\Office\MyRoom_to_MR_DayZ.txt" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist"</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

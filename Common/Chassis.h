@@ -6,7 +6,7 @@
 #include <random>
 
 #include "Common.h"
-#include "IntTypes.h"
+#include "CommonIntTypes.h"
 #include "MathUtils.h"
 
 namespace Chassis
@@ -57,11 +57,11 @@ namespace Chassis
 
 	struct ChassisStatsConfig
 	{
-		float m_WheelRadiusTol_abs = 0.0045f;           // +- Meters
-		float m_OdoFreeplay_abs = 1.0f;                // +- Number of pulses
-		float m_WheelFreeplay_rad = 6.0f * PI / 90.0f; // +- Radians
-		float m_SteerTolStraight_abs = 0.3f;           // +- Steering units
-		float m_SteerTolTurn_abs = 0.6f;               // +- Steering units
+		float m_WheelRadiusTol_abs = 0.0045f;            // +- Meters
+		float m_OdoFreeplay_abs = 1.0f;                  // +- Number of pulses
+		float m_WheelFreeplay_rad = 60.0f * PI / 180.0f; // +- Radians
+		float m_SteerTolStraight_abs = 0.3f;             // +- Steering units
+		float m_SteerTolTurn_abs = 0.6f;                 // +- Steering units
 	};
 
 	struct ChassisInputs

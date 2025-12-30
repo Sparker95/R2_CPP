@@ -98,7 +98,8 @@ namespace MapUtils
 			for (uint x = 0; x < mapSize.x; x++)
 			{
 				Map::TCellPos cellPos(x, y);
-				writer.Write<int>(static_cast<int>(map.GetDataAtPos(cellPos)));
+				Map::TCellData value = map.GetDataAtPos(cellPos);
+				writer.Write<int>(static_cast<int>(value));
 			}
 			writer.WriteNewLine();
 		}

@@ -15,7 +15,7 @@ Pose CarStatsModel::GetPoseSample(const Pose& poseWorld, const Pose& odoPoseDiff
 {
 	using TDistrParam = std::normal_distribution<float>::param_type;
 
-	float dist = std::sqrtf(odoPoseDiffLocal.x * odoPoseDiffLocal.x +
+	float dist = std::sqrt(odoPoseDiffLocal.x * odoPoseDiffLocal.x +
 		odoPoseDiffLocal.y * odoPoseDiffLocal.y);
 
 	float posStdDev = dist * m_PosStdDevperDist;
@@ -26,7 +26,7 @@ Pose CarStatsModel::GetPoseSample(const Pose& poseWorld, const Pose& odoPoseDiff
 	float rndy = m_Distribution(m_Rng, distrParamPos);
 	
 	TDistrParam distrParamDir(0.0f, dirStdDev);
-	float rndDir = m_Distribution(m_Rng, distrParamDir);
+	//float rndDir = m_Distribution(m_Rng, distrParamDir);
 
 	// Rotation matrix
 	Eigen::Matrix2f mRot = Utils::MRot(poseWorld.dir);

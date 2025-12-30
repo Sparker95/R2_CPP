@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IntTypes.h"
+#include "CommonIntTypes.h"
 
 #include <string>
 
@@ -18,16 +18,16 @@ public:
 	template<class T>
 	void Write(T value) = delete;
 
-	template<>
-	void Write(int value);
-
-	template<>
-	void Write(uint value);
-
 	void Write(float value, const char* pFormat = "%f");
-
-	template<>
-	void Write(const char* value);
 
 	void WriteNewLine();
 };
+
+template<>
+void StringWordWriter::Write(int value);
+
+template<>
+void StringWordWriter::Write(uint value);
+
+template<>
+void StringWordWriter::Write(const char* value);

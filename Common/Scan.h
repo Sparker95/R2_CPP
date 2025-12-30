@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IntTypes.h"
+#include "CommonIntTypes.h"
 #include "Vector2.h"
 #include <Eigen/Dense>
 

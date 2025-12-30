@@ -1,5 +1,7 @@
 #include "Chassis.h"
 
+#include <cmath>
+
 #include "Utils.h"
 
 //------------------------------------------------------------------------------------------------------------------------------
@@ -61,15 +63,15 @@ Pose Chassis::ChassisStatsModel::GetPoseDiffSample_LS(const ChassisInputs& input
 		return Pose(moveSign * moveDist_abs, 0, 0);
 
 	// Turn radius of rear axle center point
-	float innerWheelAngle_rad = abs(steerInput_rnd) * chassisConf.m_steerSensitivity_rad;
-	float innerWheelTurnRadius = chassisConf.m_wheelBase / std::tanf(innerWheelAngle_rad);
+	float innerWheelAngle_rad = std::fabs(steerInput_rnd) * chassisConf.m_steerSensitivity_rad;
+	float innerWheelTurnRadius = chassisConf.m_wheelBase / std::tan(innerWheelAngle_rad);
 	float rearAxleCenterTurnRadius = 0.5f * chassisConf.m_trackWidth + innerWheelTurnRadius;
 
 	float moveArcAngle = moveDist_abs / rearAxleCenterTurnRadius;
 
 	float ddir = -steerSign * moveSign * moveArcAngle; // Invesrsed because positive steering rotates clockwise
-	float dx = moveSign * rearAxleCenterTurnRadius * std::sinf(moveArcAngle); // Forward
-	float dy = -steerSign * abs(dx) * std::tanf(moveArcAngle);
+	float dx = moveSign * rearAxleCenterTurnRadius * std::sin(moveArcAngle); // Forward
+	float dy = -steerSign * std::fabs(dx) * std::tan(moveArcAngle);
 
 	return Pose(dx, dy, ddir);
 }
@@ -101,14 +103,14 @@ Pose Chassis::CalculatePoseDiff_LS(const ChassisConfig& config, TOdometerCounter
 
 	// Turn radius of rear axle center point
 	float innerWheelAngle_rad = std::abs(steerInput) * c.m_steerSensitivity_rad;
-	float innerWheelTurnRadius = c.m_wheelBase / std::tanf(innerWheelAngle_rad);
+	float innerWheelTurnRadius = c.m_wheelBase / std::tan(innerWheelAngle_rad);
 	float rearAxleCenterTurnRadius = 0.5f * c.m_trackWidth + innerWheelTurnRadius;
 
 	float moveArcAngle = moveDistAbs / rearAxleCenterTurnRadius;
 
 	float ddir = -steerSign * moveSign * moveArcAngle; // # Invesrsed because positive steering rotates clockwise
-	float dx = moveSign * rearAxleCenterTurnRadius * std::sinf(moveArcAngle); // Forward
-	float dy = -steerSign * abs(dx) * std::tanf(moveArcAngle);
+	float dx = moveSign * rearAxleCenterTurnRadius * std::sin(moveArcAngle); // Forward
+	float dy = -steerSign * std::abs(dx) * std::tan(moveArcAngle);
 
 	return Pose(dx, dy, ddir);
 }

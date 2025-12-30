@@ -2,6 +2,11 @@
 
 #include <cmath>
 
+// Tracy
+#include "Tracy/tracy/Tracy.hpp"
+
+#include <cmath>
+
 #include "Utils.h"
 #include "MathUtils.h"
 #include "Scan.h"
@@ -10,7 +15,7 @@
 #include "Chassis.h"
 
 Localizer::Localizer(const Config& config, Chassis::ChassisStatsModel& statsModel)
-	: m_Config(config), m_pChassisStatsModel(&statsModel)
+	: m_pChassisStatsModel(&statsModel), m_Config(config)
 {
 	m_Particles.reserve(config.m_nParticles);
 	for (uint i = 0; i < config.m_nParticles; i++)
@@ -28,10 +33,14 @@ Localizer::Localizer(const Config& config, Chassis::ChassisStatsModel& statsMode
 
 void Localizer::Update(const Chassis::ChassisInputs& inputs, const std::vector<Sensor::ScanSample>& realScanPolar)
 {
+	ZoneScopedN("Localizer::Update");
+
 	uint nParticles = static_cast<uint>(m_Particles.size());
 
 	for (uint i = 0; i < nParticles; i++)
 	{
+		ZoneScopedN("Localizer::UpdateParticle");
+
 		Particle& p = m_Particles[i];
 
 		// Apply motion model to particle
@@ -102,6 +111,8 @@ void Localizer::NormalizeWeights()
 
 void Localizer::ResampleParticles()
 {
+	ZoneScopedN("Localizer::ResampleParticles");
+
 	// Page 110
 	uint nParticles = static_cast<uint>(m_Particles.size());
 	std::uniform_real_distribution<float> distribution(0.0f, 1.0f / static_cast<float>(nParticles));
@@ -113,38 +124,53 @@ void Localizer::ResampleParticles()
 	m_OldParticlesCopyCount.clear();
 	m_OldParticlesCopyCount.resize(nParticles, 0);
 
-	uint i = 0;
-	for (uint m = 0; m < nParticles; m++)
 	{
-		float u = r + static_cast<float>(m) / static_cast<float>(nParticles);
-		while (u > c)
+		ZoneScopedN("Localizer::ResampleParticles SelectParticles");
+		uint i = 0;
+		for (uint m = 0; m < nParticles; m++)
 		{
-			i = (i + 1) % nParticles;
-			c += m_Particles[i].m_Weight;
+			float u = r + static_cast<float>(m) / static_cast<float>(nParticles);
+			while (u > c)
+			{
+				i = (i + 1) % nParticles;
+				c += m_Particles[i].m_Weight;
+			}
+			// Add particle i
+			m_CopyOldParticles[m] = i;
+			m_OldParticlesCopyCount[i]++;
 		}
-		// Add particle i
-		m_CopyOldParticles[m] = i;
-		m_OldParticlesCopyCount[i]++;
 	}
 
-	m_NewParticles.clear();
-	m_NewParticles.reserve(nParticles);
-	for (uint i = 0; i < nParticles; i++)
 	{
-		uint iOldParticle = m_CopyOldParticles[i];
-		Particle& oldParticle = m_Particles[iOldParticle];
+		ZoneScopedN("Localizer::ResampleParticles CopyParticles");
 
-		// If only one copy is left to be done, use move constructor, otherwise copy constructor
-		if (m_OldParticlesCopyCount[iOldParticle] == 1)
-			m_NewParticles.push_back(std::move(oldParticle));
-		else
-			m_NewParticles.push_back(oldParticle);
+		m_NewParticles.clear();
+		m_NewParticles.reserve(nParticles);
+		for (uint i = 0; i < nParticles; i++)
+		{
+			uint iOldParticle = m_CopyOldParticles[i];
+			Particle& oldParticle = m_Particles[iOldParticle];
 
-		m_OldParticlesCopyCount[iOldParticle]--;
+			// If only one copy is left to be done, use move constructor, otherwise copy constructor
+			if (m_OldParticlesCopyCount[iOldParticle] == 1)
+				m_NewParticles.push_back(std::move(oldParticle));
+			else
+				m_NewParticles.push_back(oldParticle);
+
+			m_OldParticlesCopyCount[iOldParticle]--;
+		}
 	}
 
-	m_Particles.swap(m_NewParticles);
-	m_NewParticles.clear();
+	{
+		{
+			ZoneScopedN("Localizer::ResampleParticles SwapArrays");
+			m_Particles.swap(m_NewParticles);
+		}
+		{
+			ZoneScopedN("Localizer::ResampleParticles ClearNewParticles");
+			m_NewParticles.clear();
+		}
+	}
 }
 
 
@@ -253,6 +279,8 @@ void Localizer::GetScan(const Pose& sensorPose, const Map& map, const std::vecto
 
 void Localizer::ApplyScan(const Pose& sensorPose, Map& map, std::vector<Sensor::ScanSample> scanPolar)
 {
+	ZoneScopedN("Localizer::ApplyScan");
+
 	uint nSamples = static_cast<uint>(scanPolar.size());
 	Vector2 lineStart_w(sensorPose.x, sensorPose.y);
 	Vector2 lineStart_u = lineStart_w / m_Config.m_MapRes_w;
@@ -381,6 +409,8 @@ void Localizer::ApplyScan(const Pose& sensorPose, Map& map, std::vector<Sensor::
 
 float Localizer::CalculateParticleWeight(const Particle& p, const std::vector<Sensor::ScanSample>& realScanPolar)
 {
+	ZoneScopedN("Localizer::CalculateParticleWeight");
+
 	Pose particleSensorPose = Utils::AddPoseDiff(p.m_Pose, m_Config.m_SensorOffset_LS);
 	GetScan(particleSensorPose, p.m_Map, realScanPolar, m_ExpectedScanDists);
 
@@ -390,15 +420,13 @@ float Localizer::CalculateParticleWeight(const Particle& p, const std::vector<Se
 	// - Therefore, in case of no-hit, the scaling coefficient is substracted from probability value of that ray.
 	// - Finally the scaling coefficient is removed completely, since it doesn't affect ratio of particle weights in the end.
 
-	float weight = powf(2.0f, 96.0f); // It's big number because weights only decrease.
+	float weight = std::pow(2.0f, 96.0f); // It's big number because weights only decrease.
 	uint nSamples = static_cast<uint>(realScanPolar.size());
-	uint decimationCounter = 0;
 	for (uint i = 0; i < nSamples; i+= m_Config.m_ScanDecimation)
 	{
 		float expectedDist = m_ExpectedScanDists[i];
 		float pdfValue = SensorRayPdf(realScanPolar[i].m_Dist_m, expectedDist);
 		weight *= pdfValue;
-		decimationCounter = 0;
 	}
 
 	return weight;
@@ -411,7 +439,7 @@ float Localizer::SensorRayPdf(float realDist, float expectedDist)
 
 	float normPdfDiff = realDist - expectedDist;
 	float normPdfStdDev = m_Config.m_SensorPdfStdDev;
-	float normPdfExp = std::expf(-(normPdfDiff * normPdfDiff) / (2.0f * normPdfStdDev * normPdfStdDev));
+	float normPdfExp = std::exp(-(normPdfDiff * normPdfDiff) / (2.0f * normPdfStdDev * normPdfStdDev));
 	float totalPdf = m_Config.m_SensorPdfFloor + (1.0f - m_Config.m_SensorPdfFloor) * normPdfExp;
 	return totalPdf;
 }
@@ -435,8 +463,9 @@ const Localizer::Particle& Localizer::GetMostLikelyParticle() const
 #if LOCALIZER_STORE_HISTORY
 void Localizer::StoreParticlesHistory(bool afterResampling)
 {
+	ZoneScopedN("Localizer::StoreParticlesHistory");
+
 	// Try to advance m_HistoryDivergeId
-	uint nParticles = static_cast<uint>(m_Particles.size());
 	uint poseHistorySize = static_cast<uint>(m_Particles[0].m_PoseHistory.size());
 	while (m_PoseHistoryDivergeId < poseHistorySize)
 	{

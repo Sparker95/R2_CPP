@@ -1,20 +1,20 @@
-// r2offline_win.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
 // Heap memory leak detection
 // https://learn.microsoft.com/en-us/cpp/c-runtime-library/find-memory-leaks-using-the-crt-library?view=msvc-170
-#define _CRTDBG_MAP_ALLOC
-#include <stdlib.h>
-#include <crtdbg.h>
+//#define _CRTDBG_MAP_ALLOC
+//#include <stdlib.h>
+//#include <crtdbg.h>
 
 #include <cstdio>
 #include <string>
+
+// Tracy
+#include "Tracy/tracy/Tracy.hpp"
 
 #include "Chassis.h"
 #include "Localizer.h"
 #include "LocalizerUtils.h"
 #include "CarStatsModel.h"
-#include "IntTypes.h"
+#include "CommonIntTypes.h"
 #include "Map.h"
 #include "SensorStreamUtils.h"
 #include "MapUtils.h"
@@ -91,7 +91,7 @@ void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapF
 	localizerConfig.m_SensorScanRange = 12.0f;
 	localizerConfig.m_MapRes_w = 0.0625f;
 	localizerConfig.m_StartPose = startPose;
-	localizerConfig.m_nParticles = 128; // 128
+	localizerConfig.m_nParticles = 256; // 128
 	localizerConfig.m_L2IntOccupiedCell = Utils::L2FloatToL2Int(3.0f);
 	localizerConfig.m_L2IntFreeCell = Utils::L2FloatToL2Int(0.5f);
 	localizerConfig.m_ScanDecimation = 1;
@@ -129,6 +129,9 @@ void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapF
 		localizer.Update(inputs, block.m_ScanSamples);
 
 		pPrevBlock = &block;
+
+		// Tracy
+		FrameMark;
 	}
 
 	// Write map
@@ -176,6 +179,12 @@ int main(int argc, char* argv[])
 	printf("-outMapFile        : %s\n", pOutMapFilePath);
 	printf("-outLocHistoryFile : %s\n", pOutLocHistoryPath);
 
+#if TRACY_ENABLE
+	char __readChar;
+	printf("Connect Tracy and press any button: \n");
+	std::scanf("%c", &__readChar);
+#endif
+
 	ProcessSensorStreamFile(pInStreamFilePath, pOutMapFilePath, pOutLocHistoryPath);
 
 	//TestBresenhamLine();
@@ -184,18 +193,7 @@ int main(int argc, char* argv[])
 	//TestWriteMap(pFilePath); // Warning: Don't enable both! File will be overridden.
 	//TestCarStatsModel();
 
-	_CrtDumpMemoryLeaks();
+	//_CrtDumpMemoryLeaks();
 
 	return 0;
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file

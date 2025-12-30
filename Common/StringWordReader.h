@@ -1,6 +1,6 @@
 #pragma once
 
-#include "IntTypes.h"
+#include "CommonIntTypes.h"
 
 class StringWordReader
 {
@@ -22,22 +22,23 @@ public:
 	template<class T>
 	bool Read(T& outValue, bool reportError = true) = delete;
 
-	template<>
-	bool Read(uint& outValue, bool reportError);
-
-	template<>
-	bool Read(int& outValue, bool reportError);
-
-	template<>
-	bool Read(float& outValue, bool reportError);
-
-	// Reads C-style string
-	template<>
-	bool Read(const char*& outValue, bool reportError);
-
 	// Reads word and returns true if it matches the provided string
 	bool ReadCompareWord(const char* pStr, bool reportError = true);
 
 	// Returns true when there are no more words to read
 	bool End() const;
 };
+
+
+// Reads C-style string
+template<>
+bool StringWordReader::Read(const char*& outValue, bool reportError);
+
+template<>
+bool StringWordReader::Read(uint& outValue, bool reportError);
+
+template<>
+bool StringWordReader::Read(int& outValue, bool reportError);
+
+template<>
+bool StringWordReader::Read(float& outValue, bool reportError);

@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ShowAllFiles>false</ShowAllFiles>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <RemoteDebuggerCommandArguments>-inStreamFile "AllRoomsNoKitchen_StartArma.txt" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist"</RemoteDebuggerCommandArguments>
+    <DebuggerFlavor>LinuxDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <RemoteDebuggerCommandArguments>-inStreamFile "AllRoomsNoKitchen_StartArma.txt" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist"</RemoteDebuggerCommandArguments>
+    <DebuggerFlavor>LinuxDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <RemoteDebuggerCommandArguments>-inStreamFile "AllRoomsNoKitchen_StartArma.txt" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist"</RemoteDebuggerCommandArguments>
+    <DebuggerFlavor>LinuxDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <RemoteDebuggerCommandArguments>-inStreamFile "AllRoomsNoKitchen_StartArma.txt" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist"</RemoteDebuggerCommandArguments>
+    <DebuggerFlavor>LinuxDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <RemoteDebuggerCommandArguments>-inStreamFile "AllRoomsNoKitchen_StartArma.txt" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist"</RemoteDebuggerCommandArguments>
+    <DebuggerFlavor>LinuxDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <RemoteDebuggerCommandArguments>-inStreamFile "AllRoomsNoKitchen_StartArma.txt" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist"</RemoteDebuggerCommandArguments>
+    <DebuggerFlavor>LinuxDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+    <RemoteDebuggerCommandArguments>-inStreamFile "AllRoomsNoKitchen_StartArma.txt" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist"</RemoteDebuggerCommandArguments>
+    <DebuggerFlavor>LinuxDebugger</DebuggerFlavor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+    <RemoteDebuggerCommandArguments>-inStreamFile "AllRoomsNoKitchen_StartArma.txt" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist"</RemoteDebuggerCommandArguments>
+    <DebuggerFlavor>LinuxDebugger</DebuggerFlavor>
+  </PropertyGroup>
+</Project>

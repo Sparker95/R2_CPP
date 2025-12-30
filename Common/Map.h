@@ -1,12 +1,14 @@
 #pragma once
 
-#include "IntTypes.h"
+#include "CommonIntTypes.h"
 #include "Vector2.h"
+
+#include <cstdint>
 
 class Map
 {
 public:
-	using TCellData = char;	
+	using TCellData = std::int8_t; // !!! Must be signed! char is unsigned on ARM.	
 	using TCellPos = Vector2Base<int>;  // Map's native position type. Position can be negative.
 	using TCellSize = Vector2Base<uint>; // Map's native size type. Size can not be negative.
 

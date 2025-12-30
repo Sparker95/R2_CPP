@@ -1,18 +1,24 @@
 #include "Map.h"
 
-#include "Vector2.h"
+// Tracy
+#include "Tracy/tracy/Tracy.hpp"
 
 #include <cmath>
 #include <cstdio>
 #include <iostream>
 #include <algorithm>
 #include <stdexcept>
+#include <cstring>
+
+#include "Vector2.h"
 
 Map::Map(float resolution_w) :
+	m_Res_w(resolution_w),
 	m_xSize(SIZE_INITIAL),
-	m_ySize(SIZE_INITIAL),
-	m_Res_w(resolution_w)
+	m_ySize(SIZE_INITIAL)
 {
+	ZoneScopedN("Map::Map");
+
 	m_Data = new TCellData[m_xSize * m_ySize];
 
 	m_xCenter = m_xSize / 2;
@@ -20,13 +26,14 @@ Map::Map(float resolution_w) :
 
 	// Init data
 	uint ttlSize = m_xSize * m_ySize;
-	for (uint i = 0; i < ttlSize; i++)
-		m_Data[i] = CELL_VALUE_DEFAULT;
+	std::memset(m_Data, CELL_VALUE_DEFAULT, ttlSize);
 }
 
 // Copy
 Map::Map(const Map& other) noexcept
 {
+	ZoneScopedN("Map::Copy");
+
 	m_Res_w = other.m_Res_w;
 	m_xSize = other.m_xSize;
 	m_ySize = other.m_ySize;
@@ -35,14 +42,14 @@ Map::Map(const Map& other) noexcept
 
 	m_Data = new TCellData[m_xSize * m_ySize];
 
-	uint ttlSize = m_xSize * m_ySize;
-	for (uint i = 0; i < ttlSize; i++)
-		m_Data[i] = other.m_Data[i];
+	std::memcpy(m_Data, other.m_Data, m_xSize * m_ySize);
 }
 
 // Assignment
 Map& Map::operator=(const Map& other) noexcept
 {
+	ZoneScopedN("Map::Assign");
+
 	if (m_Data)
 	{
 		if (m_xSize * m_ySize != other.m_xSize * other.m_ySize)
@@ -61,9 +68,7 @@ Map& Map::operator=(const Map& other) noexcept
 	if (!m_Data)
 		m_Data = new TCellData[m_xSize * m_ySize];
 
-	uint ttlSize = m_xSize * m_ySize;
-	for (uint i = 0; i < ttlSize; i++)
-		m_Data[i] = other.m_Data[i];
+	std::memcpy(m_Data, other.m_Data, m_xSize * m_ySize);
 	
 	return *this;
 }
@@ -71,6 +76,8 @@ Map& Map::operator=(const Map& other) noexcept
 // Move
 Map::Map(Map&& other) noexcept
 {
+	ZoneScopedN("Map::Move");
+
 	m_Res_w = other.m_Res_w;
 	m_xSize = other.m_xSize;
 	m_ySize = other.m_ySize;
@@ -83,10 +90,10 @@ Map::Map(Map&& other) noexcept
 
 Map::~Map()
 {
+	ZoneScopedN("Map::~Map");
 	if (m_Data)
 		delete[] m_Data;
 }
-
 
 Map::TCellData Map::GetDataAtPos(TCellPos mapPos) const
 {
@@ -123,8 +130,7 @@ void Map::SetAllData(TCellData value)
 		return;
 
 	uint ttlSize = m_xSize * m_ySize;
-	for (uint i = 0; i < ttlSize; i++)
-		m_Data[i] = value;
+	std::memset(m_Data, value, ttlSize);
 }
 
 Vector2 Map::PosMapToWorld(TCellPos mapPos) const
@@ -161,11 +167,11 @@ Map::TCellPos Map::PosWorldUnscaledToMap(Vector2 pos_u) const
 
 void Map::GetWorldBounds(Vector2& outMins, Vector2& outMaxs) const
 {
-	outMins.x = -m_Res_w * m_xCenter;
-	outMins.y = -m_Res_w * m_yCenter;
+	outMins.x = -m_Res_w * static_cast<float>(m_xCenter);
+	outMins.y = -m_Res_w * static_cast<float>(m_yCenter);
 
-	outMaxs.x = m_Res_w * (m_xSize - m_xCenter);
-	outMaxs.y = m_Res_w * (m_ySize - m_yCenter);
+	outMaxs.x = m_Res_w * static_cast<float>(m_xSize - m_xCenter);
+	outMaxs.y = m_Res_w * static_cast<float>(m_ySize - m_yCenter);
 }
 
 bool Map::IsMapPosWithinBounds(TCellPos mapPos) const
@@ -176,6 +182,8 @@ bool Map::IsMapPosWithinBounds(TCellPos mapPos) const
 
 void Map::EnsureWorldBounds_Rect(Vector2 mins_w, Vector2 maxs_w)
 {
+	ZoneScopedN("Map::EnsureWorldBounds");
+
 	TCellPos mins = PosWorldToMap(mins_w);
 	TCellPos maxs = PosWorldToMap(maxs_w);
 
@@ -234,22 +242,17 @@ void Map::EnsureWorldBounds_Rect(Vector2 mins_w, Vector2 maxs_w)
 
 	// Copy data
 	TCellData* newData = new TCellData[newxSize * newySize];
-	for (uint i = 0, ttlSize = newxSize * newySize; i < ttlSize; i++)
-		newData[i] = CELL_VALUE_DEFAULT;
+	std::memset(newData, CELL_VALUE_DEFAULT, newxSize * newySize);
 
-	uint xCopyStart = newxCenter - m_xCenter;
+	uint xCopyStartDst = newxCenter - m_xCenter;
 	//uint xCopyEnd = newxCenter + m_xSize - m_xCenter;
-	uint yCopyStart = newyCenter - m_yCenter;
+	uint yCopyStartDst = newyCenter - m_yCenter;
 	//uint yCopyEnd = newyCenter + m_ySize - m_yCenter;
 	
 	for (uint ySrc = 0; ySrc < m_ySize; ySrc++)
 	{
-		for (uint xSrc = 0; xSrc < m_xSize; xSrc++)
-		{
-			uint xDst = xCopyStart + xSrc;
-			uint yDst = yCopyStart + ySrc;
-			newData[newxSize * yDst + xDst] = m_Data[m_xSize * ySrc + xSrc];
-		}
+		uint yDst = yCopyStartDst + ySrc;
+		std::memcpy(&newData[newxSize * yDst + xCopyStartDst], &m_Data[m_xSize * ySrc], m_xSize);
 	}
 
 	// Update member variables
