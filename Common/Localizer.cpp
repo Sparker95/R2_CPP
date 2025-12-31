@@ -227,6 +227,9 @@ void Localizer::GetScan(const Pose& sensorPose, const Map& map, const std::vecto
 				// WIP find way to improve it, decide if map should store its resolution at all
 				Vector2 hitPos_u = map.PosMapToWorldUnscaled(mapCellPos);
 				hitDist_w = m_Config.m_MapRes_w * Vector2::Distance(lineStart_u, hitPos_u);
+				// !!! Don't return distance to cell center.
+				// !!! This often causes walls to align to horizontal or vertical cells.
+				//hitDist_w = m_Config.m_MapRes_w * lineRasterizer.GetDistance();
 				break;
 			}
 
@@ -440,11 +443,12 @@ float Localizer::SensorRayPdf(float realDist, float expectedDist)
 	if (expectedDist == Scan::SCAN_RAY_NO_HIT_VALUE)
 		return m_Config.m_SensorPdfFloor;
 
-	float normPdfDiff = realDist - expectedDist;
-	float normPdfStdDev = m_Config.m_SensorPdfStdDev;
-	float normPdfExp = std::exp(-(normPdfDiff * normPdfDiff) / (2.0f * normPdfStdDev * normPdfStdDev));
-	float totalPdf = m_Config.m_SensorPdfFloor + (1.0f - m_Config.m_SensorPdfFloor) * normPdfExp;
-	return totalPdf;
+	// https://www.desmos.com/calculator/oa2gg8rzuk
+	float diff = realDist - expectedDist;
+	float diffNorm = diff / m_Config.m_SensorPdfStdDev;
+	float diffNormPow = diffNorm * diffNorm * diffNorm * diffNorm * diffNorm * diffNorm;
+	float pdfNoFloor = 1.0f / (diffNormPow + 1.0f);
+	return m_Config.m_SensorPdfFloor + (1.0f - m_Config.m_SensorPdfFloor) * pdfNoFloor;
 }
 
 const Localizer::Particle& Localizer::GetMostLikelyParticle() const

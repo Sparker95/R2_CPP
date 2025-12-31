@@ -13,7 +13,7 @@ namespace Chassis
 	struct ChassisInputs;
 }
 
-//#define LOCALIZER_STORE_HISTORY
+#define LOCALIZER_STORE_HISTORY
 
 class Localizer
 {

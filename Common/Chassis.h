@@ -26,13 +26,13 @@ namespace Chassis
 	{
 		// Wheels, size of car
 		float m_wheelBase = 0.26f;
-		float m_trackWidth = 0.16f;
+		float m_trackWidth = 0.17f;
 		float m_wheelRadius = 0.03125f;
 		float m_width = 0.22f;
 		float m_length = 0.38f;
 		
 		// Radians per unit of input, see ChassisMeasurement
-		float m_steerSensitivity_rad = (PI / 180.0f) * (28.5f / 0.68f);
+		float m_steerSensitivity_rad = (PI / 180.0f) * (23.0f / 0.68f);
 
 		// Sensor
 		float m_sensorOffsetFwd = 0.185f; // Relative to rear axle center point
@@ -60,8 +60,8 @@ namespace Chassis
 		float m_WheelRadiusTol_abs = 0.0045f;            // +- Meters
 		float m_OdoFreeplay_abs = 1.0f;                  // +- Number of pulses
 		float m_WheelFreeplay_rad = 60.0f * PI / 180.0f; // +- Radians
-		float m_SteerTolStraight_abs = 0.3f;             // +- Steering units
-		float m_SteerTolTurn_abs = 0.6f;                 // +- Steering units
+		float m_SteerTolStraight_abs = 0.25f;             // +- Steering units
+		float m_SteerTolTurn_abs = 0.5f;                 // +- Steering units
 	};
 
 	struct ChassisInputs
