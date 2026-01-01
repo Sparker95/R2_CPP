@@ -108,7 +108,7 @@ bool LocalizerUtils::WriteLocalizerHistoryToFile(const Localizer& localizer, con
 	// Select which entries to write
 	std::vector<const Localizer::HistoryEntry*> entriesToWrite;
 	{
-		const uint batchSize = 4;
+		const uint batchSize = 2;
 		const uint nBatches = nEntriesToWrite / batchSize;
 		uint entryId = 0;
 		uint batchCounter = 0;
