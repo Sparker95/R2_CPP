@@ -29,7 +29,8 @@ namespace Chassis
 		float m_trackWidth = 0.17f;
 		float m_wheelRadius = 0.03125f;
 		float m_width = 0.22f;
-		float m_length = 0.38f;
+        float m_lengthFwd = 0.33f; // Relative to rear axle center point
+        float m_lengthBwd = 0.04f;
 		
 		// Radians per unit of input, see ChassisMeasurement
 		float m_steerSensitivity_rad = (PI / 180.0f) * (23.0f / 0.68f);
@@ -60,18 +61,20 @@ namespace Chassis
 		float m_WheelRadiusTol_abs = 0.0045f;            // +- Meters
 		float m_OdoFreeplay_abs = 1.0f;                  // +- Number of pulses
 		float m_WheelFreeplay_rad = 60.0f * PI / 180.0f; // +- Radians
-		float m_SteerTolStraight_abs = 0.25f;             // +- Steering units
+		float m_SteerTolStraight_abs = 0.25f;            // +- Steering units
 		float m_SteerTolTurn_abs = 0.5f;                 // +- Steering units
 	};
 
 	struct ChassisInputs
 	{
-		TOdometerCounter m_OdoDiff;
-		MoveState m_MoveState;
-		float m_Steer;
+		float m_OdoDiff = 0; // It is integer in real case, but can be float for interpolation purposes.
+		MoveState m_MoveState = MoveState::STOP;
+		float m_Steer = 0;
+
+		void SetValues(float odoDiff, MoveState moveState, float steer) { m_OdoDiff = odoDiff; m_MoveState = moveState; m_Steer = steer; }
 	};
 
-	class ChassisStatsModel
+	class ChassisModel
 	{
 	private:
 		const ChassisConfig m_ChassisConfig;
@@ -79,22 +82,25 @@ namespace Chassis
 		std::minstd_rand m_Rng;
 
 	public:
-		ChassisStatsModel(const ChassisConfig& chassisConfig, const ChassisStatsConfig& statsConfig);
+		ChassisModel(const ChassisConfig& chassisConfig, const ChassisStatsConfig& statsConfig);
 
-		Pose GetPoseDiffSample_LS(const ChassisInputs& inputs);
+		const ChassisConfig& GetChassisConfig() const { return m_ChassisConfig; }
+
+		// Calculates pose difference with randomization
+		Pose CalculateRandomPoseDiff_LS(const ChassisInputs& inputs, ChassisInputs& outInputs_rnd);
+
+		// Calculates ideal pose difference, without randomization
+		Pose CalculatePoseDiff_LS(const ChassisInputs& inputs) const;
+
+		// Converts pose difference from Local Space to Sensor Space
+		Pose PoseDiff_LSTOSS(const Pose& poseDiff_LS) const;
+
+		// Converts pose difference from Sensor Space to Local Space
+		Pose PoseDiff_LSToSS(const Pose& poseDiff_SS) const;
 	};
 
 	//------------------------------------------------------------------------------------------------------------------------
 	// Various functions
-
-	// Calculates ideal pose difference, without noise applied
-	Pose CalculatePoseDiff_LS(const ChassisConfig& config, TOdometerCounter odoDiff, MoveState moveState, float steerInput);
-	
-	// Converts pose difference from Local Space to Sensor Space
-	Pose PoseDiff_LSTOSS(const ChassisConfig& config, const Pose& poseDiff_LS);
-
-	// Converts pose difference from Sensor Space to Local Space
-	Pose PoseDiff_LSToSS(const ChassisConfig& config, const Pose& poseDiff_SS);
 
 	TOdometerCounter CalculateOdometerDifference(TOdometerCounter odoNew, TOdometerCounter odoPrev);
 

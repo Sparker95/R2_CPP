@@ -1,8 +1,12 @@
 #pragma once
 
+#include <Eigen/Dense>
+#include <vector>
+
 #include "CommonIntTypes.h"
 #include "Vector2.h"
-#include <Eigen/Dense>
+#include "Sensor.h"
+#include "Chassis.h"
 
 namespace Scan
 {
@@ -19,4 +23,7 @@ namespace Scan
 
 	// Filters polar scan: removes all no-hit values
 	void FilterScan(const float* scanPolar, uint scanPolarSize, float * outScanPolarFiltered, uint & outScanPolarFilteredSize);
+
+	void CompensateScanMotion(const std::vector<Sensor::ScanSample>& scanPolar,
+		const Chassis::ChassisModel& chassisModel, const Chassis::ChassisInputs& inputs, std::vector<Sensor::ScanSample>& outScanPolarComp);
 }

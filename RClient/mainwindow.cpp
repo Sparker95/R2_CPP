@@ -9,6 +9,7 @@
 
 // UI:
 #include <QMessageBox>
+#include <QGridLayout>
 
 // Graph related:
 #include <QQuickWidget>
@@ -19,6 +20,7 @@
 #include <QtQml>
 
 #include "InputHandling.h"
+#include "SensorScanWidget.h"
 
 #include "../Common/ControlPanelProtocol.h"
 #include "../Common/ControlInputsProtocol.h"
@@ -58,6 +60,22 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Timer for control inputs
     m_iControlInputsTimerId = startTimer(40, Qt::TimerType::PreciseTimer);
+
+    // Sensor scan widgets
+    SensorScanWidget** sensorScanWidgets[] = {&m_pSensorScanWidget0, &m_pSensorScanWidget1};
+    QFrame* sensorScanFrames[] = {ui->SensorScanFrame0, ui->SensorScanFrame1};
+    for (uint frameId = 0; frameId < 2; frameId++)
+    {
+        QGridLayout* gridLayout = new QGridLayout();
+        *sensorScanWidgets[frameId] = new SensorScanWidget();
+        gridLayout->setSpacing(1);
+        gridLayout->setContentsMargins(0, 0, 0, 0);
+        gridLayout->addWidget(*sensorScanWidgets[frameId], 0, 0);
+        sensorScanFrames[frameId]->setLayout(gridLayout);
+    }
+    // Synchronize values from sliders to scan widgets
+    SlotOnSensorScaleValueChanged0(ui->SensorScanScaleSlider0->value());
+    SlotOnSensorScaleValueChanged1(ui->SensorScanScaleSlider1->value());
 }
 
 MainWindow::~MainWindow()
@@ -198,6 +216,9 @@ void MainWindow::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigne
             scanSamples.resize(static_cast<qsizetype>(header.m_nSamples));
             for (uint i = 0; i < header.m_nSamples; i++)
                 scanSamples[i] = reader.Read<Sensor::ScanSample>();
+
+            m_pSensorScanWidget0->SetScanData(scanSamples);
+            m_pSensorScanWidget1->SetScanData(scanSamples);
 
             // Convert data to Cartesian form
             QList<QPointF> scanSamplesCart;

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1070</width>
-    <height>990</height>
+    <width>1422</width>
+    <height>1009</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -71,8 +71,8 @@
      <rect>
       <x>160</x>
       <y>40</y>
-      <width>900</width>
-      <height>900</height>
+      <width>361</width>
+      <height>401</height>
      </rect>
     </property>
     <property name="resizeMode">
@@ -198,13 +198,116 @@
      <string>SensorStream</string>
     </property>
    </widget>
+   <widget class="QFrame" name="SensorScanFrame0">
+    <property name="geometry">
+     <rect>
+      <x>580</x>
+      <y>40</y>
+      <width>320</width>
+      <height>320</height>
+     </rect>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::Shape::Panel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Shadow::Sunken</enum>
+    </property>
+    <property name="lineWidth">
+     <number>2</number>
+    </property>
+   </widget>
+   <widget class="QFrame" name="SensorScanFrame1">
+    <property name="geometry">
+     <rect>
+      <x>910</x>
+      <y>40</y>
+      <width>320</width>
+      <height>320</height>
+     </rect>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::Shape::Panel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Shadow::Sunken</enum>
+    </property>
+    <property name="lineWidth">
+     <number>2</number>
+    </property>
+    <property name="midLineWidth">
+     <number>0</number>
+    </property>
+   </widget>
+   <widget class="QSlider" name="SensorScanScaleSlider0">
+    <property name="geometry">
+     <rect>
+      <x>580</x>
+      <y>370</y>
+      <width>321</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="minimum">
+     <number>1</number>
+    </property>
+    <property name="maximum">
+     <number>20</number>
+    </property>
+    <property name="pageStep">
+     <number>2</number>
+    </property>
+    <property name="value">
+     <number>2</number>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Orientation::Horizontal</enum>
+    </property>
+    <property name="tickPosition">
+     <enum>QSlider::TickPosition::TicksBelow</enum>
+    </property>
+    <property name="tickInterval">
+     <number>1</number>
+    </property>
+   </widget>
+   <widget class="QSlider" name="SensorScanScaleSlider1">
+    <property name="geometry">
+     <rect>
+      <x>910</x>
+      <y>370</y>
+      <width>321</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="minimum">
+     <number>1</number>
+    </property>
+    <property name="maximum">
+     <number>20</number>
+    </property>
+    <property name="pageStep">
+     <number>2</number>
+    </property>
+    <property name="value">
+     <number>10</number>
+    </property>
+    <property name="orientation">
+     <enum>Qt::Orientation::Horizontal</enum>
+    </property>
+    <property name="tickPosition">
+     <enum>QSlider::TickPosition::TicksBelow</enum>
+    </property>
+    <property name="tickInterval">
+     <number>1</number>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1070</width>
+     <width>1422</width>
      <height>22</height>
     </rect>
    </property>
@@ -316,6 +419,38 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>SensorScanScaleSlider0</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>SlotOnSensorScaleValueChanged0(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>740</x>
+     <y>402</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>710</x>
+     <y>504</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>SensorScanScaleSlider1</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>SlotOnSensorScaleValueChanged1(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1070</x>
+     <y>402</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>710</x>
+     <y>504</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>SlotOnConnectButtonClicked()</slot>
@@ -324,5 +459,7 @@
   <slot>SlotOnEnableSensorStreamButton()</slot>
   <slot>SlotOnDisableSensorStreamButton()</slot>
   <slot>SlotOnSaveSensorStreamToFileCheck(bool)</slot>
+  <slot>SlotOnSensorScaleValueChanged0(int)</slot>
+  <slot>SlotOnSensorScaleValueChanged1(int)</slot>
  </slots>
 </ui>

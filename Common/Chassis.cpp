@@ -7,21 +7,24 @@
 //------------------------------------------------------------------------------------------------------------------------------
 // Chassis Statistics Model
 
-Chassis::ChassisStatsModel::ChassisStatsModel(const ChassisConfig& chassisConfig, const ChassisStatsConfig& statsConfig) :
+Chassis::ChassisModel::ChassisModel(const ChassisConfig& chassisConfig, const ChassisStatsConfig& statsConfig) :
 	m_ChassisConfig(chassisConfig), m_StatsConfig(statsConfig)
 {
 	m_Rng.seed(56418);
 }
 
-Pose Chassis::ChassisStatsModel::GetPoseDiffSample_LS(const ChassisInputs& inputs)
+Pose Chassis::ChassisModel::CalculateRandomPoseDiff_LS(const ChassisInputs& inputs, ChassisInputs& outInputs_rnd)
 {
-	TOdometerCounter odoDiff = inputs.m_OdoDiff;
+	float odoDiff = inputs.m_OdoDiff;
 	MoveState moveState = inputs.m_MoveState;
 	float steerInput = inputs.m_Steer;
 
 	// Stopped:
 	if (moveState == MoveState::STOP || odoDiff == 0)
+	{
+		outInputs_rnd = inputs;
 		return Pose(0, 0, 0);
+	}
 
 	const ChassisConfig& chassisConf = m_ChassisConfig;
 	const ChassisStatsConfig& statsConf = m_StatsConfig;
@@ -37,8 +40,8 @@ Pose Chassis::ChassisStatsModel::GetPoseDiffSample_LS(const ChassisInputs& input
 		(static_cast<float>(chassisConf.m_gearDiffIn) / static_cast<float>(chassisConf.m_gearDiffOut)) * PI_2X);
 
 	float odoDiff_rnd = TUniformDist(
-		static_cast<float>(odoDiff) - statsConf.m_OdoFreeplay_abs,
-		static_cast<float>(odoDiff) + statsConf.m_OdoFreeplay_abs)(m_Rng);
+		odoDiff - statsConf.m_OdoFreeplay_abs,
+		odoDiff + statsConf.m_OdoFreeplay_abs)(m_Rng);
 
 	float wheelTurnAngle_rad = wheelTurnAnglePerOdoPulse_rad * odoDiff_rnd +
 		TUniformDist(-statsConf.m_WheelFreeplay_rad, statsConf.m_WheelFreeplay_rad)(m_Rng);
@@ -50,6 +53,9 @@ Pose Chassis::ChassisStatsModel::GetPoseDiffSample_LS(const ChassisInputs& input
 	if (steerInput == 0)
 		steerTol_abs = statsConf.m_SteerTolStraight_abs;
 	float steerInput_rnd = TUniformDist(steerInput - steerTol_abs, steerInput + steerTol_abs)(m_Rng);
+
+	// Return the randomized inputs values
+	outInputs_rnd.SetValues(odoDiff_rnd, moveState, steerInput_rnd);
 
 	float moveSign = 1.0f;
 	float steerSign = 1.0f;
@@ -79,16 +85,20 @@ Pose Chassis::ChassisStatsModel::GetPoseDiffSample_LS(const ChassisInputs& input
 //------------------------------------------------------------------------------------------------------------------------------
 // Various functions
 
-Pose Chassis::CalculatePoseDiff_LS(const ChassisConfig& config, TOdometerCounter odoDiff, MoveState moveState, float steerInput)
+Pose Chassis::ChassisModel::CalculatePoseDiff_LS(const ChassisInputs& inputs) const
 {
+	float odoDiff = inputs.m_OdoDiff;
+	Chassis::MoveState moveState = inputs.m_MoveState;
+	float steerInput = inputs.m_Steer;
+
 	// Stopped:
 	if (moveState == MoveState::STOP || odoDiff == 0)
 		return Pose(0, 0, 0);
 
-	const ChassisConfig& c = config;
+	const ChassisConfig& c = m_ChassisConfig;
 	float distPerOdoPulse = ((1.0f / static_cast<float>(c.m_encoderPulses)) * (static_cast<float>(c.m_gearEncoder) / static_cast<float>(c.m_gearShaft)) *
 		(static_cast<float>(c.m_gearDiffIn) / static_cast<float>(c.m_gearDiffOut)) * PI_2X * c.m_wheelRadius);
-	float moveDistAbs = static_cast<float>(odoDiff) * distPerOdoPulse;
+	float moveDistAbs = odoDiff * distPerOdoPulse;
 
 	float moveSign = 1.0f;
 	float steerSign = 1.0f;
@@ -115,16 +125,16 @@ Pose Chassis::CalculatePoseDiff_LS(const ChassisConfig& config, TOdometerCounter
 	return Pose(dx, dy, ddir);
 }
 
-Pose Chassis::PoseDiff_LSTOSS(const ChassisConfig& config, const Pose& poseDiff_LS)
+Pose Chassis::ChassisModel::PoseDiff_LSTOSS(const Pose& poseDiff_LS) const
 {
-	Eigen::Matrix2f mRot = Utils::MRot(-config.m_sensorOffsetDir_rad);
+	Eigen::Matrix2f mRot = Utils::MRot(-m_ChassisConfig.m_sensorOffsetDir_rad);
 	Eigen::Vector2f poseDiffXY_SS = mRot * Eigen::Vector2f(poseDiff_LS.x, poseDiff_LS.y);
 	return Pose(poseDiffXY_SS(0), poseDiffXY_SS(1), poseDiff_LS.dir);
 }
 
-Pose Chassis::PoseDiff_LSToSS(const ChassisConfig& config, const Pose& poseDiff_SS)
+Pose Chassis::ChassisModel::PoseDiff_LSToSS(const Pose& poseDiff_SS) const
 {
-	Eigen::Matrix2f mRot = Utils::MRot(config.m_sensorOffsetDir_rad);
+	Eigen::Matrix2f mRot = Utils::MRot(m_ChassisConfig.m_sensorOffsetDir_rad);
 	Eigen::Vector2f poseDiffXY_LS = mRot * Eigen::Vector2f(poseDiff_SS.x, poseDiff_SS.y);
 	return Pose(poseDiffXY_LS(0), poseDiffXY_LS(1), poseDiff_SS.dir);
 }

@@ -9,7 +9,7 @@
 
 namespace Chassis
 {
-	class ChassisStatsModel;
+	class ChassisModel;
 	struct ChassisInputs;
 }
 
@@ -61,7 +61,7 @@ public:
 	};
 
 private:
-	Chassis::ChassisStatsModel* m_pChassisStatsModel = nullptr;
+	Chassis::ChassisModel* m_pChassisModel = nullptr;
 	std::vector<Particle> m_Particles;
 	const Config m_Config;
 	std::minstd_rand m_RngResample;
@@ -72,7 +72,9 @@ private:
 	std::vector<uint> m_OldParticlesCopyCount;
 	std::vector<float> m_ExpectedScanDists;
 	std::vector<Vector2> m_ScanDirections; // x, y - cos, sin of scan sample direction
-	//std::vector<Vector2Base<int>> m_LineCells;
+	std::vector<Sensor::ScanSample> m_ScanPolarCompensated;
+public:
+	std::vector<float> m_TestErrors;
 
 	// Diagnostics
 	std::vector<HistoryEntry> m_History;
@@ -80,7 +82,7 @@ private:
 	std::vector<Pose> m_CommonPoseHistory; // Poses which are same in history of all particles
 
 public:
-	Localizer(const Config& config, Chassis::ChassisStatsModel& statsModel);
+	Localizer(const Config& config, Chassis::ChassisModel& statsModel);
 
 	void Update(const Chassis::ChassisInputs& inputs, const std::vector<Sensor::ScanSample>& realScanPolar);
 	void NormalizeWeights();

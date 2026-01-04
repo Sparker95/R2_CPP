@@ -16,6 +16,7 @@ class MainWindow;
 QT_END_NAMESPACE
 
 class QScatterSeries;
+class SensorScanWidget;
 
 class MainWindow : public QMainWindow
 {
@@ -35,6 +36,8 @@ private:
 
     // Other UI elements
     QScatterSeries* m_pScatterSeries = nullptr;
+    SensorScanWidget* m_pSensorScanWidget0 = nullptr;
+    SensorScanWidget* m_pSensorScanWidget1 = nullptr;
 
     // Handling communications
     void OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigned int msgPayloadSize);
@@ -52,6 +55,9 @@ private slots:
     void SlotOnEnableSensorStreamButton();
     void SlotOnDisableSensorStreamButton();
     void SlotOnSaveSensorStreamToFileCheck(bool checked);
+
+    void SlotOnSensorScaleValueChanged0(int value);
+    void SlotOnSensorScaleValueChanged1(int value);
 
     void SlotOnSocketConnected();
     void SlotOnSocketDisconnected();

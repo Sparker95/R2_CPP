@@ -61,6 +61,7 @@ qt6_add_qml_module(RClient
         SOURCES UIEventsHandling.cpp
         SOURCES SensorDataFileWriter.h
         SOURCES SensorDataFileWriter.cpp
+        SOURCES SensorScanWidget.h SensorScanWidget.cpp
 )
 
 target_link_libraries(RClient PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)

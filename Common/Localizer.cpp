@@ -1,7 +1,5 @@
 #include "Localizer.h"
 
-#include <cmath>
-
 // Tracy
 #include "Tracy/tracy/Tracy.hpp"
 
@@ -14,8 +12,8 @@
 //#include "CarStatsModel.h"
 #include "Chassis.h"
 
-Localizer::Localizer(const Config& config, Chassis::ChassisStatsModel& statsModel)
-	: m_pChassisStatsModel(&statsModel), m_Config(config)
+Localizer::Localizer(const Config& config, Chassis::ChassisModel& statsModel)
+	: m_pChassisModel(&statsModel), m_Config(config)
 {
 	m_Particles.reserve(config.m_nParticles);
 	for (uint i = 0; i < config.m_nParticles; i++)
@@ -44,7 +42,8 @@ void Localizer::Update(const Chassis::ChassisInputs& inputs, const std::vector<S
 		Particle& p = m_Particles[i];
 
 		// Apply motion model to particle
-		Pose randomPoseDiff_LS = m_pChassisStatsModel->GetPoseDiffSample_LS(inputs);
+		Chassis::ChassisInputs inputs_rnd;
+		Pose randomPoseDiff_LS = m_pChassisModel->CalculateRandomPoseDiff_LS(inputs, inputs_rnd);
 		Pose poseRandomized = Utils::AddPoseDiff(p.m_Pose, randomPoseDiff_LS);
 #ifdef LOCALIZER_STORE_HISTORY
 		p.m_PoseHistory.push_back(p.m_Pose);
@@ -62,13 +61,19 @@ void Localizer::Update(const Chassis::ChassisInputs& inputs, const std::vector<S
 			m_ScanDirections[sampleId].y = std::sin(sampleDir);
 		}
 
+		// Compensate scan motion
+		Scan::CompensateScanMotion(realScanPolar, *m_pChassisModel, inputs, m_ScanPolarCompensated);
+
+		// WIP disabled compensation
+		//m_ScanPolarCompensated = realScanPolar;
+
 		// Calculate weight
-		float weight = CalculateParticleWeight(particleSensorPose, p.m_Map, m_ScanDirections, realScanPolar);
+		float weight = CalculateParticleWeight(particleSensorPose, p.m_Map, m_ScanDirections, m_ScanPolarCompensated);
 		p.m_Weight = weight;
 
 		// Update map
 		// Scan is applied at pose where Sensor is in World Space
-		ApplyScan(particleSensorPose, p.m_Map, m_ScanDirections, realScanPolar);
+		ApplyScan(particleSensorPose, p.m_Map, m_ScanDirections, m_ScanPolarCompensated);
 	}
 
 	NormalizeWeights();
@@ -97,6 +102,25 @@ void Localizer::Update(const Chassis::ChassisInputs& inputs, const std::vector<S
 #ifdef LOCALIZER_STORE_HISTORY
 	StoreParticlesHistory(true);
 #endif
+
+	// Test
+	/*
+	const Particle& mostLikelyP = GetMostLikelyParticle();
+	for (uint i = 0; i < (uint)realScanPolar.size(); i++)
+	{
+		Map map(m_Config.m_MapRes_w);
+		map.EnsureWorldBounds_Circle(Vector2(0, 0), 25.0f);
+		ApplyScan(mostLikelyP.m_Pose, map, m_ScanDirections, realScanPolar);
+		std::vector<float> testScan;
+		GetScan(mostLikelyP.m_Pose, map, m_ScanDirections, testScan);
+
+		for (uint itest = 0; itest < (uint)testScan.size(); itest++)
+		{
+			float errorRel = (testScan[itest] - realScanPolar[itest].m_Dist_m) / m_Config.m_MapRes_w;
+			m_TestErrors.push_back(errorRel);
+		}
+	}
+	*/
 }
 
 void Localizer::NormalizeWeights()
@@ -446,8 +470,10 @@ float Localizer::SensorRayPdf(float realDist, float expectedDist)
 	// https://www.desmos.com/calculator/oa2gg8rzuk
 	float diff = realDist - expectedDist;
 	float diffNorm = diff / m_Config.m_SensorPdfStdDev;
-	float diffNormPow = diffNorm * diffNorm * diffNorm * diffNorm * diffNorm * diffNorm;
-	float pdfNoFloor = 1.0f / (diffNormPow + 1.0f);
+	float diffNormPow2 = diffNorm * diffNorm;
+	float diffNormPow4 = diffNormPow2 * diffNormPow2;
+	float diffNormPow8 = diffNormPow4 * diffNormPow4;
+	float pdfNoFloor = 1.0f / (diffNormPow8 + 1.0f);
 	return m_Config.m_SensorPdfFloor + (1.0f - m_Config.m_SensorPdfFloor) * pdfNoFloor;
 }
 

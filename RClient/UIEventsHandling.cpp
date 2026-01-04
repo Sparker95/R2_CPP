@@ -17,6 +17,7 @@
 #include <QScatterSeries>
 
 #include "InputHandling.h"
+#include "SensorScanWidget.h"
 
 #include "../Common/ControlPanelProtocol.h"
 #include "../Common/ControlInputsProtocol.h"
@@ -91,6 +92,16 @@ void MainWindow::SlotOnSaveSensorStreamToFileCheck(bool checked)
     else
         m_SensorFileWriter.Stop();
     UpdateSensorFileStatsLabel();
+}
+
+void MainWindow::SlotOnSensorScaleValueChanged0(int value)
+{
+    m_pSensorScanWidget0->SetScale(static_cast<qreal>(value));
+}
+
+void MainWindow:: SlotOnSensorScaleValueChanged1(int value)
+{
+    m_pSensorScanWidget1->SetScale(static_cast<qreal>(value));
 }
 
 

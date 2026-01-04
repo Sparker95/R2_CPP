@@ -6,6 +6,7 @@
 
 #include <cstdio>
 #include <string>
+#include <fstream>
 
 // Tracy
 #include "Tracy/tracy/Tracy.hpp"
@@ -82,7 +83,7 @@ void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapF
 	//CarStatsModel carStatsModel(0.2f, 40.0f * PI / 180.0f);
 	//CarStatsModel carStatsModel(1e-5, 1e-5);
 
-	Chassis::ChassisStatsModel chassisStatsModel(chassisConfig, chassisStatsConfig);
+	Chassis::ChassisModel chassisModel(chassisConfig, chassisStatsConfig);
 
 	Localizer::Config localizerConfig;
 	const float _mapRes = 0.0625;
@@ -97,7 +98,7 @@ void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapF
 	localizerConfig.m_L2IntFreeCell = Utils::L2FloatToL2Int(0.5f);
 	localizerConfig.m_ScanDecimation = 1;
 
-	Localizer localizer(localizerConfig, chassisStatsModel);
+	Localizer localizer(localizerConfig, chassisModel);
 
 	// Read all blocks
 	std::vector<SensorStreamBlock> sensorStreamBlocks;
@@ -142,6 +143,17 @@ void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapF
 
 	// Write particles history
 	LocalizerUtils::WriteLocalizerHistoryToFile(localizer, pOutLocHistoryPath, 32);
+
+	// Write grid cell distance errors
+	/*
+	{
+		std::ofstream f("TestDistErrors.txt", std::ios_base::out | std::ios_base::binary);
+		for (float e : localizer.m_TestErrors)
+		{
+			f << e << "\n";
+		}
+	}
+	*/
 }
 
 int main(int argc, char* argv[])

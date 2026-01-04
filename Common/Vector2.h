@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath>
+
 template <class T>
 struct Vector2Base
 {
@@ -24,6 +26,11 @@ struct Vector2Base
 	bool operator==(const Vector2Base<T>& r) const { return x == r.x && y == r.y; }
 
 	static T Distance(Vector2Base<T> v0, Vector2Base<T> v1);
+	
+	T Length() const
+	{
+		return std::sqrt(x * x + y * y);
+	}
 };
 
 using Vector2 = Vector2Base<float>;
