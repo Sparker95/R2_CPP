@@ -1,5 +1,7 @@
 #include "SensorInterface.h"
-#include "../Common/Common.h"
+
+#include "../Common/CommonIntTypes.h"
+#include "../Common/MathUtils.h"
 
 #include <thread>
 
@@ -11,6 +13,10 @@
 #include <fcntl.h>
 #include <errno.h> // Error integer and strerror() function
 #include <termios.h> // Contains POSIX terminal control definitions
+
+// GPIO index of motor control pin
+// WIP might be in config
+const uint MOTOR_CONTROL_GPIO = 21;
 
 SensorInterface::SensorInterface()
 {
@@ -25,6 +31,7 @@ SensorInterface::~SensorInterface()
 {
 	ClosePipe();
 	CloseSerialPort();
+	StopMotor();
 }
 
 void SensorInterface::ClosePipe()
@@ -44,10 +51,37 @@ void SensorInterface::CloseSerialPort()
 	m_SerialPortFd = -1;
 }
 
+bool SensorInterface::StartMotor()
+{
+	return m_Gpio.SetPullUpDown(MOTOR_CONTROL_GPIO, Pigpio::PullUpDown::OFF) &&
+		m_Gpio.SetMode(MOTOR_CONTROL_GPIO, Pigpio::Mode::OUTPUT) &&
+		m_Gpio.Write(MOTOR_CONTROL_GPIO, true);
+}
+
+bool SensorInterface::StopMotor()
+{
+	return m_Gpio.Write(MOTOR_CONTROL_GPIO, false) &&
+		m_Gpio.SetPullUpDown(MOTOR_CONTROL_GPIO, Pigpio::PullUpDown::DOWN) &&
+		m_Gpio.SetMode(MOTOR_CONTROL_GPIO, Pigpio::Mode::INPUT);
+}
+
 bool SensorInterface::Start()
 {
 	if (m_bRunning)
 		return false;
+
+	// Init GPIO
+	if (!m_Gpio.Start())
+	{
+		fprintf(stderr, "SensorInterface: GPIO initialization error, unable to start motor.\n");
+		return false;
+	}
+
+	if (!StartMotor())
+	{
+		fprintf(stderr, "SensorInterface: error setting motor GPIO value\n");
+		return false;
+	}
 
 	// Open the serial port. Change device path as needed
 	const char serialDevicePath[] = "/dev/serial0";
@@ -237,6 +271,7 @@ void SensorInterface::TerminateWait()
 
 	ClosePipe();
 	CloseSerialPort();
+	StopMotor();
 }
 
 void SensorInterface::ThreadFunction()

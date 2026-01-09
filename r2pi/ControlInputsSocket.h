@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Common/Common.h"
+#include "../Common/CommonIntTypes.h"
 
 #include "ChassisSettings.h"
 

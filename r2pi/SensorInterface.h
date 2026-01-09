@@ -1,7 +1,9 @@
 #pragma once
 
-#include "../Common/Common.h"
+#include "../Common/CommonIntTypes.h"
 #include "../Common/Sensor.h"
+
+#include "Pigpio.h"
 
 #include <memory>
 #include <functional>
@@ -61,9 +63,14 @@ private:
 	// !!! Invoked in thread of SensorInterface!
 	std::vector<TOnReceivedScan> m_OnReceivedScan;
 
+	// GPIO
+	Pigpio m_Gpio;
+
 	void ThreadFunction();
 	void ClosePipe();
 	void CloseSerialPort();
+	bool StartMotor();
+	bool StopMotor();
 
 	void ReadScanDataStream(const uchar* pData, uint nBytes);
 	void ProcessScanDataPacket();

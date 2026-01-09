@@ -101,6 +101,7 @@
   <ItemGroup>
     <ClInclude Include="..\Common\Chassis.h" />
     <ClInclude Include="..\Common\Common.h" />
+    <ClInclude Include="..\Common\CommonIntTypes.h" />
     <ClInclude Include="..\Common\ControlInputsProtocol.h" />
     <ClInclude Include="..\Common\ControlPanelProtocol.h" />
     <ClInclude Include="..\Common\ICP.h" />
@@ -108,8 +109,10 @@
     <ClInclude Include="..\Common\Localizer.h" />
     <ClInclude Include="..\Common\Map.h" />
     <ClInclude Include="..\Common\MapUtils.h" />
+    <ClInclude Include="..\Common\MathUtils.h" />
     <ClInclude Include="..\Common\Scan.h" />
     <ClInclude Include="..\Common\Sensor.h" />
+    <ClInclude Include="..\Common\StringWordWriter.h" />
     <ClInclude Include="..\Common\Utils.h" />
     <ClInclude Include="..\Common\Vector2.h" />
     <ClInclude Include="ChassisSettings.h" />
@@ -425,9 +428,60 @@
     <ClInclude Include="Eigen\src\SVD\UpperBidiagonalization.h" />
     <ClInclude Include="Eigen\src\UmfPackSupport\UmfPackSupport.h" />
     <ClInclude Include="MainMessageLoop.h" />
+    <ClInclude Include="Pigpio.h" />
     <ClInclude Include="SensorInterface.h" />
+    <ClInclude Include="Tracy\client\TracyArmCpuTable.hpp" />
+    <ClInclude Include="Tracy\client\TracyCallstack.h" />
+    <ClInclude Include="Tracy\client\TracyCallstack.hpp" />
+    <ClInclude Include="Tracy\client\TracyCpuid.hpp" />
+    <ClInclude Include="Tracy\client\TracyDebug.hpp" />
+    <ClInclude Include="Tracy\client\TracyDxt1.hpp" />
+    <ClInclude Include="Tracy\client\TracyFastVector.hpp" />
+    <ClInclude Include="Tracy\client\TracyKCore.hpp" />
+    <ClInclude Include="Tracy\client\TracyLock.hpp" />
+    <ClInclude Include="Tracy\client\TracyProfiler.hpp" />
+    <ClInclude Include="Tracy\client\TracyRingBuffer.hpp" />
+    <ClInclude Include="Tracy\client\TracyScoped.hpp" />
+    <ClInclude Include="Tracy\client\TracyStringHelpers.hpp" />
+    <ClInclude Include="Tracy\client\TracySysPower.hpp" />
+    <ClInclude Include="Tracy\client\TracySysTime.hpp" />
+    <ClInclude Include="Tracy\client\TracySysTrace.hpp" />
+    <ClInclude Include="Tracy\client\TracyThread.hpp" />
+    <ClInclude Include="Tracy\client\tracy_concurrentqueue.h" />
+    <ClInclude Include="Tracy\client\tracy_rpmalloc.hpp" />
+    <ClInclude Include="Tracy\client\tracy_SPSCQueue.h" />
+    <ClInclude Include="Tracy\common\TracyAlign.hpp" />
+    <ClInclude Include="Tracy\common\TracyAlloc.hpp" />
+    <ClInclude Include="Tracy\common\TracyApi.h" />
+    <ClInclude Include="Tracy\common\TracyColor.hpp" />
+    <ClInclude Include="Tracy\common\TracyForceInline.hpp" />
+    <ClInclude Include="Tracy\common\TracyMutex.hpp" />
+    <ClInclude Include="Tracy\common\TracyProtocol.hpp" />
+    <ClInclude Include="Tracy\common\TracyQueue.hpp" />
+    <ClInclude Include="Tracy\common\TracySocket.hpp" />
+    <ClInclude Include="Tracy\common\TracyStackFrames.hpp" />
+    <ClInclude Include="Tracy\common\TracySystem.hpp" />
+    <ClInclude Include="Tracy\common\TracyVersion.hpp" />
+    <ClInclude Include="Tracy\common\TracyWinFamily.hpp" />
+    <ClInclude Include="Tracy\common\TracyYield.hpp" />
+    <ClInclude Include="Tracy\common\tracy_lz4.hpp" />
+    <ClInclude Include="Tracy\common\tracy_lz4hc.hpp" />
+    <ClInclude Include="Tracy\libbacktrace\backtrace.hpp" />
+    <ClInclude Include="Tracy\libbacktrace\config.h" />
+    <ClInclude Include="Tracy\libbacktrace\filenames.hpp" />
+    <ClInclude Include="Tracy\libbacktrace\internal.hpp" />
+    <ClInclude Include="Tracy\tracy\Tracy.hpp" />
+    <ClInclude Include="Tracy\tracy\TracyC.h" />
+    <ClInclude Include="Tracy\tracy\TracyCUDA.hpp" />
+    <ClInclude Include="Tracy\tracy\TracyD3D11.hpp" />
+    <ClInclude Include="Tracy\tracy\TracyD3D12.hpp" />
+    <ClInclude Include="Tracy\tracy\TracyLua.hpp" />
+    <ClInclude Include="Tracy\tracy\TracyOpenCL.hpp" />
+    <ClInclude Include="Tracy\tracy\TracyOpenGL.hpp" />
+    <ClInclude Include="Tracy\tracy\TracyVulkan.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\Common\Chassis.cpp" />
     <ClCompile Include="..\Common\ControlPanelProtocol.cpp" />
     <ClCompile Include="..\Common\ICP.cpp">
       <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">Minimal</DebugInformationFormat>
@@ -444,15 +498,119 @@
     <ClCompile Include="..\Common\Map.cpp" />
     <ClCompile Include="..\Common\MapUtils.cpp" />
     <ClCompile Include="..\Common\Scan.cpp" />
+    <ClCompile Include="..\Common\StringWordWriter.cpp" />
     <ClCompile Include="..\Common\Utils.cpp" />
+    <ClCompile Include="..\Common\Vector2.cpp" />
     <ClCompile Include="ChassisInterface.cpp" />
     <ClCompile Include="Config.cpp" />
     <ClCompile Include="ControlInputsSocket.cpp" />
     <ClCompile Include="ControlPanelServer.cpp" />
     <ClCompile Include="ControlPanelServerMessages.cpp" />
     <ClCompile Include="MainMessageLoop.cpp" />
+    <ClCompile Include="Pigpio.cpp" />
     <ClCompile Include="SensorInterface.cpp" />
     <ClCompile Include="Main.cpp" />
+    <ClCompile Include="Tracy\client\TracyAlloc.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\client\TracyCallstack.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\client\TracyDxt1.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\client\TracyKCore.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\client\TracyOverride.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\client\TracyProfiler.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\client\TracyRocprof.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\client\TracySysPower.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\client\TracySysTime.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\client\TracySysTrace.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\client\tracy_rpmalloc.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\common\TracySocket.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\common\TracyStackFrames.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\common\TracySystem.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\common\tracy_lz4.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\common\tracy_lz4hc.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\libbacktrace\alloc.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\libbacktrace\dwarf.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\libbacktrace\elf.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\libbacktrace\fileline.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\libbacktrace\macho.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\libbacktrace\mmapio.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\libbacktrace\posix.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\libbacktrace\sort.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\libbacktrace\state.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Tracy\TracyClient.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Eigen\Cholesky" />
@@ -503,12 +661,18 @@
       <CppLanguageStandard>c++17</CppLanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <Link>
+      <LibraryDependencies>pigpiod_if2;rt</LibraryDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <ClCompile>
       <CppLanguageStandard>c++17</CppLanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <Link>
+      <LibraryDependencies>pigpiod_if2;rt</LibraryDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
