@@ -23,8 +23,6 @@ public:
 		ushort m_RawAngle;
 		ushort m_RawDistance;
 		uchar  m_Quality;
-
-		void Convert(float& outAngle_rad, float& outDistance_m);
 	};
 
 public:
@@ -41,8 +39,9 @@ public:
 private:
 	constexpr static char PIPE_CMD_TERMINATE = 0x78; // Sent into pipe to termiante the thread
 
-	// const Sensor::ScanSample* pSamples, uint nValidSamples, uint nRawSamples
-	using TOnReceivedScan = std::function<void(const Sensor::ScanSample*, uint, uint)>;
+	// const std::vector<Sensor::ScanSample>& scanSamples,	const std::vector<Sensor::ScanSampleInt>& scanSamplesInt
+	using TOnReceivedScan = std::function<void(const std::vector<Sensor::ScanSample>&,
+												const std::vector<Sensor::ScanSampleInt>&)>;
 
 	std::unique_ptr<std::thread> m_pThread;
 	int m_PipeFd[2]; // 0 - read, 1 - write
@@ -50,12 +49,12 @@ private:
 	bool m_bRunning = false;
 
 	// Processing of scan data packets, used by ReadScanDataStream
-	std::unique_ptr<RawScanSample[]> m_pRawScanSampleBuffer;
-	std::unique_ptr<Sensor::ScanSample[]> m_pOutScanSamples;
+	std::vector<RawScanSample> m_RawScanSampleBuffer;
+	std::vector<Sensor::ScanSample> m_OutScanSamples;
+	std::vector<Sensor::ScanSampleInt> m_OutIntScanSamples;
 
 	uint m_ReceivedScanCount = 0; // Total number of scans received
 	uint m_PacketByteId = 0;
-	uint m_ScanSampleId = 0;
 	uchar m_ScanPacketBuffer[5]; // Packet is read byte by byte into this buffer
 	bool m_WaitingFirstScanStart = true;
 

@@ -21,8 +21,6 @@ namespace ControlPanelProtocol
 
 		// Client to Server
         MSG_ENABLE_STREAM_SENSOR_DATA,  // Enables sensor data streaming. Data is byte: 0 - disable, 1 - enable
-		MSG_ICP_TEST,            // Requests ICP test. Data is byte: 0 - store scan 0, 1 - store scan 1 and run ICP on them.
-        MSG_TEST0,               // Not used any more
 
 		// Server to Client
 		MSG_SENSOR_DATA // Scan and odometer data from one cycle

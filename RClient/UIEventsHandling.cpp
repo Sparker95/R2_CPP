@@ -41,27 +41,6 @@ void MainWindow::SlotOnConnectButtonClicked()
     ui->ConnStateLabel->setText("Connecting ...");
 }
 
-void MainWindow::SlotOnIcpTestStoreButton()
-{
-    // Store one scan for future comparison
-    char payload = 0;
-    if (m_ControlPanelSocket.state() == QAbstractSocket::SocketState::ConnectedState)
-    {
-        SendMessage(ControlPanelProtocol::MessageType::MSG_ICP_TEST, 1, &payload);
-    }
-}
-
-void MainWindow::SlotOnIcpTestRunButton()
-{
-    // Store another scan and run ICP
-    char payload = 1;
-    if (m_ControlPanelSocket.state() == QAbstractSocket::SocketState::ConnectedState)
-    {
-        SendMessage(ControlPanelProtocol::MessageType::MSG_ICP_TEST, 1, &payload);
-    }
-}
-
-
 void MainWindow::SlotOnEnableSensorStreamButton()
 {
     char payload = 1;

@@ -26,7 +26,7 @@ public:
 	struct MessageNewSensorScanData : MessageBase
 	{
 		std::vector<Sensor::ScanSample> m_Scan;
-		uint m_RawSampleCount; // Count of all samples, including invalid
+		std::vector<Sensor::ScanSampleInt> m_ScanInt;
 	};
 
 	MainMessageLoop(SensorInterface* pSensorInterface, ChassisInterface* pChassisInterface);
@@ -35,10 +35,6 @@ public:
 	void Execute();
 	void HandleOsSignal(int signalValue); // Called from interrupt!
 	void PostMessage(std::unique_ptr<MessageBase>&& pMsg);
-
-	// Getters for data, to be used by ControlPanelServer
-	void GetScanSamples_mt(std::vector<Sensor::ScanSample>& outSamples, uint& outScanCounter);
-	uint GetScanCounter_mt() const { return m_ScanCounter; }
 
 private:
 	// Other components
@@ -65,5 +61,6 @@ private:
 	void ProcessMessage(MessageBase& msgBase);
 
 	// Called from SensorInterface thread!
-	void OnReceivedScan_mt(const Sensor::ScanSample* pSamples, uint nValidSamples, uint nRawSamples);
+	void OnReceivedScan_mt(const std::vector<Sensor::ScanSample>&,
+		const std::vector<Sensor::ScanSampleInt>&);
 };

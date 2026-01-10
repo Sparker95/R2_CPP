@@ -11,13 +11,13 @@
 
 MainMessageLoop::MainMessageLoop(SensorInterface* pSensorInterface, ChassisInterface* pChassisInterface)
 {
-	m_ScanSamples.reserve(Sensor::SCAN_N_SAMPLES_MAX);
+	m_ScanSamples.reserve(Sensor::DEFAULT_SAMPLE_BUFFER_SIZE);
 	m_pSensorInterface = pSensorInterface;
 	m_pChassisInterface = pChassisInterface;
 
 	m_pSensorInterface->BindOnReceivedScan(
-		[this](const Sensor::ScanSample* pSamples, uint nValidSamples, uint nRawSamples)
-		{ OnReceivedScan_mt(pSamples, nValidSamples, nRawSamples); } );
+		[this](const std::vector<Sensor::ScanSample>& scanSamples, const std::vector<Sensor::ScanSampleInt>& scanSamplesInt)
+		{ OnReceivedScan_mt(scanSamples, scanSamplesInt); } );
 
 	m_TimeStart = std::chrono::high_resolution_clock::now();
 }
@@ -116,7 +116,8 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 
 			if (m_pCtrlPanelServer->GetConnected() && m_pCtrlPanelServer->GetStreamSensorData())
 			{
-				m_pCtrlPanelServer->SendSensorData_mt(timestamp_ms, pMsg->m_Scan, odoCounter, moveState, steer);
+				// Scan data is sent in integer format, to save bandwidth
+				m_pCtrlPanelServer->SendSensorData_mt(timestamp_ms, pMsg->m_ScanInt, odoCounter, moveState, steer);
 			}
 		}
 
@@ -140,24 +141,12 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 //------------------------------------------------------------------------------------------------------------------------
 // Connection with other objects
 
-void MainMessageLoop::OnReceivedScan_mt(const Sensor::ScanSample* pSamples, uint nValidSamples, uint nRawSamples)
+void MainMessageLoop::OnReceivedScan_mt(const std::vector<Sensor::ScanSample>& scanSamples, const std::vector<Sensor::ScanSampleInt>& scanSamplesInt)
 {
 	MessageNewSensorScanData* pMsg = new MessageNewSensorScanData();
 
-	pMsg->m_RawSampleCount = nRawSamples;
-	pMsg->m_Scan.resize(nValidSamples);
-	for (uint i = 0; i < nValidSamples; i++)
-		pMsg->m_Scan[i] = pSamples[i];
+	pMsg->m_Scan = scanSamples;
+	pMsg->m_ScanInt = scanSamplesInt;
 
 	PostMessage(std::unique_ptr<MessageBase>(pMsg));
-}
-
-//------------------------------------------------------------------------------------------------------------------------
-// Getters 
-
-void MainMessageLoop::GetScanSamples_mt(std::vector<Sensor::ScanSample>& outSamples, uint& outScanCounter)
-{
-	std::unique_lock lock(m_StateMutex);
-	outSamples = m_ScanSamples;
-	outScanCounter = m_ScanCounter;
 }

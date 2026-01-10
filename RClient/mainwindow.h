@@ -50,8 +50,6 @@ private:
 
 private slots:
     void SlotOnConnectButtonClicked();
-    void SlotOnIcpTestStoreButton();
-    void SlotOnIcpTestRunButton();
     void SlotOnEnableSensorStreamButton();
     void SlotOnDisableSensorStreamButton();
     void SlotOnSaveSensorStreamToFileCheck(bool checked);

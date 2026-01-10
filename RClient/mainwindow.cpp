@@ -212,10 +212,20 @@ void MainWindow::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigne
             // Deserialize data, same way as it was sent
             ControlPanelProtocol::SensorDataHeader header = reader.Read<ControlPanelProtocol::SensorDataHeader>();
 
-            QList<Sensor::ScanSample> scanSamples;
-            scanSamples.resize(static_cast<qsizetype>(header.m_nSamples));
+            QList<Sensor::ScanSampleInt> intScanSamples;
+            intScanSamples.resize(static_cast<qsizetype>(header.m_nSamples));
             for (uint i = 0; i < header.m_nSamples; i++)
-                scanSamples[i] = reader.Read<Sensor::ScanSample>();
+                intScanSamples[i] = reader.Read<Sensor::ScanSampleInt>();
+
+            // Convert scan samples from int to float
+            QList<Sensor::ScanSample> scanSamples;
+            scanSamples.resize(intScanSamples.size());
+            for (uint i = 0; i < header.m_nSamples; i++)
+            {
+                Sensor::ScanSample& sample = scanSamples[i];
+                Sensor::ScanSampleInt& sampleInt = intScanSamples[i];
+                Sensor::ConvertSampleIntToFloat(sampleInt, sample);
+            }
 
             m_pSensorScanWidget0->SetScanData(scanSamples);
             m_pSensorScanWidget1->SetScanData(scanSamples);

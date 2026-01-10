@@ -79,32 +79,6 @@
      <enum>QQuickWidget::ResizeMode::SizeRootObjectToView</enum>
     </property>
    </widget>
-   <widget class="QPushButton" name="IcpTestStore">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>290</y>
-      <width>121</width>
-      <height>24</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>ICP Test: Store</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="IcpTestRun">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>320</y>
-      <width>121</width>
-      <height>24</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>ICP Test: Run</string>
-    </property>
-   </widget>
    <widget class="QLabel" name="ControlInputsLabel">
     <property name="geometry">
      <rect>
@@ -340,38 +314,6 @@
    </hints>
   </connection>
   <connection>
-   <sender>IcpTestStore</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>SlotOnIcpTestStoreButton()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>720</x>
-     <y>43</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>520</x>
-     <y>390</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>IcpTestRun</sender>
-   <signal>clicked()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>SlotOnIcpTestRunButton()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>850</x>
-     <y>43</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>520</x>
-     <y>390</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>DisableSensorStreamButton</sender>
    <signal>clicked()</signal>
    <receiver>MainWindow</receiver>
@@ -454,8 +396,6 @@
  </connections>
  <slots>
   <slot>SlotOnConnectButtonClicked()</slot>
-  <slot>SlotOnIcpTestStoreButton()</slot>
-  <slot>SlotOnIcpTestRunButton()</slot>
   <slot>SlotOnEnableSensorStreamButton()</slot>
   <slot>SlotOnDisableSensorStreamButton()</slot>
   <slot>SlotOnSaveSensorStreamToFileCheck(bool)</slot>

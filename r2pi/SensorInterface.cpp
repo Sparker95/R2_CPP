@@ -23,8 +23,9 @@ SensorInterface::SensorInterface()
 	m_PipeFd[0] = -1;
 	m_PipeFd[1] = -1;
 	
-	m_pRawScanSampleBuffer = std::unique_ptr<RawScanSample[]>(new RawScanSample[Sensor::SCAN_N_SAMPLES_MAX]);
-	m_pOutScanSamples = std::unique_ptr<Sensor::ScanSample[]>(new Sensor::ScanSample[Sensor::SCAN_N_SAMPLES_MAX]);
+	m_RawScanSampleBuffer.reserve(Sensor::DEFAULT_SAMPLE_BUFFER_SIZE);
+	m_OutScanSamples.reserve(Sensor::DEFAULT_SAMPLE_BUFFER_SIZE);
+	m_OutIntScanSamples.reserve(Sensor::DEFAULT_SAMPLE_BUFFER_SIZE);
 }
 
 SensorInterface::~SensorInterface()
@@ -399,62 +400,55 @@ void SensorInterface::ProcessScanDataPacket()
 			ProcessScanResult();
 		}
 		m_WaitingFirstScanStart = false;
-		m_ScanSampleId = 0;
+		m_RawScanSampleBuffer.clear();
 	}
 
-	if (m_ScanSampleId < Sensor::SCAN_N_SAMPLES_MAX)
+	if (m_RawScanSampleBuffer.size() < 1024)
 	{
 		// Decode packet and store it
 
-		RawScanSample& s = m_pRawScanSampleBuffer[m_ScanSampleId];
+		RawScanSample s;
 
 		s.m_RawAngle = ((static_cast<uint>(p[1]) >> 1) & 0b01111111) |
 			(static_cast<uint>(p[2]) << 7);
 		s.m_RawDistance = static_cast<uint>(p[3]) | (static_cast<uint>(p[4]) << 8);
 		s.m_Quality = (p[0] >> 2) & 0b00111111;
 
-		m_ScanSampleId++;
+		m_RawScanSampleBuffer.push_back(s);
 	}
 	else
 	{
-		fprintf(stderr, "SensorInterface: Overflow of scan sample buffer\n");
+		fprintf(stderr, "SensorInterface: Accumulated too many samples, something is wrong\n");
 	}
 }
 
 void SensorInterface::ProcessScanResult()
 {
 	// m_pScanSampleBuffer contains scan data, convert it and invoke event for subscriber
-	// m_iScanSampleId is the amount of samples we have stored
-	//printf("SensorInterface: Received scan: %i samples\n", m_ScanSampleId);
 
-	uint outSampleId = 0;
-	for (uint i = 0; i < m_ScanSampleId; i++)
+	m_OutScanSamples.reserve(m_RawScanSampleBuffer.size());
+	m_OutScanSamples.clear();
+	m_OutIntScanSamples.reserve(m_RawScanSampleBuffer.size());
+	m_OutIntScanSamples.clear();
+	for (RawScanSample& rawSample : m_RawScanSampleBuffer)
 	{
-		RawScanSample& rawSample = m_pRawScanSampleBuffer[i];
 		if (rawSample.m_RawDistance == 0 || rawSample.m_Quality == 0)
 			continue;
 
-		Sensor::ScanSample& outSample = m_pOutScanSamples[outSampleId];
-		m_pRawScanSampleBuffer[i].Convert(outSample.m_Angle_rad, outSample.m_Dist_m);
-		outSampleId++;
-		//printf("%.3f %.2f %i\n", angle_rad, dist_m, static_cast<int>(m_pRawScanSampleBuffer[i].m_Quality));
+		Sensor::ScanSample outSample;
+		Sensor::ConvertSampleIntToFloat(rawSample.m_RawAngle, rawSample.m_RawDistance, outSample.m_Angle_rad, outSample.m_Dist_m);
+		m_OutScanSamples.push_back(outSample);
+
+		Sensor::ScanSampleInt outSampleInt;
+		outSampleInt.m_Angle = rawSample.m_RawAngle;
+		outSampleInt.m_Dist = rawSample.m_RawDistance;
+		m_OutIntScanSamples.push_back(outSampleInt);
 	}
 
 	// printf("SensorInterface: Received scan: total samples: %i, valid samples: %i\n", m_ScanSampleId, outSampleId);
 
 	for (uint i = 0; i < m_OnReceivedScan.size(); i++)
 	{
-		m_OnReceivedScan[i](m_pOutScanSamples.get(), outSampleId, m_ScanSampleId); // data (only valid samples), n valid samples, n raw samples 
+		m_OnReceivedScan[i](m_OutScanSamples, m_OutIntScanSamples);
 	}
-}
-
-void SensorInterface::RawScanSample::Convert(float& outAngle_rad, float& outDistance_m)
-{
-	// !!! Here we convert sensor spin direction. Real sensor spins clockwise,
-	// while notation in rest of software is mathematical: positive is counter clockwise.
-	outAngle_rad = PI_2X - static_cast<float>(m_RawAngle) * (PI_2X / (64.0f * 360.0f)); // Actual heading = rawAngle / 64.0 deg
-	outDistance_m = static_cast<float>(m_RawDistance) * (1.0f / 4000.0f);       // Actual distance = rawDistance / 4.0 mm
-
-	//outAngle_rad = static_cast<float>(m_iRawAngle) / 64.0f; // Actual heading = rawAngle / 64.0 deg
-	//outDistance_m = static_cast<float>(m_iRawDistance) / 4.0f;
 }

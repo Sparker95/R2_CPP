@@ -14,6 +14,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
+#include <errno.h>
 
 bool ControlPanelServer::Start()
 {
@@ -133,7 +134,7 @@ void ControlPanelServer::ThreadFunction()
 		}
 		else if (FD_ISSET(pipeReadFd, &readFds))
 		{
-			if (!ProcessPipeMessage())
+			if (!ReadAndProcessPipeMessages())
 			{
 				printf("ControlPanelServer: Received Terminate command\n");
 				loopAccept = false;
@@ -179,7 +180,7 @@ void ControlPanelServer::ThreadFunction()
 					{
 						if (FD_ISSET(pipeReadFd, &readFds))
 						{
-							if (!ProcessPipeMessage())
+							if (!ReadAndProcessPipeMessages())
 							{
 								printf("ControlPanelServer: Received Terminate command\n");
 								loopAccept = false;
@@ -204,12 +205,6 @@ void ControlPanelServer::ThreadFunction()
 							else
 							{
 								msgDecoder.ReadStream(readBuffer, static_cast<unsigned int>(nBytesRead));
-								/*
-								printf("ControlPanelServer: received data:");
-								printf(readBuffer);
-								printf(" - end\n");
-								// process bytes
-								*/
 							}
 						}
 					}
@@ -225,6 +220,71 @@ void ControlPanelServer::ThreadFunction()
 
 	close(sockFd);
 	printf("ControlPanelServer: Thread terminated\n");
+}
+
+// Reads all pipe messages and puts them into queue
+bool ControlPanelServer::ReadPipeMessagesIntoQueue()
+{
+	while (true)
+	{
+		PipeMsgBase* pMsg = nullptr;
+		ssize_t nBytesRead = read(m_PipeFd[0], &pMsg, sizeof(PipeMsgBase*));
+		int errorId = errno;
+
+		// No more data in the pipe
+		if (nBytesRead == 0 || (nBytesRead == -1 && errorId == EAGAIN))
+			return true; // no error
+
+		if (nBytesRead != sizeof(PipeMsgBase*))
+		{
+			fprintf(stderr, "ControlPanelServer: pipe read error: %i\n", errorId);
+			return false;
+		}
+
+		m_PipeRxQueue.push_back(pMsg);
+	}
+
+	return true;
+}
+
+// Called on pipe new message, also handles termination of thread
+bool ControlPanelServer::ReadAndProcessPipeMessages()
+{
+	while (true)
+	{
+		if (!ReadPipeMessagesIntoQueue())
+			return false;
+
+		// Select highest priority message
+		if (m_PipeRxQueue.empty())
+			return true;
+		uint highestPrio = m_PipeRxQueue[0]->m_Priority;
+		uint highestPrioMsgId = 0;
+		for (uint i = 0; i < static_cast<uint>(m_PipeRxQueue.size()); i++)
+		{
+			if (m_PipeRxQueue[i]->m_Priority > highestPrio)
+			{
+				highestPrioMsgId = i;
+				highestPrio = m_PipeRxQueue[i]->m_Priority;
+			}
+		}
+
+		PipeMsgBase* pHighestPrioMsg = m_PipeRxQueue[highestPrioMsgId];
+
+		// Process the message
+		bool terminateThread = false;
+		ProcessPipeMessage(pHighestPrioMsg, terminateThread);
+		m_PipeRxQueue.erase(m_PipeRxQueue.begin() + highestPrioMsgId);
+
+		// Remember to delete message!
+		delete pHighestPrioMsg; // Virtual destructor!
+
+		if (terminateThread)
+			return false;
+
+		// After processing each message, read more, in case more data has accumulated
+	}
+	return true;
 }
 
 void ControlPanelServer::ClosePipe()
@@ -290,7 +350,7 @@ bool ControlPanelServer::SendMessage(ControlPanelProtocol::MessageType msgType, 
 }
 
 
-void ControlPanelServer::SendSensorData_mt(uint timestamp_ms, const std::vector<Sensor::ScanSample>& scan,
+void ControlPanelServer::SendSensorData_mt(uint timestamp_ms, const std::vector<Sensor::ScanSampleInt>& scanInt,
 	Chassis::TOdometerCounter odometer, Chassis::MoveState moveState, float steer)
 {
 	if (!GetConnected() || !GetStreamSensorData())
@@ -300,7 +360,7 @@ void ControlPanelServer::SendSensorData_mt(uint timestamp_ms, const std::vector<
 	// Copy data and send it into pipe. The rest is handled in our own thread.
 
 	PipeMsgSensorData* pMsg = new PipeMsgSensorData();
-	pMsg->m_Samples = scan;
+	pMsg->m_ScanSamples = scanInt;
 	pMsg->m_Odometer = odometer;
 	pMsg->m_MoveState = moveState;
 	pMsg->m_Timestamp_ms = timestamp_ms;

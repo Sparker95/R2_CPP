@@ -4,7 +4,6 @@
 #include "../Common/Common.h"
 #include "../Common/Utils.h"
 #include "../Common/Scan.h"
-#include "../Common/ICP.h"
 #include "MainMessageLoop.h"
 
 #include <vector>
@@ -45,16 +44,6 @@ void ControlPanelServer::OnProtocolNewMessage(uint8_t msgType, char* msgPayload,
 
 			break;
 		}
-		case (MessageType::MSG_TEST0):
-		{
-			// Send back some message
-			ControlPanelProtocol::MessageHeader header;
-			char text[] = "Hello from server!";
-			header.Init(MessageType::MSG_PRINT, sizeof(text));
-			send(m_ClientSockFd, static_cast<const void*>(&header), static_cast<size_t>(ControlPanelProtocol::MessageHeader::SIZE_PACKED), 0);
-			send(m_ClientSockFd, static_cast<const void*>(text), static_cast<size_t>(header.m_PayloadSize), 0);
-			break;
-		}
 		case (MessageType::MSG_ENABLE_STREAM_SENSOR_DATA):
 		{
 			if (msgPayloadSize != 1)
@@ -63,64 +52,12 @@ void ControlPanelServer::OnProtocolNewMessage(uint8_t msgType, char* msgPayload,
 			m_bStreamSensorData = reader.Read<uint8_t>() == 1;
 			break;
 		}
-		case (MessageType::MSG_ICP_TEST):
-		{
-			if (msgPayloadSize != 1)
-				return;
-
-			if (*msgPayload == 0)
-			{
-				// Store scan for later comparison
-				uint scanCounter;
-				m_pMainMsgLoop->GetScanSamples_mt(m_IcpTestScan, scanCounter);
-			}
-			else
-			{
-				std::vector<Sensor::ScanSample> newScan;
-				uint scanCounter;
-				m_pMainMsgLoop->GetScanSamples_mt(newScan, scanCounter);
-
-				Scan::TScanPolar oldScanPolar, newScanPolar;
-				Utils::ScanSensorToMatrix(m_IcpTestScan.data(), static_cast<uint>(m_IcpTestScan.size()), oldScanPolar);
-				Utils::ScanSensorToMatrix(newScan.data(), static_cast<uint>(newScan.size()), newScanPolar);
-
-				Pose initialT;
-				Pose resultT = ICP::MatchScans(newScanPolar, oldScanPolar, 16, initialT);
-
-				char str[256];
-				sprintf(str, "ICP result (dx, dy, ddir): %.3f %.3f %.3f", resultT.x, resultT.y, resultT.dir);
-
-				// Send back message as text
-				SendMessage(ControlPanelProtocol::MessageType::MSG_PRINT, static_cast<uint>(strlen(str)), str);
-			}
-		}
 		default:
 			break;
 	}
 }
 
-// Called on pipe new message, also handles termination of thread
-bool ControlPanelServer::ProcessPipeMessage()
-{
-	PipeMsgBase* pMsg = nullptr;
-	ssize_t nBytesRead = read(m_PipeFd[0], &pMsg, sizeof(PipeMsgBase*));
-
-	if (nBytesRead != sizeof(PipeMsgBase*))
-	{
-		fprintf(stderr, "ControlPanelServer: pipe read error: %i\n", errno);
-		return false;
-	}
-
-	bool terminateThread = false;
-	OnPipeMessage(pMsg, terminateThread);
-
-	// Remember to delete message!
-	delete pMsg; // Virtual destructor!
-
-	return !terminateThread;
-}
-
-void ControlPanelServer::OnPipeMessage(PipeMsgBase* pMsg, bool& outTerminate)
+void ControlPanelServer::ProcessPipeMessage(PipeMsgBase* pMsg, bool& outTerminate)
 {
 	BufferWriter writer(g_SendBuffer, sizeof(g_SendBuffer));
 	
@@ -140,11 +77,11 @@ void ControlPanelServer::OnPipeMessage(PipeMsgBase* pMsg, bool& outTerminate)
 		header.m_Odometer = pMsgScanData->m_Odometer;
 		header.m_MoveState = pMsgScanData->m_MoveState;
 		header.m_Steer = pMsgScanData->m_Steer;
-		header.m_nSamples = static_cast<uint32_t>(pMsgScanData->m_Samples.size());
+		header.m_nSamples = static_cast<uint32_t>(pMsgScanData->m_ScanSamples.size());
 
 		writer.Write(header);
 
-		for (const auto& sample : pMsgScanData->m_Samples)
+		for (const auto& sample : pMsgScanData->m_ScanSamples)
 			writer.Write(sample);
 
 		SendMessage(ControlPanelProtocol::MessageType::MSG_SENSOR_DATA, writer.GetNumBytesWritten(), g_SendBuffer);
