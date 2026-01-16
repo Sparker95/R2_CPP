@@ -11,7 +11,7 @@ void MessageHeader::Init(MessageType msgType, unsigned int payloadSize)
     m_MagicNumber0 = HEADER_MAGIC_NR_0;
     m_MagicNumber1 = HEADER_MAGIC_NR_1;
     m_MsgType = static_cast<uint8_t>(msgType);
-    m_PayloadSize = static_cast<uint16_t>(payloadSize);
+    m_PayloadSize = static_cast<uint32_t>(payloadSize);
     m_Checksum = CalculateChecksum();
 }
 
@@ -20,10 +20,11 @@ uint8_t MessageHeader::CalculateChecksum() const
 		uint8_t sum = 0;
 		sum += m_MagicNumber0;
 		sum += m_MsgType;
+		sum += static_cast<uint8_t>((m_PayloadSize >> 24) & 0xFF);
+		sum += static_cast<uint8_t>((m_PayloadSize >> 16) & 0xFF);
 		sum += static_cast<uint8_t>((m_PayloadSize >> 8) & 0xFF);
 		sum += static_cast<uint8_t>(m_PayloadSize & 0xFF);
 		sum += m_MagicNumber1;
-		sum += 123;
 		return sum;
 	}
 

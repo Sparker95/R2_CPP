@@ -29,7 +29,7 @@ public:
 		std::vector<Sensor::ScanSampleInt> m_ScanInt;
 	};
 
-	MainMessageLoop(SensorInterface* pSensorInterface, ChassisInterface* pChassisInterface);
+	MainMessageLoop(SensorInterface& sensorInterface, ChassisInterface& cHassisInterface);
 	~MainMessageLoop();
 	void Init(ControlPanelServer* pCtrlPanelServer);
 	void Execute();
@@ -57,6 +57,9 @@ private:
 	// Data from sensors
 	std::vector<Sensor::ScanSample> m_ScanSamples;
 	std::atomic<uint> m_ScanCounter = 0;
+
+	// Statistics
+	uint m_SensorScanCounter = 0;
 
 	void ProcessMessage(MessageBase& msgBase);
 

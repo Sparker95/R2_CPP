@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <string.h>
+#include <cstdlib>
 
 Config::Config()
 {
@@ -24,7 +25,7 @@ const char* Config::FindValue(const char* pKeyName, bool printError /*= true*/) 
 	}
 
 	if (printError)
-		fprintf(stderr, "Config: Error finding key name: %s\n", pKeyName);
+		fprintf(stderr, "Config: Error: key not found: %s\n", pKeyName);
 
 	return nullptr;
 }
@@ -85,6 +86,30 @@ bool Config::ReadConfig(const char* configPath)
 		const auto& kv = m_KeyValueTable[i];
 		printf("  %i: %s : %s\n", i, kv.m_pKey, kv.m_pValue);
 	}
+
+	return true;
+}
+
+bool Config::Get(const char* pKeyName, float& outValue, bool reportError /*= true*/) const
+{
+	const char* pValueStr = FindValue(pKeyName, reportError);
+
+	if (!pValueStr)
+		return false;
+
+	outValue = static_cast<float>(std::atof(pValueStr));
+
+	return true;
+}
+
+bool Config::Get(const char* pKeyName, uint& outValue, bool reportError /*= true*/) const
+{
+	const char* pValueStr = FindValue(pKeyName, reportError);
+
+	if (!pValueStr)
+		return false;
+
+	outValue = static_cast<uint>(std::atol(pValueStr));
 
 	return true;
 }

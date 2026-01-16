@@ -39,10 +39,10 @@
     <ClCompile Include="..\Common\StringWordReader.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="..\Common\SensorStream.cpp">
+    <ClCompile Include="..\Common\ControlSensorFrame.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="..\Common\SensorStreamUtils.cpp">
+    <ClCompile Include="..\Common\ControlSensorFrameUtils.cpp">
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="..\Common\StringWordWriter.cpp">
@@ -70,6 +70,12 @@
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="..\Common\r2offline.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\RobotCore.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\ProbUtils.cpp">
       <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>
@@ -1016,10 +1022,10 @@
     <ClInclude Include="..\Common\StringWordReader.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\SensorStream.h">
+    <ClInclude Include="..\Common\ControlSensorFrame.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\SensorStreamUtils.h">
+    <ClInclude Include="..\Common\ControlSensorFrameUtils.h">
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\StringWordWriter.h">
@@ -1051,6 +1057,15 @@
     </ClInclude>
     <ClInclude Include="Tracy\tracy\Tracy.hpp">
       <Filter>Tracy</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\RobotCore.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\ProbUtils.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\TracyPlug.h">
+      <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

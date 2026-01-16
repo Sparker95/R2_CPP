@@ -9,11 +9,11 @@
 //------------------------------------------------------------------------------------------------------------------------
 // Constructor, destructor
 
-MainMessageLoop::MainMessageLoop(SensorInterface* pSensorInterface, ChassisInterface* pChassisInterface)
+MainMessageLoop::MainMessageLoop(SensorInterface& sensorInterface, ChassisInterface& chassisInterface)
 {
 	m_ScanSamples.reserve(Sensor::DEFAULT_SAMPLE_BUFFER_SIZE);
-	m_pSensorInterface = pSensorInterface;
-	m_pChassisInterface = pChassisInterface;
+	m_pSensorInterface = &sensorInterface;
+	m_pChassisInterface = &chassisInterface;
 
 	m_pSensorInterface->BindOnReceivedScan(
 		[this](const std::vector<Sensor::ScanSample>& scanSamples, const std::vector<Sensor::ScanSampleInt>& scanSamplesInt)
@@ -122,15 +122,20 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 		}
 
 		// Print debug text
-		const char* moveStateText = "";
-		switch (moveState)
+		if (m_SensorScanCounter % 30 == 0)
 		{
-		case TMoveState::BACKWARD: moveStateText = "BWD"; break;
-		case TMoveState::FORWARD: moveStateText = "FWD"; break;
-		case TMoveState::STOP: moveStateText = "STOP"; break;
+			const char* moveStateText = "";
+			switch (moveState)
+			{
+			case TMoveState::BACKWARD: moveStateText = "BWD"; break;
+			case TMoveState::FORWARD: moveStateText = "FWD"; break;
+			case TMoveState::STOP: moveStateText = "STOP"; break;
+			}
+			printf("%i, Scan Count: %u, Scan Size: %u, Odometer: %u, MoveState: %s, Steer: %.2f\n",
+				timestamp_ms, m_SensorScanCounter, pMsg->m_Scan.size(), static_cast<int>(odoCounter), moveStateText, steer);
 		}
-		printf("%i, Scan Size: %i, Odometer: %i, MoveState: %s, Steer: %.2f\n",
-			timestamp_ms, pMsg->m_Scan.size(), static_cast<int>(odoCounter), moveStateText, steer);
+
+		m_SensorScanCounter++;
 
 		return;
 	}

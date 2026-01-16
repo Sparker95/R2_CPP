@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1422</width>
-    <height>1009</height>
+    <width>1820</width>
+    <height>980</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,7 +19,7 @@
      <rect>
       <x>30</x>
       <y>10</y>
-      <width>111</width>
+      <width>121</width>
       <height>22</height>
      </rect>
     </property>
@@ -43,9 +43,9 @@
    <widget class="QPushButton" name="ConnButton">
     <property name="geometry">
      <rect>
-      <x>150</x>
-      <y>10</y>
-      <width>71</width>
+      <x>10</x>
+      <y>40</y>
+      <width>141</width>
       <height>24</height>
      </rect>
     </property>
@@ -56,35 +56,22 @@
    <widget class="QLabel" name="ConnStateLabel">
     <property name="geometry">
      <rect>
-      <x>230</x>
-      <y>10</y>
-      <width>121</width>
-      <height>21</height>
+      <x>10</x>
+      <y>60</y>
+      <width>141</width>
+      <height>31</height>
      </rect>
     </property>
     <property name="text">
-     <string>&lt;- click to connect</string>
-    </property>
-   </widget>
-   <widget class="QQuickWidget" name="QuickWidget">
-    <property name="geometry">
-     <rect>
-      <x>160</x>
-      <y>40</y>
-      <width>361</width>
-      <height>401</height>
-     </rect>
-    </property>
-    <property name="resizeMode">
-     <enum>QQuickWidget::ResizeMode::SizeRootObjectToView</enum>
+     <string>^ click to connect</string>
     </property>
    </widget>
    <widget class="QLabel" name="ControlInputsLabel">
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>350</y>
-      <width>131</width>
+      <y>250</y>
+      <width>141</width>
       <height>101</height>
      </rect>
     </property>
@@ -108,7 +95,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>50</y>
+      <y>90</y>
       <width>141</width>
       <height>24</height>
      </rect>
@@ -121,7 +108,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>80</y>
+      <y>120</y>
       <width>141</width>
       <height>24</height>
      </rect>
@@ -134,7 +121,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>110</y>
+      <y>150</y>
       <width>141</width>
       <height>20</height>
      </rect>
@@ -147,7 +134,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>160</y>
+      <y>200</y>
       <width>131</width>
       <height>31</height>
      </rect>
@@ -163,7 +150,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>130</y>
+      <y>170</y>
       <width>141</width>
       <height>22</height>
      </rect>
@@ -175,8 +162,8 @@
    <widget class="QFrame" name="SensorScanFrame0">
     <property name="geometry">
      <rect>
-      <x>580</x>
-      <y>40</y>
+      <x>160</x>
+      <y>10</y>
       <width>320</width>
       <height>320</height>
      </rect>
@@ -194,8 +181,8 @@
    <widget class="QFrame" name="SensorScanFrame1">
     <property name="geometry">
      <rect>
-      <x>910</x>
-      <y>40</y>
+      <x>160</x>
+      <y>370</y>
       <width>320</width>
       <height>320</height>
      </rect>
@@ -216,8 +203,8 @@
    <widget class="QSlider" name="SensorScanScaleSlider0">
     <property name="geometry">
      <rect>
-      <x>580</x>
-      <y>370</y>
+      <x>160</x>
+      <y>340</y>
       <width>321</width>
       <height>22</height>
      </rect>
@@ -247,8 +234,8 @@
    <widget class="QSlider" name="SensorScanScaleSlider1">
     <property name="geometry">
      <rect>
-      <x>910</x>
-      <y>370</y>
+      <x>160</x>
+      <y>700</y>
       <width>321</width>
       <height>22</height>
      </rect>
@@ -275,26 +262,51 @@
      <number>1</number>
     </property>
    </widget>
+   <widget class="QFrame" name="MapFrame">
+    <property name="geometry">
+     <rect>
+      <x>500</x>
+      <y>10</y>
+      <width>680</width>
+      <height>680</height>
+     </rect>
+    </property>
+    <property name="frameShape">
+     <enum>QFrame::Shape::Panel</enum>
+    </property>
+    <property name="frameShadow">
+     <enum>QFrame::Shadow::Sunken</enum>
+    </property>
+    <property name="lineWidth">
+     <number>2</number>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="RequestMapButton">
+    <property name="geometry">
+     <rect>
+      <x>500</x>
+      <y>700</y>
+      <width>121</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Request Map</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1422</width>
+     <width>1820</width>
      <height>22</height>
     </rect>
    </property>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>QQuickWidget</class>
-   <extends>QWidget</extends>
-   <header location="global">QtQuickWidgets/QQuickWidget</header>
-  </customwidget>
- </customwidgets>
  <resources/>
  <connections>
   <connection>
@@ -393,6 +405,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>RequestMapButton</sender>
+   <signal>clicked()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>SlotOnRequestMapButton()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>560</x>
+     <y>737</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>909</x>
+     <y>489</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>SlotOnConnectButtonClicked()</slot>
@@ -401,5 +429,6 @@
   <slot>SlotOnSaveSensorStreamToFileCheck(bool)</slot>
   <slot>SlotOnSensorScaleValueChanged0(int)</slot>
   <slot>SlotOnSensorScaleValueChanged1(int)</slot>
+  <slot>SlotOnRequestMapButton()</slot>
  </slots>
 </ui>

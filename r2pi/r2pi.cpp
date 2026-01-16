@@ -3,8 +3,9 @@
 #include "SensorInterface.h"
 #include "MainMessageLoop.h"
 #include "ChassisInterface.h"
-#include "Config.h"
 #include "ChassisSettings.h"
+
+#include "../Common/Config.h"
 
 #include <cstring>
 #include <thread>
@@ -35,23 +36,18 @@ bool ReadConfigPidSettings(const Config& cfg, ChassisInterface::MotorCtrlPidSett
 {
 	ChassisInterface::MotorCtrlPidSettings s;
 
-	const char* pP = cfg.FindValue("mt_ctrl_P");
-	const char* pI = cfg.FindValue("mt_ctrl_I");
-	const char* pD = cfg.FindValue("mt_ctrl_D");
-	const char* pErrorScale = cfg.FindValue("mt_ctrl_ErrorScale");
-	const char* pErrorIntegralMax = cfg.FindValue("mt_ctrl_ErrorIntegralMax");
+	bool cfgSuccess =
+		cfg.Get("mt_ctrl_P", s.m_KP) &&
+		cfg.Get("mt_ctrl_I", s.m_KI) &&
+		cfg.Get("mt_ctrl_D", s.m_KD) &&
+		cfg.Get("mt_ctrl_ErrorScale", s.m_ErrorScale) &&
+		cfg.Get("mt_ctrl_ErrorIntegralMax", s.m_ErrorIntegralMax);
 
-	if (!pP || !pI || !pD || !pD || !pErrorScale || !pErrorIntegralMax)
+	if (!cfgSuccess)
 	{
 		fprintf(stderr, "Error: Failed to read PID settings from config\n");
 		return false;
 	}
-
-	s.m_KP = static_cast<float>(std::atof(pP));
-	s.m_KI = static_cast<float>(std::atof(pI));
-	s.m_KD = static_cast<float>(std::atof(pD));
-	s.m_ErrorScale = static_cast<float>(std::atof(pErrorScale));
-	s.m_ErrorIntegralMax = static_cast<float>(std::atof(pErrorIntegralMax));
 
 	// Try to preserve default values in case of failure
 	outSettings = s;
@@ -62,17 +58,15 @@ bool ReadConfigAccelSettings(const Config& cfg, ChassisInterface::MotorCtrlAccel
 {
 	ChassisInterface::MotorCtrlAccelSettings s;
 
-	const char* pAccelMove = cfg.FindValue("mt_ctrl_AccelMove");
-	const char* pAccelBrake = cfg.FindValue("mt_ctrl_AccelBrake");
+	bool cfgSuccess =
+		cfg.Get("mt_ctrl_AccelMove", s.m_AccelMove) &&
+		cfg.Get("mt_ctrl_AccelBrake", s.m_AccelBrake);
 
-	if (!pAccelMove || !pAccelBrake)
+	if (!cfgSuccess)
 	{
 		fprintf(stderr, "Error: Failed to read acceleration settings from config\n");
 		return false;
 	}
-
-	s.m_AccelMove = static_cast<float>(std::atof(pAccelMove));
-	s.m_AccelBrake = static_cast<float>(std::atof(pAccelBrake));
 
 	outSettings = s;
 	return true;
@@ -82,21 +76,17 @@ bool ReadConfigChassisControlSettings(const Config& cfg, ChassisSettings::Contro
 {
 	ChassisSettings::ControlSettings s;
 
-	const char* pSteerOutputMax = cfg.FindValue("ctrl_SteerOutputMax");
-	const char* pSpeedSlow = cfg.FindValue("ctrl_SpeedSlow_Hz");
-	const char* pSpeedCruise = cfg.FindValue("ctrl_SpeedCruise_Hz");
-	const char* pSpeedFast = cfg.FindValue("ctrl_SpeedFast_Hz");
+	bool cfgSuccess =
+		cfg.Get("ctrl_SteerOutputMax", s.m_SteerOutputMax) &&
+		cfg.Get("ctrl_SpeedSlow_Hz", s.m_SpeedSlow_Hz) &&
+		cfg.Get("ctrl_SpeedCruise_Hz", s.m_SpeedCruise_Hz) &&
+		cfg.Get("ctrl_SpeedFast_Hz", s.m_SpeedFast_Hz);
 
-	if (!pSteerOutputMax || !pSpeedSlow || !pSpeedCruise || !pSpeedFast)
+	if (!cfgSuccess)
 	{
 		fprintf(stderr, "Error: Failed to read chassis control settings from config\n");
 		return false;
 	}
-
-	s.m_SteerOutputMax = static_cast<float>(std::atof(pSteerOutputMax));
-	s.m_SpeedSlow_Hz = static_cast<float>(std::atof(pSpeedSlow));
-	s.m_SpeedCruise_Hz = static_cast<float>(std::atof(pSpeedCruise));
-	s.m_SpeedFast_Hz = static_cast<float>(std::atof(pSpeedFast));
 	
 	outSettings = s;
 	return true;
@@ -147,7 +137,7 @@ int main(int argc, char** argv)
 		initDone = false;
 
 	// Main message loop
-	MainMessageLoop msgLoop(&sensor, &chassis);
+	MainMessageLoop msgLoop(sensor, chassis);
 	g_pMsgLoop = &msgLoop;
 
 	// Control panel server

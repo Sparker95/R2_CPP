@@ -102,6 +102,7 @@
     <ClInclude Include="..\Common\Chassis.h" />
     <ClInclude Include="..\Common\Common.h" />
     <ClInclude Include="..\Common\CommonIntTypes.h" />
+    <ClInclude Include="..\Common\Config.h" />
     <ClInclude Include="..\Common\ControlInputsProtocol.h" />
     <ClInclude Include="..\Common\ControlPanelProtocol.h" />
     <ClInclude Include="..\Common\LineRasterizer.h" />
@@ -111,12 +112,13 @@
     <ClInclude Include="..\Common\MathUtils.h" />
     <ClInclude Include="..\Common\Scan.h" />
     <ClInclude Include="..\Common\Sensor.h" />
+    <ClInclude Include="..\Common\StringWordReader.h" />
     <ClInclude Include="..\Common\StringWordWriter.h" />
+    <ClInclude Include="..\Common\TracyPlug.h" />
     <ClInclude Include="..\Common\Utils.h" />
     <ClInclude Include="..\Common\Vector2.h" />
     <ClInclude Include="ChassisSettings.h" />
     <ClInclude Include="ChassisInterface.h" />
-    <ClInclude Include="Config.h" />
     <ClInclude Include="ControlInputsSocket.h" />
     <ClInclude Include="ControlPanelServer.h" />
     <ClInclude Include="Eigen\src\Cholesky\LDLT.h" />
@@ -481,6 +483,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Common\Chassis.cpp" />
+    <ClCompile Include="..\Common\Config.cpp" />
     <ClCompile Include="..\Common\ControlPanelProtocol.cpp" />
     <ClCompile Include="..\Common\LineRasterizer.cpp" />
     <ClCompile Include="..\Common\Localizer.cpp" />
@@ -488,18 +491,18 @@
     <ClCompile Include="..\Common\MapUtils.cpp" />
     <ClCompile Include="..\Common\Scan.cpp" />
     <ClCompile Include="..\Common\Sensor.cpp" />
+    <ClCompile Include="..\Common\StringWordReader.cpp" />
     <ClCompile Include="..\Common\StringWordWriter.cpp" />
     <ClCompile Include="..\Common\Utils.cpp" />
     <ClCompile Include="..\Common\Vector2.cpp" />
     <ClCompile Include="ChassisInterface.cpp" />
-    <ClCompile Include="Config.cpp" />
     <ClCompile Include="ControlInputsSocket.cpp" />
     <ClCompile Include="ControlPanelServer.cpp" />
     <ClCompile Include="ControlPanelServerMessages.cpp" />
     <ClCompile Include="MainMessageLoop.cpp" />
     <ClCompile Include="Pigpio.cpp" />
     <ClCompile Include="SensorInterface.cpp" />
-    <ClCompile Include="Main.cpp" />
+    <ClCompile Include="r2pi.cpp" />
     <ClCompile Include="Tracy\client\TracyAlloc.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</ExcludedFromBuild>

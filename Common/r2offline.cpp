@@ -9,7 +9,11 @@
 #include <fstream>
 
 // Tracy
+#ifdef TRACY_ENABLE
 #include "Tracy/tracy/Tracy.hpp"
+#else
+#include "TracyPlug.h"
+#endif
 
 #include "Chassis.h"
 #include "Localizer.h"
@@ -17,18 +21,21 @@
 #include "CarStatsModel.h"
 #include "CommonIntTypes.h"
 #include "Map.h"
-#include "SensorStreamUtils.h"
+#include "ControlSensorFrame.h"
+#include "ControlSensorFrameUtils.h"
 #include "MapUtils.h"
 #include "MathUtils.h"
 #include "Utils.h"
+#include "ProbUtils.h"
 #include "LineRasterizer.h"
+#include "RobotCore.h"
 
 void TestReadStreamFile(const char* pFilePath)
 {
 	printf("Reading stream file: %s\n", pFilePath);
 
-	std::vector<SensorStreamBlock> blocks;
-	bool readSuccess = SensorStreamUtils::ReadBlocksFromFile(pFilePath, blocks);
+	std::vector<ControlSensorFrame> blocks;
+	bool readSuccess = ControlSensorFrameUtils::ReadFramesFromFile(pFilePath, blocks);
 
 	if (!readSuccess)
 	{
@@ -100,37 +107,23 @@ void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapF
 
 	Localizer localizer(localizerConfig, chassisModel);
 
+	RobotCore core(localizer);
+
 	// Read all blocks
-	std::vector<SensorStreamBlock> sensorStreamBlocks;
-	if (!SensorStreamUtils::ReadBlocksFromFile(pInStreamFilePath, sensorStreamBlocks))
+	std::vector<ControlSensorFrame> sensorStreamBlocks;
+	if (!ControlSensorFrameUtils::ReadFramesFromFile(pInStreamFilePath, sensorStreamBlocks))
 	{
 		printf("Error: Failed to read sensor stream file\n");
 		return;
 	}
 
 	// Process data
-	SensorStreamBlock* pPrevBlock = &sensorStreamBlocks[0];
 	for (uint blockId = 0; blockId < static_cast<uint>(sensorStreamBlocks.size()); blockId++)
 	{
 		printf("Processing block %u / %u\n", blockId, static_cast<uint>(sensorStreamBlocks.size()));
-		SensorStreamBlock& block = sensorStreamBlocks[blockId];
+		ControlSensorFrame& frame = sensorStreamBlocks[blockId];
 
-		Chassis::TOdometerCounter odoDiff = Chassis::CalculateOdometerDifference(block.m_Odometer, pPrevBlock->m_Odometer);
-		//Pose odoPoseDiff_LS = Chassis::CalculatePoseDiff_LS(chassisConfig, odoDiff, block.m_MoveState, block.m_Steer);
-
-		if (odoDiff == 0)
-		{
-			pPrevBlock = &block;
-			continue;
-		}
-
-		Chassis::ChassisInputs inputs;
-		inputs.m_MoveState = block.m_MoveState;
-		inputs.m_OdoDiff = odoDiff;
-		inputs.m_Steer = block.m_Steer;
-		localizer.Update(inputs, block.m_ScanSamples);
-
-		pPrevBlock = &block;
+		core.Update(frame);
 
 		// Tracy
 		FrameMark;
@@ -143,17 +136,6 @@ void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapF
 
 	// Write particles history
 	LocalizerUtils::WriteLocalizerHistoryToFile(localizer, pOutLocHistoryPath, 32);
-
-	// Write grid cell distance errors
-	/*
-	{
-		std::ofstream f("TestDistErrors.txt", std::ios_base::out | std::ios_base::binary);
-		for (float e : localizer.m_TestErrors)
-		{
-			f << e << "\n";
-		}
-	}
-	*/
 }
 
 int main(int argc, char* argv[])

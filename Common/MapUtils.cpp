@@ -1,6 +1,7 @@
 #include "MapUtils.h"
 
 #include "StringWordWriter.h"
+#include "StringWordReader.h"
 
 #include <fstream>
 
@@ -106,6 +107,105 @@ namespace MapUtils
 
 		f.seekp(0);
 		f.write(outString.data(), outString.size());
+
+		return true;
+	}
+
+	bool ReadMapFromFile_L2Int(const char* pFilePath, Map& outMap, uint& outl2IntQuantization)
+	{
+		// Remember binary flag! Otherwise size measurement goes wrong, because of CRLF conversions.
+		std::ifstream f(pFilePath, std::ios_base::in | std::ios_base::binary);
+		if (!f.is_open())
+		return false;
+
+		// Read whole file into memory
+		f.seekg(0, std::ios::end);
+		uint fileSize = static_cast<uint>(f.tellg());
+		f.seekg(0, std::ios::beg);
+
+		std::string fileContents;
+		fileContents.resize(fileSize, 0);
+		f.read(fileContents.data(), fileSize);
+
+		StringWordReader reader(fileContents.data(), fileSize);
+
+		// Read data
+
+		if (!reader.ReadCompareWord("MAP"))
+			return false;
+
+		if (!reader.ReadCompareWord("FORMAT"))
+			return false;
+
+		if (!reader.ReadCompareWord("L2INT"))
+			return false;
+
+		if (!reader.ReadCompareWord("QUANT"))
+			return false;
+
+		if (!reader.Read<uint>(outl2IntQuantization))
+			return false;
+
+		if (!reader.ReadCompareWord("RES_W"))
+			return false;
+
+		float mapRes_w;
+		if (!reader.Read<float>(mapRes_w))
+			return false;
+
+		uint xSize, ySize;
+		if (!reader.ReadCompareWord("XSIZE"))
+			return false;
+		if (!reader.Read<uint>(xSize))
+			return false;
+
+		if (!reader.ReadCompareWord("YSIZE"))
+			return false;
+		if (!reader.Read<uint>(ySize))
+			return false;
+
+		uint xCenter, yCenter;
+		if (!reader.ReadCompareWord("XCENTER"))
+			return false;
+		if (!reader.Read<uint>(xCenter))
+			return false;
+
+		if (!reader.ReadCompareWord("YCENTER"))
+			return false;
+		if (!reader.Read<uint>(yCenter))
+			return false;
+
+		if (!reader.ReadCompareWord("MAP_DATA"))
+			return false;
+
+		outMap = Map(xSize, ySize, xCenter, yCenter, mapRes_w);
+
+		for (uint y = 0; y < ySize; y++)
+		{
+			if (!reader.ReadCompareWord("ROW_ID"))
+				return false;
+
+			uint _y;
+			if (!reader.Read<uint>(_y))
+				return false;
+			if (_y != y)
+				return false;
+
+			if (!reader.ReadCompareWord("ROW_DATA"))
+				return false;
+
+			for (uint x = 0; x < xSize; x++)
+			{
+				int cellData;
+				if (!reader.Read<int>(cellData))
+					return false;
+
+				if ((cellData < -128) || (cellData > 127))
+					return false;
+
+				outMap.SetDataAtPos(Map::TCellPos(x, y), static_cast<Map::TCellData>(cellData));
+			}
+		}
 
 		return true;
 	}

@@ -63,6 +63,13 @@ qt6_add_qml_module(RClient
         SOURCES SensorDataFileWriter.cpp
         SOURCES SensorScanWidget.h SensorScanWidget.cpp
 	SOURCES ../Common/Sensor.cpp
+	SOURCES MapWidget.h MapWidget.cpp
+	SOURCES MapWidget.h MapWidget.cpp
+	SOURCES ../Common/StringWordReader.h ../Common/StringWordReader.cpp ../Common/MapUtils.h ../Common/MapUtils.cpp ../Common/Map.h ../Common/Map.cpp
+	SOURCES ../Common/TracyPlug.h
+	SOURCES ../Common/StringWordWriter.h ../Common/StringWordWriter.cpp
+	SOURCES
+	SOURCES ../Common/ProbUtils.h ../Common/ProbUtils.cpp
 )
 
 target_link_libraries(RClient PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)

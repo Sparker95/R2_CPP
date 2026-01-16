@@ -4,7 +4,7 @@
     <ShowAllFiles>false</ShowAllFiles>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-inStreamFile "D:\Projects\Robot2\Records\Test_Fast_Circle.txt" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist"</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-inStreamFile "D:\Projects\Robot2\Records\PerfTest.txt" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist"</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

@@ -1,10 +1,10 @@
-#include "SensorStreamUtils.h"
+#include "ControlSensorFrameUtils.h"
 #include "CommonIntTypes.h"
 
 #include <cstring>
 #include <fstream>
 
-bool SensorStreamUtils::ReadBlockFromString(StringWordReader& reader, SensorStreamBlock& outBlock)
+bool ControlSensorFrameUtils::ReadFrameFromString(StringWordReader& reader, ControlSensorFrame& outBlock)
 {
 	// Read header
 	if (!reader.ReadCompareWord("SENSOR_DATA_HEADER"))
@@ -75,7 +75,7 @@ bool SensorStreamUtils::ReadBlockFromString(StringWordReader& reader, SensorStre
 	return true;
 }
 
-bool SensorStreamUtils::ReadBlocksFromFile(const char* pFilePath, std::vector<SensorStreamBlock>& outBlocks)
+bool ControlSensorFrameUtils::ReadFramesFromFile(const char* pFilePath, std::vector<ControlSensorFrame>& outBlocks)
 {
 	// Remember binary flag! Otherwise size measurement goes wrong, because of CRLF conversions.
 	std::ifstream f(pFilePath, std::ios_base::in | std::ios_base::binary);
@@ -96,8 +96,8 @@ bool SensorStreamUtils::ReadBlocksFromFile(const char* pFilePath, std::vector<Se
 
 	while (!reader.End())
 	{
-		SensorStreamBlock block;
-		if (!ReadBlockFromString(reader, block))
+		ControlSensorFrame block;
+		if (!ReadFrameFromString(reader, block))
 			return false;
 
 		outBlocks.push_back(std::move(block));

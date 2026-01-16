@@ -8,7 +8,7 @@
 namespace ControlPanelProtocol
 {
 	constexpr unsigned int CONTROL_PANEL_PORT = 4567;
-	constexpr unsigned int MAX_PAYLOAD_SIZE = 8 * 1024;
+	constexpr unsigned int MAX_PAYLOAD_SIZE = 2 * 1024 * 1024;
 	constexpr unsigned char HEADER_MAGIC_NR_0 = 0x5A;
 	constexpr unsigned char HEADER_MAGIC_NR_1 = 0xA5;
 
@@ -20,24 +20,25 @@ namespace ControlPanelProtocol
 		MSG_PRINT = 1, // Receiver will print characters in UI
 
 		// Client to Server
-        MSG_ENABLE_STREAM_SENSOR_DATA,  // Enables sensor data streaming. Data is byte: 0 - disable, 1 - enable
+        MSG_ENABLE_STREAM_SENSOR_DATA, // Enables sensor data streaming. Data is byte: 0 - disable, 1 - enable
+		MSG_REQUEST_MAP,                   // Requests Map to be sent back
 
 		// Server to Client
-		MSG_SENSOR_DATA // Scan and odometer data from one cycle
+		MSG_SENSOR_DATA, // Scan and odometer data from one cycle
+		MSG_MAP          // Whole Map
 	};
 
 	struct MessageHeader
 	{
 	public:
-		constexpr static unsigned int SIZE_PACKED = 6;
+		constexpr static unsigned int SIZE_PACKED = 8; // !!! Remember to adjust this whenever header changes !!!
 
 		// Data:
-
 		uint8_t m_MagicNumber0 = HEADER_MAGIC_NR_0;
-		uint8_t m_MsgType = static_cast<uint8_t>(MessageType::MSG_INVALID);
-		uint16_t m_PayloadSize = 0;
 		uint8_t m_MagicNumber1 = HEADER_MAGIC_NR_1;
+		uint8_t m_MsgType = static_cast<uint8_t>(MessageType::MSG_INVALID);
 		uint8_t m_Checksum = 0;
+		uint32_t m_PayloadSize = 0;
 
 		// Methods:
 
@@ -168,6 +169,15 @@ namespace ControlPanelProtocol
 		uint8_t _padding;
 		float m_Steer;
 		uint32_t m_nSamples;
+	};
+
+	struct MapDataHeader
+	{
+		float m_Res_w = 0;
+		uint m_xSize = 0;
+		uint m_ySize = 0;
+		uint m_xCenter = 0;
+		uint m_yCenter = 0;
 	};
 }
 

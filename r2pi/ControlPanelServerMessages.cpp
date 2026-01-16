@@ -4,6 +4,7 @@
 #include "../Common/Common.h"
 #include "../Common/Utils.h"
 #include "../Common/Scan.h"
+#include "../Common/Map.h"
 #include "MainMessageLoop.h"
 
 #include <vector>
@@ -19,13 +20,15 @@
 #include <unistd.h>
 #include <errno.h>
 
-static char g_SendBuffer[16 * 1024];
+static char g_SendBuffer[ControlPanelProtocol::MAX_PAYLOAD_SIZE];
 
 using BufferWriter = ControlPanelProtocol::BufferWriter;
 using BufferReader = ControlPanelProtocol::BufferReader;
 
 void ControlPanelServer::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigned int msgPayloadSize)
 {
+	static int __test = 0; // WIP don't commit
+
 	using MessageType = ControlPanelProtocol::MessageType;
 	BufferReader reader(msgPayload, msgPayloadSize);
 	switch (static_cast<ControlPanelProtocol::MessageType>(msgType))
@@ -50,6 +53,42 @@ void ControlPanelServer::OnProtocolNewMessage(uint8_t msgType, char* msgPayload,
 				return;
 
 			m_bStreamSensorData = reader.Read<uint8_t>() == 1;
+			break;
+		}
+		case (MessageType::MSG_REQUEST_MAP):
+		{
+			// Send back a map
+			uint xSize = 256; uint ySize = 256;
+			Map m(xSize, ySize, 128, 128, 0.0625);
+			for (uint y = 0; y < ySize; y++)
+			{
+				for (uint x = 0; x < xSize; x++)
+				{
+					m.SetDataAtPos(Map::TCellPos(x, y), static_cast<Map::TCellData>((8*(x + y + __test*13)) & 0xFF));
+				}
+			}
+			__test++;
+
+			// Serialize map
+			BufferWriter writer(g_SendBuffer, sizeof(g_SendBuffer));
+
+			ControlPanelProtocol::MapDataHeader mapHeader;
+			mapHeader.m_Res_w = m.GetResolution_w();
+			mapHeader.m_xSize = m.GetSize().x;
+			mapHeader.m_ySize = m.GetSize().y;
+			mapHeader.m_xCenter = m.GetCenter().x;
+			mapHeader.m_yCenter = m.GetCenter().y;
+
+			writer.Write(mapHeader);
+
+			for (uint y = 0; y < m.GetSize().y; y++)
+			{
+				for (uint x = 0; x < m.GetSize().x; x++)
+					writer.Write<Map::TCellData>(m.GetDataAtPos(Map::TCellPos(x, y)));
+			}
+
+			SendMessage(MessageType::MSG_MAP, writer.GetNumBytesWritten(), g_SendBuffer);
+
 			break;
 		}
 		default:

@@ -83,4 +83,10 @@ void MainWindow:: SlotOnSensorScaleValueChanged1(int value)
     m_pSensorScanWidget1->SetScale(static_cast<qreal>(value));
 }
 
-
+void MainWindow::SlotOnRequestMapButton()
+{
+	if (m_ControlPanelSocket.state() == QAbstractSocket::SocketState::ConnectedState)
+	{
+		SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_MAP, 0, nullptr);
+	}
+}

@@ -65,6 +65,7 @@ namespace Chassis
 		float m_SteerTolTurn_abs = 0.5f;                 // +- Steering units
 	};
 
+	// Inputs for chassis motion model
 	struct ChassisInputs
 	{
 		float m_OdoDiff = 0; // It is integer in real case, but can be float for interpolation purposes.

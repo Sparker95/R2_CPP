@@ -13,7 +13,7 @@ void SensorDataFileWriter::Start(const char* pFileNameNoExt)
     if (strlen(pFileNameNoExt) == 0)
         pFileNameNoExt = "SensorStream";
 
-    const char fileExtension[] = ".txt";
+	const char fileExtension[] = ".rstream";
 
     // Find suitable file name.
     // First try trivial case FileName.txt, then FileName (1).txt and so on.

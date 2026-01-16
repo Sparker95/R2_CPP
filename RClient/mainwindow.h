@@ -17,6 +17,7 @@ QT_END_NAMESPACE
 
 class QScatterSeries;
 class SensorScanWidget;
+class MapWidget;
 
 class MainWindow : public QMainWindow
 {
@@ -38,6 +39,7 @@ private:
     QScatterSeries* m_pScatterSeries = nullptr;
     SensorScanWidget* m_pSensorScanWidget0 = nullptr;
     SensorScanWidget* m_pSensorScanWidget1 = nullptr;
+	MapWidget* m_pMapWidget = nullptr;
 
     // Handling communications
     void OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigned int msgPayloadSize);
@@ -53,6 +55,7 @@ private slots:
     void SlotOnEnableSensorStreamButton();
     void SlotOnDisableSensorStreamButton();
     void SlotOnSaveSensorStreamToFileCheck(bool checked);
+	void SlotOnRequestMapButton();
 
     void SlotOnSensorScaleValueChanged0(int value);
     void SlotOnSensorScaleValueChanged1(int value);

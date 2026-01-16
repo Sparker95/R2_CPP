@@ -1,7 +1,11 @@
 #include "Map.h"
 
 // Tracy
+#ifdef TRACY_ENABLE
 #include "Tracy/tracy/Tracy.hpp"
+#else
+#include "TracyPlug.h"
+#endif
 
 #include <cmath>
 #include <cstdio>
@@ -27,6 +31,23 @@ Map::Map(float resolution_w) :
 	// Init data
 	uint ttlSize = m_xSize * m_ySize;
 	std::memset(m_Data, CELL_VALUE_DEFAULT, ttlSize);
+}
+
+
+Map::Map(uint xSize, uint ySize, uint xCenter, uint yCenter, float resolution_w) :
+    m_Res_w(resolution_w),
+    m_xSize(xSize),
+    m_ySize(ySize),
+    m_xCenter(xCenter),
+    m_yCenter(yCenter)
+{
+    ZoneScopedN("Map::Map");
+
+    m_Data = new TCellData[m_xSize * m_ySize];
+
+    // Init data
+    uint ttlSize = m_xSize * m_ySize;
+    std::memset(m_Data, CELL_VALUE_DEFAULT, ttlSize);
 }
 
 // Copy

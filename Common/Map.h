@@ -8,8 +8,8 @@
 class Map
 {
 public:
-	using TCellData = std::int8_t; // !!! Must be signed! char is unsigned on ARM.	
-	using TCellPos = Vector2Base<int>;  // Map's native position type. Position can be negative.
+	using TCellData = std::int8_t;       // !!! Must be signed! char is unsigned on ARM.
+	using TCellPos = Vector2Base<int>;   // Map's native position type. Cell index within [0,0 .. xSize-1,ySize-1]
 	using TCellSize = Vector2Base<uint>; // Map's native size type. Size can not be negative.
 
 	constexpr static TCellData CELL_VALUE_DEFAULT = 0;
@@ -29,6 +29,7 @@ public:
 
 	Map() = default;
 	Map(float resolution_w);
+	Map(uint xSize, uint ySize, uint xCenter, uint yCenter, float resolution_w);
 	Map(const Map& other) noexcept; // Copy
 	Map& operator=(const Map& other) noexcept;
 	Map(Map&& other) noexcept; // Move
@@ -36,6 +37,7 @@ public:
 
 	// Accessing data
 	TCellData* GetData() { return m_Data; }
+	uint GetDataSizeBytes() const { return m_xSize * m_ySize * sizeof(TCellData); }
 	TCellData GetDataAtPos(TCellPos mapPos) const;
 	void SetDataAtPos(TCellPos mapPos, TCellData value);
 	void SetAllData(TCellData value);

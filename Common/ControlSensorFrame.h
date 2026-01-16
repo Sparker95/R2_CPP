@@ -10,9 +10,9 @@
 // Originally made to read sensor stream data from files, but potentially this can be used at run time as well.
 // This will keep code unified between online and offline data processing. 
 
-// One 'block' of data.
-// It partially mirrors ControlPanelProtocol::SensorDataHeader
-struct SensorStreamBlock
+// One frame of data of update cycle.
+// Contains both chassis inputs and sensor data.
+struct ControlSensorFrame // Control And Sensor Frame
 {
 	uint32_t m_Timestamp_ms;
 	Chassis::TOdometerCounter m_Odometer;

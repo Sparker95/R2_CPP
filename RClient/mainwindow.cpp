@@ -11,16 +11,9 @@
 #include <QMessageBox>
 #include <QGridLayout>
 
-// Graph related:
-#include <QQuickWidget>
-#include <QQuickItem>
-#include <QQmlContext>
-#include <QScatterSeries>
-#include <QtGraphs>
-#include <QtQml>
-
 #include "InputHandling.h"
 #include "SensorScanWidget.h"
+#include "MapWidget.h"
 
 #include "../Common/ControlPanelProtocol.h"
 #include "../Common/ControlInputsProtocol.h"
@@ -52,12 +45,6 @@ MainWindow::MainWindow(QWidget *parent)
         { OnProtocolError(errorCode, extraData); }
     );
 
-    // The graph view
-    ui->QuickWidget->setSource(QUrl("qrc:/graph.qml"));
-    ui->QuickWidget->show();
-    m_pScatterSeries = dynamic_cast<QScatterSeries*>(
-        QQmlEngine::contextForObject(ui->QuickWidget->rootObject())->objectForName("scatterSeries"));
-
     // Timer for control inputs
     m_iControlInputsTimerId = startTimer(40, Qt::TimerType::PreciseTimer);
 
@@ -76,6 +63,18 @@ MainWindow::MainWindow(QWidget *parent)
     // Synchronize values from sliders to scan widgets
     SlotOnSensorScaleValueChanged0(ui->SensorScanScaleSlider0->value());
     SlotOnSensorScaleValueChanged1(ui->SensorScanScaleSlider1->value());
+
+    // Map widget
+    {
+        QGridLayout* gridLayout = new QGridLayout();
+        gridLayout->setSpacing(1);
+        gridLayout->setContentsMargins(0, 0, 0, 0);
+
+		m_pMapWidget = new MapWidget();
+		gridLayout->addWidget(m_pMapWidget, 0, 0);
+
+        ui->MapFrame->setLayout(gridLayout);
+    }
 }
 
 MainWindow::~MainWindow()
@@ -243,9 +242,6 @@ void MainWindow::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigne
                 scanSamplesCart[i] = QPointF(xPos, yPos);
             }
 
-            m_pScatterSeries->clear();
-            m_pScatterSeries->append(scanSamplesCart);
-
             // Write to file
             if (m_SensorFileWriter.GetIsOpen())
             {
@@ -255,6 +251,21 @@ void MainWindow::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigne
 
             break;
         }
+
+		case ControlPanelProtocol::MessageType::MSG_MAP:
+		{
+			ControlPanelProtocol::MapDataHeader header = reader.Read<ControlPanelProtocol::MapDataHeader>();
+
+			// WIP too many allocations and destructions here
+			Map m(header.m_xSize, header.m_ySize, header.m_xCenter, header.m_yCenter, header.m_Res_w);
+			for (uint y = 0; y < m.GetSize().y; y++)
+			{
+				for (uint x = 0; x < m.GetSize().x; x++)
+					m.SetDataAtPos(Map::TCellPos(x, y), reader.Read<Map::TCellData>());
+			}
+
+			m_pMapWidget->SetMapData(std::move(m));
+		}
 
         default: break;
     }
