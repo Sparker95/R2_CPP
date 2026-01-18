@@ -32,7 +32,7 @@ SensorInterface::~SensorInterface()
 {
 	ClosePipe();
 	CloseSerialPort();
-	StopMotor();
+	SetMotorState_mt(false);
 }
 
 void SensorInterface::ClosePipe()
@@ -52,18 +52,29 @@ void SensorInterface::CloseSerialPort()
 	m_SerialPortFd = -1;
 }
 
-bool SensorInterface::StartMotor()
+bool SensorInterface::SetMotorState_mt(bool enable)
 {
-	return m_Gpio.SetPullUpDown(MOTOR_CONTROL_GPIO, Pigpio::PullUpDown::OFF) &&
-		m_Gpio.SetMode(MOTOR_CONTROL_GPIO, Pigpio::Mode::OUTPUT) &&
-		m_Gpio.Write(MOTOR_CONTROL_GPIO, true);
+	std::unique_lock lock(m_GpioMutex);
+
+	if (enable)
+	{
+		return m_Gpio.SetPullUpDown(MOTOR_CONTROL_GPIO, Pigpio::PullUpDown::OFF) &&
+			m_Gpio.SetMode(MOTOR_CONTROL_GPIO, Pigpio::Mode::OUTPUT) &&
+			m_Gpio.Write(MOTOR_CONTROL_GPIO, true);
+	}
+	else
+	{
+		return m_Gpio.Write(MOTOR_CONTROL_GPIO, false) &&
+			m_Gpio.SetPullUpDown(MOTOR_CONTROL_GPIO, Pigpio::PullUpDown::DOWN) &&
+			m_Gpio.SetMode(MOTOR_CONTROL_GPIO, Pigpio::Mode::INPUT);
+	}
 }
 
-bool SensorInterface::StopMotor()
+bool SensorInterface::GetMotorState_mt()
 {
-	return m_Gpio.Write(MOTOR_CONTROL_GPIO, false) &&
-		m_Gpio.SetPullUpDown(MOTOR_CONTROL_GPIO, Pigpio::PullUpDown::DOWN) &&
-		m_Gpio.SetMode(MOTOR_CONTROL_GPIO, Pigpio::Mode::INPUT);
+	std::unique_lock lock(m_GpioMutex);
+
+	return m_Gpio.Read(MOTOR_CONTROL_GPIO);
 }
 
 bool SensorInterface::Start()
@@ -78,7 +89,7 @@ bool SensorInterface::Start()
 		return false;
 	}
 
-	if (!StartMotor())
+	if (!SetMotorState_mt(true))
 	{
 		fprintf(stderr, "SensorInterface: error setting motor GPIO value\n");
 		return false;
@@ -272,7 +283,7 @@ void SensorInterface::TerminateWait()
 
 	ClosePipe();
 	CloseSerialPort();
-	StopMotor();
+	SetMotorState_mt(false);
 }
 
 void SensorInterface::ThreadFunction()

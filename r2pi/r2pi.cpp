@@ -6,6 +6,10 @@
 #include "ChassisSettings.h"
 
 #include "../Common/Config.h"
+#include "../Common/Localizer.h"
+#include "../Common/RobotCore.h"
+#include "../Common/Chassis.h"
+#include "../Common/ProbUtils.h"
 
 #include <cstring>
 #include <thread>
@@ -126,6 +130,31 @@ int main(int argc, char** argv)
 	if (!ReadConfigChassisControlSettings(config, chassisControlSettings))
 		initDone = false;
 
+	// The RobotCore and related parts
+	// Chassis
+	Chassis::ChassisConfig chassisConfig;
+	Chassis::ChassisStatsConfig chassisStatsConfig;
+
+	Chassis::ChassisModel chassisModel(chassisConfig, chassisStatsConfig);
+
+	// Localizer
+	Localizer::Config localizerConfig;
+	const float _mapRes = 0.0625;
+	localizerConfig.m_SensorPdfStdDev = 2.0f * _mapRes;
+	localizerConfig.m_SensorPdfFloor = 0.6f;
+	localizerConfig.m_SensorScanRange = 12.0f;
+	localizerConfig.m_MapRes_w = _mapRes;
+	localizerConfig.m_StartPose = Pose(0, 0, 0);
+	localizerConfig.m_nParticles = 256; // 128
+	localizerConfig.m_L2IntOccupiedCell = Utils::L2FloatToL2Int(3.0f);
+	localizerConfig.m_L2IntFreeCell = Utils::L2FloatToL2Int(0.5f);
+	localizerConfig.m_ScanDecimation = 1;
+
+	Localizer localizer(localizerConfig, chassisModel);
+
+	// Core
+	RobotCore robotCore(localizer);
+
 	// Sensor interface
 	SensorInterface sensor;
 	if (!sensor.Start())
@@ -137,11 +166,11 @@ int main(int argc, char** argv)
 		initDone = false;
 
 	// Main message loop
-	MainMessageLoop msgLoop(sensor, chassis);
+	MainMessageLoop msgLoop(sensor, chassis, robotCore);
 	g_pMsgLoop = &msgLoop;
 
 	// Control panel server
-	ControlPanelServer ctrlPanelServer(&msgLoop, &sensor);
+	ControlPanelServer ctrlPanelServer(msgLoop, sensor, robotCore);
 	ctrlPanelServer.Start();
 
 	// Control inputs

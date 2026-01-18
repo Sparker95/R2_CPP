@@ -24,12 +24,6 @@
     <ClInclude Include="..\Common\StringWordReader.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\SensorStreamUtils.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\SensorStream.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\Sensor.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -1134,6 +1128,18 @@
     <ClInclude Include="Tracy\common\TracyYield.hpp">
       <Filter>Tracy</Filter>
     </ClInclude>
+    <ClInclude Include="..\Common\ProbUtils.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\ControlSensorFrame.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\ControlSensorFrameUtils.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\RobotCore.h">
+      <Filter>Common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Common\Vector2.cpp">
@@ -1146,12 +1152,6 @@
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="..\Common\StringWordReader.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Common\SensorStreamUtils.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Common\SensorStream.cpp">
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="..\Common\Scan.cpp">
@@ -1258,6 +1258,18 @@
     </ClCompile>
     <ClCompile Include="Tracy\client\TracySysTrace.cpp">
       <Filter>Tracy</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\ProbUtils.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\ControlSensorFrame.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\ControlSensorFrameUtils.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\RobotCore.cpp">
+      <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

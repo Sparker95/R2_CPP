@@ -43,3 +43,8 @@ void RobotCore::Update(const ControlSensorFrame& frame)
 
 	m_PrevFrame = frame;
 }
+
+void RobotCore::ResetLocalizer()
+{
+	m_pLocalizer->Reset();
+}

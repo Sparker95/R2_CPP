@@ -33,6 +33,7 @@ public:
 	bool SetPullUpDown(unsigned int gpio, PullUpDown pullUpDown);
 	bool SetMode(unsigned int gpio, Mode mode);
 	bool Write(unsigned int gpio, bool value);
+	bool Read(unsigned int gpio);
 
 
 	Pigpio(const Pigpio& other) = delete;

@@ -9,6 +9,7 @@
 #include <functional>
 #include <vector>
 #include <stdint.h>
+#include <mutex>
 
 namespace std
 {
@@ -35,6 +36,10 @@ public:
 	// Here we must copy scan data and return.
 	template<typename F>
 	void BindOnReceivedScan(F f) { m_OnReceivedScan.push_back(f); }
+
+	// Motor control
+	bool SetMotorState_mt(bool enable);
+	bool GetMotorState_mt();
 
 private:
 	constexpr static char PIPE_CMD_TERMINATE = 0x78; // Sent into pipe to termiante the thread
@@ -64,12 +69,11 @@ private:
 
 	// GPIO
 	Pigpio m_Gpio;
+	std::mutex m_GpioMutex;
 
 	void ThreadFunction();
 	void ClosePipe();
 	void CloseSerialPort();
-	bool StartMotor();
-	bool StopMotor();
 
 	void ReadScanDataStream(const uchar* pData, uint nBytes);
 	void ProcessScanDataPacket();

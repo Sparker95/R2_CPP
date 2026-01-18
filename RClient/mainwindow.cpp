@@ -29,7 +29,11 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    // Button events from UI
+	// UI signals
+	QObject::connect(ui->EnableSensorStreamButton, &QPushButton::clicked, this, &MainWindow::SlotOnEnableSensorStreamButton);
+	QObject::connect(ui->EnableSensorMotorButton, &QPushButton::clicked, this, &MainWindow::SlotOnEnableSensorMotorButton);
+
+	// Socket signals
     QObject::connect(&m_ControlPanelSocket, &QTcpSocket::connected, this, &MainWindow::SlotOnSocketConnected);
     QObject::connect(&m_ControlPanelSocket, &QTcpSocket::disconnected, this, &MainWindow::SlotOnSocketDisconnected);
     QObject::connect(&m_ControlPanelSocket, &QTcpSocket::errorOccurred, this, &MainWindow::SlotOnSocketError);
@@ -89,7 +93,9 @@ void MainWindow::SlotOnSocketConnected()
 {
     m_MsgDecoder.Reset();
     ui->ConnStateLabel->setText("Connected");
-    //m_Socket.write("Hello from RClient!");
+
+	// Immediately request options from server, to update our UI
+	SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_OPTIONS, 0, nullptr);
 }
 
 void MainWindow::SlotOnSocketDisconnected()
@@ -265,6 +271,35 @@ void MainWindow::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigne
 			}
 
 			m_pMapWidget->SetMapData(std::move(m));
+
+			break;
+		}
+
+		case ControlPanelProtocol::MessageType::MSG_LOC:
+		{
+			uint nPoses = reader.Read<uint>();
+
+			QList<Pose> poses;
+			poses.resize(nPoses);
+
+			for (uint i = 0; i < nPoses; i++)
+				poses[i] = reader.Read<Pose>();
+
+			m_pMapWidget->SetLocationData(poses);
+
+			break;
+		}
+
+		case ControlPanelProtocol::MessageType::MSG_OPTIONS:
+		{
+			using TOptions = ControlPanelProtocol::OptionsHeader;
+
+			TOptions opts = reader.Read<TOptions>();
+
+			ui->EnableSensorStreamButton->setChecked(opts.m_Options & TOptions::OPT_STREAM_SENSOR_DATA);
+			ui->EnableSensorMotorButton->setChecked(opts.m_Options & TOptions::OPT_SENSOR_MOTOR);
+
+			break;
 		}
 
         default: break;

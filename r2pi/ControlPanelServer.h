@@ -7,6 +7,7 @@
 #include "../Common/ControlPanelProtocol.h"
 #include "../Common/Sensor.h"
 #include "../Common/Chassis.h"
+#include "../Common/Map.h"
 
 namespace std
 {
@@ -15,21 +16,28 @@ namespace std
 
 class MainMessageLoop;
 class SensorInterface;
+class RobotCore;
 
 class ControlPanelServer
 {
 public:
 	bool Start();
 	void TerminateWait();
-	ControlPanelServer(MainMessageLoop* pMainMsgLoop, SensorInterface* pSensorInterface);
+	ControlPanelServer(MainMessageLoop& mainMsgLoop,
+		SensorInterface& sensorInterface,
+		RobotCore& robotCore);
 	~ControlPanelServer();
 
 	bool GetConnected() const;
 	bool GetStreamSensorData() const;
 
-	// Called from SensorInterface thread!
+	// Called from Main thread!
 	void SendSensorData_mt(uint timestamp_ms, const std::vector<Sensor::ScanSampleInt>& scan, Chassis::TOdometerCounter odometer,
 		Chassis::MoveState moveState, float steer);
+
+	void SendMap_mt(const Map& map);
+	void SendLocaction_mt(const std::vector<Pose>& poses);
+	void SendOptions_mt(); // Sends all options back to client
 
 private:
 	constexpr static const char PIPE_CMD_TERMINATE = 0x78; // Sent into pipe to termiante the thread
@@ -54,12 +62,22 @@ private:
 
 		PipeMsgSensorData() { m_Priority = 10; }
 	};
+	struct PipeMsgMap : PipeMsgBase
+	{
+		Map m_Map;
+	};
+	struct PipeMsgLoc : PipeMsgBase
+	{
+		std::vector<Pose> m_Poses;
+	};
+	struct PipeMsgSendOptions : PipeMsgBase {}; // Notifies server to gather options values and send them to client
 
 
 	// Member variables:
 
 	MainMessageLoop* m_pMainMsgLoop = nullptr;
 	SensorInterface* m_pSensorInterface = nullptr;
+	RobotCore* m_pRobotCore = nullptr;
 
 	std::unique_ptr<std::thread> m_pThread;
 	int m_PipeFd[2]; // 0 - read, 1 - write
@@ -81,10 +99,16 @@ private:
 	void ProcessPipeMessage(PipeMsgBase* pMsg, bool& outTerminate);
 
 	// Appens message to pipe queue
-	void SendPipeMessage(PipeMsgBase* pMsg);
+	void PostPipeMessage(PipeMsgBase* pMsg);
 
 	// Helper functions
 	// Sends all data. Handles calling send() many times if it didn't send instantly.
 	bool SendAll(const char* pData, unsigned int nBytes);
 	bool SendMessage(ControlPanelProtocol::MessageType msgType, unsigned int payloadSize, const char* pPayload);
+
+	// Other
+
+	// Fills data of options header, meant to be called in Server's thread.
+	void FillOptionsValues(ControlPanelProtocol::OptionsHeader& optsHeader);
+	void SendOptions(); // Sends options instantly !!! Not MT safe.
 };

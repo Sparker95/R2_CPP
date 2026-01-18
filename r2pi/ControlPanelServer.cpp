@@ -43,12 +43,11 @@ void ControlPanelServer::TerminateWait()
 		return;
 
 	PipeMsgTerminate* pMsg = new PipeMsgTerminate();
-	SendPipeMessage(pMsg);
+	PostPipeMessage(pMsg);
 	m_pThread->join();
 
 	ClosePipe();
 }
-
 
 bool ControlPanelServer::GetConnected() const
 {
@@ -60,9 +59,9 @@ bool ControlPanelServer::GetStreamSensorData() const
 	return m_bStreamSensorData;
 }
 
-ControlPanelServer::ControlPanelServer(MainMessageLoop* pMainMsgLoop, SensorInterface* pSensorInterface)
-	: m_pMainMsgLoop(pMainMsgLoop),
-	m_pSensorInterface(pSensorInterface)
+ControlPanelServer::ControlPanelServer(MainMessageLoop& mainMsgLoop, SensorInterface& sensorInterface,
+	RobotCore& robotCore)
+	: m_pMainMsgLoop(&mainMsgLoop),	m_pSensorInterface(&sensorInterface), m_pRobotCore(&robotCore)
 {
 	m_PipeFd[0] = -1;
 	m_PipeFd[1] = -1;
@@ -297,7 +296,7 @@ void ControlPanelServer::ClosePipe()
 	m_PipeFd[1] = -1;
 }
 
-void ControlPanelServer::SendPipeMessage(PipeMsgBase* pMsg)
+void ControlPanelServer::PostPipeMessage(PipeMsgBase* pMsg)
 {
 	if (m_PipeFd[1] < 0)
 		return;
@@ -366,5 +365,38 @@ void ControlPanelServer::SendSensorData_mt(uint timestamp_ms, const std::vector<
 	pMsg->m_Timestamp_ms = timestamp_ms;
 	pMsg->m_Steer = steer;
 
-	SendPipeMessage(pMsg);
+	PostPipeMessage(pMsg);
+}
+
+void ControlPanelServer::SendMap_mt(const Map& map)
+{
+	if (!GetConnected())
+		return;
+
+	PipeMsgMap* pMsg = new PipeMsgMap();
+	pMsg->m_Map = map;
+
+	PostPipeMessage(pMsg);
+}
+
+
+void ControlPanelServer::SendLocaction_mt(const std::vector<Pose>& poses)
+{
+	if (!GetConnected())
+		return;
+
+	PipeMsgLoc* pMsg = new PipeMsgLoc();
+	pMsg->m_Poses = poses;
+
+	PostPipeMessage(pMsg);
+}
+
+void ControlPanelServer::SendOptions_mt()
+{
+	if (!GetConnected())
+		return;
+
+	// Values of options will be gathered in own thread, not here
+	PipeMsgSendOptions* pMsg = new PipeMsgSendOptions();
+	PostPipeMessage(pMsg);
 }

@@ -83,3 +83,11 @@ bool Pigpio::Write(unsigned int gpio, bool value)
 	int result = gpio_write(m_Id, gpio, _value);
 	return result == 0;
 }
+
+bool Pigpio::Read(unsigned int gpio)
+{
+	if (m_Id < 0)
+		return false;
+
+	return static_cast<bool>(gpio_read(m_Id, gpio));
+}

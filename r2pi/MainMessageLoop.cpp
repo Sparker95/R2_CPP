@@ -4,16 +4,19 @@
 #include "ChassisInterface.h"
 #include "ControlPanelServer.h"
 
+#include "../Common/RobotCore.h"
+
 #include <stdio.h>
 
 //------------------------------------------------------------------------------------------------------------------------
 // Constructor, destructor
 
-MainMessageLoop::MainMessageLoop(SensorInterface& sensorInterface, ChassisInterface& chassisInterface)
+MainMessageLoop::MainMessageLoop(SensorInterface& sensorInterface, ChassisInterface& chassisInterface,
+	RobotCore& robotCore)
 {
-	m_ScanSamples.reserve(Sensor::DEFAULT_SAMPLE_BUFFER_SIZE);
 	m_pSensorInterface = &sensorInterface;
 	m_pChassisInterface = &chassisInterface;
+	m_pRobotCore = &robotCore;
 
 	m_pSensorInterface->BindOnReceivedScan(
 		[this](const std::vector<Sensor::ScanSample>& scanSamples, const std::vector<Sensor::ScanSampleInt>& scanSamplesInt)
@@ -99,8 +102,6 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 		auto timeNow = std::chrono::high_resolution_clock::now();
 		uint timestamp_ms = static_cast<uint>(std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - m_TimeStart).count());
 
-		m_ScanSamples.swap(pMsg->m_Scan);
-		m_ScanCounter++;
 		//printf("MainMessageLoop: Received new scan: %i raw samples\n", pMsg->m_RawSampleCount);
 
 		// Read chassis data
@@ -113,12 +114,12 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 			std::unique_lock chassisLock(m_pChassisInterface->GetMutex());
 			m_pChassisInterface->SendCommand_GetOdometer(odoCounter, moveState);
 			m_pChassisInterface->SendCommand_GetSteer(steer);
+		}
 
-			if (m_pCtrlPanelServer->GetConnected() && m_pCtrlPanelServer->GetStreamSensorData())
-			{
-				// Scan data is sent in integer format, to save bandwidth
-				m_pCtrlPanelServer->SendSensorData_mt(timestamp_ms, pMsg->m_ScanInt, odoCounter, moveState, steer);
-			}
+		if (m_pCtrlPanelServer->GetConnected() && m_pCtrlPanelServer->GetStreamSensorData())
+		{
+			// Scan data is sent in integer format, to save bandwidth
+			m_pCtrlPanelServer->SendSensorData_mt(timestamp_ms, pMsg->m_ScanInt, odoCounter, moveState, steer);
 		}
 
 		// Print debug text
@@ -136,6 +137,71 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 		}
 
 		m_SensorScanCounter++;
+
+		return;
+	}
+	else if (MessageControlPanel* pMsg = dynamic_cast<MessageControlPanel*>(&msgBase))
+	{
+		// One of 'trivial' messages from control panel
+		using TCtrlPanelMsgType = ControlPanelProtocol::MessageType;
+		switch (pMsg->m_Type)
+		{
+			case TCtrlPanelMsgType::MSG_REQUEST_MAP:
+			{
+				// Send back a map
+
+				uint xSize = 256; uint ySize = 256;
+				Map m(xSize, ySize, 128, 128, 0.0625);
+				for (uint y = 0; y < ySize; y++)
+				{
+					for (uint x = 0; x < xSize; x++)
+					{
+						m.SetDataAtPos(Map::TCellPos(x, y), static_cast<Map::TCellData>((8 * (x + y + m_SensorScanCounter)) & 0xFF));
+					}
+				}
+
+				m_pCtrlPanelServer->SendMap_mt(m);
+
+				break;
+			}
+			case TCtrlPanelMsgType::MSG_REQUEST_LOC:
+			{
+				// Send back location data
+				std::vector<Pose> poses;
+				poses.reserve(256);
+				for (uint i = 0; i < 256; i++)
+				{
+					uint rnd0 = (m_SensorScanCounter * 127 + i * 789) % 255;
+					uint rnd1 = (m_SensorScanCounter * 611 + i * 1039) % 255;
+
+					float x = static_cast<float>(rnd0) / 128.0f - 1.0f;
+					float y = static_cast<float>(rnd1) / 128.0f - 1.0f;
+					float dir = 0.0f;
+
+					poses.push_back(Pose(x, y, dir));
+				}
+
+				m_pCtrlPanelServer->SendLocaction_mt(poses);
+
+				break;
+			}
+			case TCtrlPanelMsgType::MSG_ENABLE_LOCALIZER:
+			{
+				m_pRobotCore->SetUpdateLocalizer(pMsg->m_Payload != 0);
+				break;
+			}
+			case TCtrlPanelMsgType::MSG_RESET_LOCALIZER:
+			{
+				m_pRobotCore->ResetLocalizer();
+				break;
+			}
+			default:
+			{
+				fprintf(stderr, "MainMessageLoop: Received unknown Control Panel Protocol message type: %u",
+					static_cast<uint>(pMsg->m_Type));
+				break;
+			}
+		}
 
 		return;
 	}

@@ -6,6 +6,7 @@
 #include "Common.h"
 #include "Map.h"
 #include "Sensor.h"
+#include "MathUtils.h"
 
 namespace Chassis
 {
@@ -48,15 +49,14 @@ public:
 
 	struct Config
 	{
-		float m_SensorPdfStdDev = 0.1f;
-		float m_SensorPdfFloor = 0.1f;
-		Pose m_SensorOffset_LS = {};
-		float m_SensorScanRange = 5.0f;
-		float m_MapRes_w = 0.125f;
+		float m_SensorPdfStdDev = 2.0f * 0.0625;
+		float m_SensorPdfFloor = 0.6f;
+		float m_SensorScanRange = 12.0f;
+		float m_MapRes_w = 0.0625f;
 		Pose m_StartPose = {};
-		uint m_nParticles = 64;
-		int m_L2IntOccupiedCell = 1; // Use Utils::L2FloatToL2Int()
-		int m_L2IntFreeCell = 1;
+		uint m_nParticles = 256;
+		int m_L2IntOccupiedCell = 24; // Use Utils::L2FloatToL2Int()
+		int m_L2IntFreeCell = 4;
 		uint m_ScanDecimation = 1;
 	};
 
@@ -73,8 +73,6 @@ private:
 	std::vector<float> m_ExpectedScanDists;
 	std::vector<Vector2> m_ScanDirections; // x, y - cos, sin of scan sample direction
 	std::vector<Sensor::ScanSample> m_ScanPolarCompensated;
-public:
-	std::vector<float> m_TestErrors;
 
 	// Diagnostics
 	std::vector<HistoryEntry> m_History;
@@ -84,7 +82,10 @@ public:
 public:
 	Localizer(const Config& config, Chassis::ChassisModel& statsModel);
 
+	// Main functions
 	void Update(const Chassis::ChassisInputs& inputs, const std::vector<Sensor::ScanSample>& realScanPolar);
+	void Reset(); // Resets all particles and history
+private:
 	void NormalizeWeights();
 	void ResampleParticles();
 

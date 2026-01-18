@@ -52,8 +52,8 @@ private:
 
 private slots:
     void SlotOnConnectButtonClicked();
-    void SlotOnEnableSensorStreamButton();
-    void SlotOnDisableSensorStreamButton();
+	void SlotOnEnableSensorStreamButton(bool checked = false);
+	void SlotOnEnableSensorMotorButton(bool checked = false);
     void SlotOnSaveSensorStreamToFileCheck(bool checked);
 	void SlotOnRequestMapButton();
 

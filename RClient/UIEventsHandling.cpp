@@ -41,21 +41,21 @@ void MainWindow::SlotOnConnectButtonClicked()
     ui->ConnStateLabel->setText("Connecting ...");
 }
 
-void MainWindow::SlotOnEnableSensorStreamButton()
+void MainWindow::SlotOnEnableSensorStreamButton(bool checked)
 {
-    char payload = 1;
+	char payload = checked ? 1 : 0;
     if (m_ControlPanelSocket.state() == QAbstractSocket::SocketState::ConnectedState)
     {
         SendMessage(ControlPanelProtocol::MessageType::MSG_ENABLE_STREAM_SENSOR_DATA, 1, &payload);
     }
 }
 
-void MainWindow::SlotOnDisableSensorStreamButton()
+void MainWindow::SlotOnEnableSensorMotorButton(bool checked)
 {
-    char payload = 0;
+	char payload = checked ? 1 : 0;
     if (m_ControlPanelSocket.state() == QAbstractSocket::SocketState::ConnectedState)
     {
-        SendMessage(ControlPanelProtocol::MessageType::MSG_ENABLE_STREAM_SENSOR_DATA, 1, &payload);
+		SendMessage(ControlPanelProtocol::MessageType::MSG_ENABLE_SENSOR_MOTOR, 1, &payload);
     }
 }
 
@@ -88,5 +88,7 @@ void MainWindow::SlotOnRequestMapButton()
 	if (m_ControlPanelSocket.state() == QAbstractSocket::SocketState::ConnectedState)
 	{
 		SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_MAP, 0, nullptr);
+
+		SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_LOC, 0, nullptr);
 	}
 }

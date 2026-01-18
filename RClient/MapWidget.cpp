@@ -18,9 +18,24 @@ using uint = unsigned int;
 MapWidget::MapWidget(QWidget *parent)
     : QWidget{parent}
 {
+	// Load a test map
 	uint l2Quantization = 8;
 	const char mapPath[] = "D:\\Projects\\Robot2\\CPP\\r2offline_win\\TestMap.rmap";
 	MapUtils::ReadMapFromFile_L2Int(mapPath, m_Map, l2Quantization);
+
+	// Load test poses
+	m_Poses.reserve(256);
+	for (uint i = 0; i < 256; i++)
+	{
+		uint rnd0 = (i * 789) % 255;
+		uint rnd1 = (i * 1039) % 255;
+
+		float x = static_cast<float>(rnd0) / 128.0f - 1.0f;
+		float y = static_cast<float>(rnd1) / 128.0f - 1.0f;
+		float dir = 0.0f;
+
+		m_Poses.push_back(Pose(x, y, dir));
+	}
 
 	// Init m_ViewSizes_m
 	m_ViewSizes_m.clear();
@@ -46,11 +61,18 @@ void MapWidget::SetMapData(Map&& newMap)
 	update();
 }
 
+void MapWidget::SetLocationData(QList<Pose>& newPoses)
+{
+	m_Poses = newPoses;
+	update();
+}
+
 void MapWidget::paintEvent(QPaintEvent *event)
 {
 	QPainter painter(this);
 
 	const QColor bgColor(0, 0, 105);
+	const QColor poseColor(255, 0, 128);
 
 	QPainterStateGuard Johny(&painter);
 
@@ -112,7 +134,21 @@ void MapWidget::paintEvent(QPaintEvent *event)
 		painter.restore();
 	}
 
-	// Map origin is indicated by two lines 1m in length
+	// Draw poses
+	{
+		QPen pen;
+		pen.setCosmetic(true);
+		pen.setColor(poseColor);
+		pen.setWidth(3);
+		painter.setPen(pen);
+
+		for (const auto& p : static_cast<const QList<Pose>>(m_Poses))
+		{
+			painter.drawLine(QPointF(p.x, p.y), QPointF(p.x, p.y));
+		}
+	}
+
+	// Map origin is indicated by two lines 1m in length (1m each direction from center)
 	{
 		// X axis
 		QPen pen;
@@ -120,12 +156,12 @@ void MapWidget::paintEvent(QPaintEvent *event)
 		pen.setColor(QColor(255, 0, 0)); // Red
 		pen.setWidth(2);
 		painter.setPen(pen);
-		painter.drawLine(QPointF(0, 0), QPointF(1.0, 0));
+		painter.drawLine(QPointF(-1, 0), QPointF(1.0, 0));
 
 		// Y axis
 		pen.setColor(QColor(0, 255, 0)); // Green
 		painter.setPen(pen);
-		painter.drawLine(QPointF(0, 0), QPointF(0, 1.0));
+		painter.drawLine(QPointF(0, -1), QPointF(0, 1.0));
 	}
 }
 
@@ -172,7 +208,10 @@ void MapWidget::wheelEvent(QWheelEvent *event)
 	bool wheelDir = event->angleDelta().y() > 0;
 
 	if (wheelDir)
-		m_ViewSizeId--;
+	{
+		if (m_ViewSizeId != 0)
+			m_ViewSizeId--;
+	}
 	else
 		m_ViewSizeId++;
 

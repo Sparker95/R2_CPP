@@ -12,6 +12,8 @@
 //#include "CarStatsModel.h"
 #include "Chassis.h"
 
+const unsigned int RNG_DEFAULT_SEED = 123;
+
 Localizer::Localizer(const Config& config, Chassis::ChassisModel& statsModel)
 	: m_pChassisModel(&statsModel), m_Config(config)
 {
@@ -26,7 +28,30 @@ Localizer::Localizer(const Config& config, Chassis::ChassisModel& statsModel)
 		m_Particles.push_back(p);
 	}
 
-	m_RngResample.seed(123);
+	m_RngResample.seed(RNG_DEFAULT_SEED);
+}
+
+
+void Localizer::Reset()
+{
+	for (Particle& p : m_Particles)
+	{
+		p.m_Pose = m_Config.m_StartPose;
+		p.m_Weight = 0;
+		p.m_Map = Map(m_Config.m_MapRes_w);
+
+#ifdef LOCALIZER_STORE_HISTORY
+		p.m_PoseHistory.clear();
+#endif
+	}
+
+	m_RngResample.seed(RNG_DEFAULT_SEED);
+
+#ifdef LOCALIZER_STORE_HISTORY
+	m_History.clear();
+	m_PoseHistoryDivergeId = 0;
+	m_CommonPoseHistory.clear();
+#endif
 }
 
 void Localizer::Update(const Chassis::ChassisInputs& inputs, const std::vector<Sensor::ScanSample>& realScanPolar)
@@ -52,7 +77,8 @@ void Localizer::Update(const Chassis::ChassisInputs& inputs, const std::vector<S
 
 		// Common data reused in futher calls
 		uint nRealScanSamples = static_cast<uint>(realScanPolar.size());
-		Pose particleSensorPose = Utils::AddPoseDiff(p.m_Pose, m_Config.m_SensorOffset_LS);
+		const Chassis::ChassisConfig& chassisConfig = m_pChassisModel->GetChassisConfig();
+		Pose particleSensorPose = Utils::AddPoseDiff(p.m_Pose, Pose(chassisConfig.m_sensorOffsetFwd, chassisConfig.m_sensorOffsetSide, chassisConfig.m_sensorOffsetDir_rad));
 		m_ScanDirections.resize(realScanPolar.size());
 		for (uint sampleId = 0; sampleId < nRealScanSamples; sampleId++)
 		{
@@ -264,8 +290,6 @@ void Localizer::GetScan(const Pose& sensorPose, const Map& map, const std::vecto
 		outScanDistances[i] = hitDist_w;
 	}
 }
-
-
 
 // Bresenham line variant, still has some problems
 /*

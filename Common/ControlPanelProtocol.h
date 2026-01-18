@@ -19,13 +19,27 @@ namespace ControlPanelProtocol
 		// Universal
 		MSG_PRINT = 1, // Receiver will print characters in UI
 
+		//---------------------------------------------------
 		// Client to Server
-        MSG_ENABLE_STREAM_SENSOR_DATA, // Enables sensor data streaming. Data is byte: 0 - disable, 1 - enable
-		MSG_REQUEST_MAP,                   // Requests Map to be sent back
 
+		// Toggles for options
+        MSG_ENABLE_STREAM_SENSOR_DATA, // Enables sensor data streaming. Data is byte: 0 - disable, 1 - enable
+		MSG_ENABLE_LOCALIZER,          // Enables localizer updates
+		MSG_ENABLE_SENSOR_MOTOR,       // Enables sensor motor
+
+		// Requests for data
+		MSG_REQUEST_MAP,               // Requests Map to be sent back
+		MSG_REQUEST_LOC,               // Requests localization data to be sent back
+		MSG_RESET_LOCALIZER,           // Resets localizer state
+		MSG_REQUEST_OPTIONS,           // Requests current options to be sent back
+
+		//---------------------------------------------------
 		// Server to Client
+
 		MSG_SENSOR_DATA, // Scan and odometer data from one cycle
-		MSG_MAP          // Whole Map
+		MSG_MAP,         // Whole Map
+		MSG_LOC,         // Localization data
+		MSG_OPTIONS      // Options
 	};
 
 	struct MessageHeader
@@ -161,6 +175,10 @@ namespace ControlPanelProtocol
 		BACKWARD = 2
 	};
 
+	// Data of various message types
+	// Although some messages are (de)serialized explicitly
+
+	// MSG_SENSOR_DATA
 	struct SensorDataHeader
 	{
 		uint32_t m_Timestamp_ms;
@@ -171,6 +189,7 @@ namespace ControlPanelProtocol
 		uint32_t m_nSamples;
 	};
 
+	// MSG_MAP
 	struct MapDataHeader
 	{
 		float m_Res_w = 0;
@@ -178,6 +197,15 @@ namespace ControlPanelProtocol
 		uint m_ySize = 0;
 		uint m_xCenter = 0;
 		uint m_yCenter = 0;
+	};
+
+	struct OptionsHeader
+	{
+		constexpr static uint8_t OPT_STREAM_SENSOR_DATA = 1 << 0;
+		constexpr static uint8_t OPT_SENSOR_MOTOR       = 1 << 1;
+		constexpr static uint8_t OPT_UPDATE_LOCALIZER   = 1 << 2;
+
+		uint8_t m_Options = 0;
 	};
 }
 

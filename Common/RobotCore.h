@@ -2,6 +2,8 @@
 
 #include "ControlSensorFrame.h"
 
+#include <atomic>
+
 // Handles the Update() cycle. Propagates data between other parts.
 
 class Localizer;
@@ -14,12 +16,15 @@ private:
 	bool m_PrevFrameValid = false;
 
 	// Switches for functionality
-	bool m_UpdateLocalizer = true;
+	std::atomic<bool> m_UpdateLocalizer = true;
 
 public:
 	RobotCore(Localizer& pLocalizer);
 
 	void Update(const ControlSensorFrame& frame);
 
-	void SetUpdateLocalizer(bool value) { m_UpdateLocalizer = value; }
+	void SetUpdateLocalizer(bool value) { m_UpdateLocalizer.store(value); }
+	bool GetUpdateLocalizer() const { return m_UpdateLocalizer.load(); }
+
+	void ResetLocalizer();
 };

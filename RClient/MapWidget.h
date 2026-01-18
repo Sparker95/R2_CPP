@@ -2,6 +2,7 @@
 #define MAPWIDGET_H
 
 #include "../Common/Map.h"
+#include "../Common/Common.h"
 #include "../Common/CommonIntTypes.h"
 
 #include <QWidget>
@@ -14,7 +15,9 @@ public:
     explicit MapWidget(QWidget *parent = nullptr);
 
 protected:
+	// Data to display
 	Map m_Map;
+	QList<Pose> m_Poses;
 
 	QPointF m_ViewCenter_m; // center of view port in meters
 
@@ -38,6 +41,7 @@ protected:
 public:
 	void SetMapData(Map& newMap);
 	void SetMapData(Map&& newMap);
+	void SetLocationData(QList<Pose>& newPoses);
 
 signals:
 };

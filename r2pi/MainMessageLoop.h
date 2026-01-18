@@ -2,6 +2,7 @@
 
 #include "../Common/Common.h"
 #include "../Common/Sensor.h"
+#include "../Common/ControlPanelProtocol.h"
 
 #include <mutex>
 #include <queue>
@@ -14,6 +15,7 @@
 class SensorInterface;
 class ChassisInterface;
 class ControlPanelServer;
+class RobotCore;
 
 class MainMessageLoop
 {
@@ -29,7 +31,24 @@ public:
 		std::vector<Sensor::ScanSampleInt> m_ScanInt;
 	};
 
-	MainMessageLoop(SensorInterface& sensorInterface, ChassisInterface& cHassisInterface);
+	// For all trivial messaages from control panel.
+	// m_Data contains the data of the message.
+	struct MessageControlPanel : MessageBase
+	{
+		constexpr static unsigned int MAX_PAYLOAD_SIZE = 32;
+
+		ControlPanelProtocol::MessageType m_Type = {};
+		uint8_t _padding0;
+		uint8_t _padding1;
+		uint8_t _padding2;
+		char m_Payload[MAX_PAYLOAD_SIZE] = {};
+
+		template<class T>
+		T& CastPayload() { return *reinterpret_cast<T*>(*m_Payload); }
+	};
+
+	MainMessageLoop(SensorInterface& sensorInterface, ChassisInterface& cHassisInterface,
+		RobotCore& robotCore);
 	~MainMessageLoop();
 	void Init(ControlPanelServer* pCtrlPanelServer);
 	void Execute();
@@ -38,9 +57,10 @@ public:
 
 private:
 	// Other components
-	SensorInterface* m_pSensorInterface;
-	ChassisInterface* m_pChassisInterface;
+	SensorInterface* m_pSensorInterface = nullptr;
+	ChassisInterface* m_pChassisInterface = nullptr;
 	ControlPanelServer* m_pCtrlPanelServer = nullptr;
+	RobotCore* m_pRobotCore = nullptr;
 
 	// Timestamp
 	std::chrono::high_resolution_clock::time_point m_TimeStart = {};
@@ -52,11 +72,7 @@ private:
 	std::atomic<int> m_SignalValue = 0;
 
 	// Processing of messages
-	std::mutex m_StateMutex; // Locked when we modify our state
-
-	// Data from sensors
-	std::vector<Sensor::ScanSample> m_ScanSamples;
-	std::atomic<uint> m_ScanCounter = 0;
+	std::mutex m_StateMutex; // Locked when we modify state of objects 'attached' to this thread, like RobotCore
 
 	// Statistics
 	uint m_SensorScanCounter = 0;

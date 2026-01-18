@@ -84,22 +84,15 @@ void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapF
 	Chassis::ChassisConfig chassisConfig;
 	Chassis::ChassisStatsConfig chassisStatsConfig;
 
-	Pose startPose(0, 0, 0);
-	
-	//CarStatsModel carStatsModel(0.2f, 40.0f * PI / 180.0f);
-	//CarStatsModel carStatsModel(0.2f, 40.0f * PI / 180.0f);
-	//CarStatsModel carStatsModel(1e-5, 1e-5);
-
 	Chassis::ChassisModel chassisModel(chassisConfig, chassisStatsConfig);
 
 	Localizer::Config localizerConfig;
 	const float _mapRes = 0.0625;
 	localizerConfig.m_SensorPdfStdDev = 2.0f * _mapRes;
 	localizerConfig.m_SensorPdfFloor = 0.6f;
-	localizerConfig.m_SensorOffset_LS = Pose(chassisConfig.m_sensorOffsetFwd, chassisConfig.m_sensorOffsetSide, chassisConfig.m_sensorOffsetDir_rad);
 	localizerConfig.m_SensorScanRange = 12.0f;
 	localizerConfig.m_MapRes_w = _mapRes;
-	localizerConfig.m_StartPose = startPose;
+	localizerConfig.m_StartPose = Pose(0, 0, 0);
 	localizerConfig.m_nParticles = 256; // 128
 	localizerConfig.m_L2IntOccupiedCell = Utils::L2FloatToL2Int(3.0f);
 	localizerConfig.m_L2IntFreeCell = Utils::L2FloatToL2Int(0.5f);
