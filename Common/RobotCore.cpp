@@ -32,6 +32,8 @@ void RobotCore::Update(const ControlSensorFrame& frame)
 		return;
 	}
 
+	ZoneScopedN("RobotCore::Update");
+
 	if (m_UpdateLocalizer)
 	{
 		Chassis::ChassisInputs inputs;

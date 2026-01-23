@@ -43,18 +43,18 @@ void MainWindow::SlotOnConnectButtonClicked()
 
 void MainWindow::SlotOnEnableSensorStreamButton(bool checked)
 {
-	char payload = checked ? 1 : 0;
-    if (m_ControlPanelSocket.state() == QAbstractSocket::SocketState::ConnectedState)
+	if (IsConnected())
     {
+		char payload = checked ? 1 : 0;
         SendMessage(ControlPanelProtocol::MessageType::MSG_ENABLE_STREAM_SENSOR_DATA, 1, &payload);
     }
 }
 
 void MainWindow::SlotOnEnableSensorMotorButton(bool checked)
 {
-	char payload = checked ? 1 : 0;
-    if (m_ControlPanelSocket.state() == QAbstractSocket::SocketState::ConnectedState)
+	if (IsConnected())
     {
+		char payload = checked ? 1 : 0;
 		SendMessage(ControlPanelProtocol::MessageType::MSG_ENABLE_SENSOR_MOTOR, 1, &payload);
     }
 }
@@ -85,10 +85,32 @@ void MainWindow:: SlotOnSensorScaleValueChanged1(int value)
 
 void MainWindow::SlotOnRequestMapButton()
 {
-	if (m_ControlPanelSocket.state() == QAbstractSocket::SocketState::ConnectedState)
+	if (IsConnected())
 	{
 		SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_MAP, 0, nullptr);
-
 		SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_LOC, 0, nullptr);
+	}
+}
+
+void MainWindow::SlotOnAutoUpdateMapButton(bool checked)
+{
+}
+
+void MainWindow::SlotOnResetLocalizerButton()
+{
+	if (IsConnected())
+	{
+		SendMessage(ControlPanelProtocol::MessageType::MSG_RESET_LOCALIZER, 0, nullptr);
+		SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_MAP, 0, nullptr);
+		SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_LOC, 0, nullptr);
+	}
+}
+
+void MainWindow::SlotOnEnableLocalizerButton(bool checked)
+{
+	if (IsConnected())
+	{
+		char payload = checked ? 1 : 0;
+		SendMessage(ControlPanelProtocol::MessageType::MSG_ENABLE_LOCALIZER, 1, &payload);
 	}
 }

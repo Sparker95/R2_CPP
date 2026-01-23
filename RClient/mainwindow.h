@@ -45,6 +45,7 @@ private:
     void OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigned int msgPayloadSize);
     void OnProtocolError(uint8_t errorCode, unsigned int extraData);
     bool SendMessage(ControlPanelProtocol::MessageType msgType, unsigned int payloadSize, const char* pPayload);
+	bool IsConnected() const;
 
     void timerEvent(QTimerEvent *event) override;
 
@@ -55,7 +56,12 @@ private slots:
 	void SlotOnEnableSensorStreamButton(bool checked = false);
 	void SlotOnEnableSensorMotorButton(bool checked = false);
     void SlotOnSaveSensorStreamToFileCheck(bool checked);
+
 	void SlotOnRequestMapButton();
+	void SlotOnAutoUpdateMapButton(bool checked = false);
+
+	void SlotOnResetLocalizerButton();
+	void SlotOnEnableLocalizerButton(bool checked = false);
 
     void SlotOnSensorScaleValueChanged0(int value);
     void SlotOnSensorScaleValueChanged1(int value);

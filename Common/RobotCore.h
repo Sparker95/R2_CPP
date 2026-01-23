@@ -27,4 +27,7 @@ public:
 	bool GetUpdateLocalizer() const { return m_UpdateLocalizer.load(); }
 
 	void ResetLocalizer();
+
+	// Trivial getters
+	Localizer* GetLocalizer() { return m_pLocalizer; }
 };

@@ -14,7 +14,7 @@ namespace Chassis
 	struct ChassisInputs;
 }
 
-#define LOCALIZER_STORE_HISTORY
+//#define LOCALIZER_STORE_HISTORY
 
 class Localizer
 {
@@ -89,9 +89,9 @@ private:
 	void NormalizeWeights();
 	void ResampleParticles();
 
+public:
 	const std::vector<Particle>& GetParticles() const { return m_Particles; }
 	std::vector<Particle>& GetParticles() { return m_Particles; }
-
 	const Particle& GetMostLikelyParticle() const;
 
 	// Diagnostics

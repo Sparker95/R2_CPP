@@ -1,10 +1,18 @@
 #include "MainMessageLoop.h"
 
+#ifdef TRACY_ENABLE
+#include "Tracy/tracy/Tracy.hpp"
+#else
+#include "TracyPlug.h"
+#endif
+
 #include "SensorInterface.h"
 #include "ChassisInterface.h"
 #include "ControlPanelServer.h"
 
 #include "../Common/RobotCore.h"
+#include "../Common/ControlSensorFrame.h"
+#include "../Common/Localizer.h"
 
 #include <stdio.h>
 
@@ -98,45 +106,52 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 {
 	if (MessageNewSensorScanData* pMsg = dynamic_cast<MessageNewSensorScanData*>(&msgBase))
 	{
+		ControlSensorFrame& frame = m_CtrlSensorFrame; // Reuse same frame
+
+		frame.m_ScanSamples = pMsg->m_Scan;
+
 		// WIP later sensor itself will provide time stamp
 		auto timeNow = std::chrono::high_resolution_clock::now();
-		uint timestamp_ms = static_cast<uint>(std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - m_TimeStart).count());
+		frame.m_Timestamp_ms = static_cast<uint>(std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - m_TimeStart).count());
 
 		//printf("MainMessageLoop: Received new scan: %i raw samples\n", pMsg->m_RawSampleCount);
 
 		// Read chassis data
 		using TMoveState = ChassisInterface::MoveState;
-		TMoveState moveState = {};
-		ChassisInterface::TOdometerCounter odoCounter = 0;
-		float steer = 0;
 
 		{
+			ZoneScopedN("ChassisInterface_ReadValues");
 			std::unique_lock chassisLock(m_pChassisInterface->GetMutex());
-			m_pChassisInterface->SendCommand_GetOdometer(odoCounter, moveState);
-			m_pChassisInterface->SendCommand_GetSteer(steer);
+			m_pChassisInterface->SendCommand_GetOdometer(frame.m_Odometer, frame.m_MoveState);
+			m_pChassisInterface->SendCommand_GetSteer(frame.m_Steer);
 		}
 
 		if (m_pCtrlPanelServer->GetConnected() && m_pCtrlPanelServer->GetStreamSensorData())
 		{
 			// Scan data is sent in integer format, to save bandwidth
-			m_pCtrlPanelServer->SendSensorData_mt(timestamp_ms, pMsg->m_ScanInt, odoCounter, moveState, steer);
+			m_pCtrlPanelServer->SendSensorData_mt(frame.m_Timestamp_ms, pMsg->m_ScanInt, frame.m_Odometer, frame.m_MoveState, frame.m_Steer);
 		}
+
+		// Pass data to RobotCore
+		m_pRobotCore->Update(frame);
 
 		// Print debug text
 		if (m_SensorScanCounter % 30 == 0)
 		{
 			const char* moveStateText = "";
-			switch (moveState)
+			switch (frame.m_MoveState)
 			{
 			case TMoveState::BACKWARD: moveStateText = "BWD"; break;
 			case TMoveState::FORWARD: moveStateText = "FWD"; break;
 			case TMoveState::STOP: moveStateText = "STOP"; break;
 			}
 			printf("%i, Scan Count: %u, Scan Size: %u, Odometer: %u, MoveState: %s, Steer: %.2f\n",
-				timestamp_ms, m_SensorScanCounter, pMsg->m_Scan.size(), static_cast<int>(odoCounter), moveStateText, steer);
+				frame.m_MoveState, m_SensorScanCounter, pMsg->m_Scan.size(), static_cast<int>(frame.m_Odometer), moveStateText, frame.m_Steer);
 		}
 
 		m_SensorScanCounter++;
+
+		FrameMark;
 
 		return;
 	}
@@ -150,6 +165,8 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 			{
 				// Send back a map
 
+				/*
+				// Fills random map
 				uint xSize = 256; uint ySize = 256;
 				Map m(xSize, ySize, 128, 128, 0.0625);
 				for (uint y = 0; y < ySize; y++)
@@ -159,8 +176,10 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 						m.SetDataAtPos(Map::TCellPos(x, y), static_cast<Map::TCellData>((8 * (x + y + m_SensorScanCounter)) & 0xFF));
 					}
 				}
+				*/
 
-				m_pCtrlPanelServer->SendMap_mt(m);
+				const Map& mostLikelyMap = m_pRobotCore->GetLocalizer()->GetMostLikelyParticle().m_Map;
+				m_pCtrlPanelServer->SendMap_mt(mostLikelyMap);
 
 				break;
 			}
@@ -168,6 +187,16 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 			{
 				// Send back location data
 				std::vector<Pose> poses;
+
+				const std::vector<Localizer::Particle>& particles = m_pRobotCore->GetLocalizer()->GetParticles();
+
+				poses.resize(particles.size());
+
+				for (uint i = 0; i < static_cast<uint>(particles.size()); i++)
+					poses[i] = particles[i].m_Pose;
+
+				/*
+				// Fills random poses
 				poses.reserve(256);
 				for (uint i = 0; i < 256; i++)
 				{
@@ -180,6 +209,7 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 
 					poses.push_back(Pose(x, y, dir));
 				}
+				*/
 
 				m_pCtrlPanelServer->SendLocaction_mt(poses);
 
@@ -187,7 +217,7 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 			}
 			case TCtrlPanelMsgType::MSG_ENABLE_LOCALIZER:
 			{
-				m_pRobotCore->SetUpdateLocalizer(pMsg->m_Payload != 0);
+				m_pRobotCore->SetUpdateLocalizer(pMsg->m_Payload[0] != 0);
 				break;
 			}
 			case TCtrlPanelMsgType::MSG_RESET_LOCALIZER:

@@ -3,6 +3,7 @@
 #include "../Common/Common.h"
 #include "../Common/Sensor.h"
 #include "../Common/ControlPanelProtocol.h"
+#include "../Common/ControlSensorFrame.h"
 
 #include <mutex>
 #include <queue>
@@ -76,6 +77,9 @@ private:
 
 	// Statistics
 	uint m_SensorScanCounter = 0;
+
+	// Related to RobotCore update
+	ControlSensorFrame m_CtrlSensorFrame; // To advoid array reallocations
 
 	void ProcessMessage(MessageBase& msgBase);
 

@@ -21,6 +21,7 @@
 #include "../Common/Sensor.h"
 #include "../Common/Common.h"
 
+const uint TIMER_INTERVAL_MS = 40;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -32,6 +33,10 @@ MainWindow::MainWindow(QWidget *parent)
 	// UI signals
 	QObject::connect(ui->EnableSensorStreamButton, &QPushButton::clicked, this, &MainWindow::SlotOnEnableSensorStreamButton);
 	QObject::connect(ui->EnableSensorMotorButton, &QPushButton::clicked, this, &MainWindow::SlotOnEnableSensorMotorButton);
+	QObject::connect(ui->AutoResfreshMapButton, &QPushButton::clicked, this, &MainWindow::SlotOnAutoUpdateMapButton);
+	QObject::connect(ui->ResetLocalizerButton, &QPushButton::clicked, this, &MainWindow::SlotOnResetLocalizerButton);
+	QObject::connect(ui->EnableLocalizerButton, &QPushButton::clicked, this, &MainWindow::SlotOnEnableLocalizerButton);
+
 
 	// Socket signals
     QObject::connect(&m_ControlPanelSocket, &QTcpSocket::connected, this, &MainWindow::SlotOnSocketConnected);
@@ -50,7 +55,7 @@ MainWindow::MainWindow(QWidget *parent)
     );
 
     // Timer for control inputs
-    m_iControlInputsTimerId = startTimer(40, Qt::TimerType::PreciseTimer);
+	m_iControlInputsTimerId = startTimer(TIMER_INTERVAL_MS, Qt::TimerType::PreciseTimer);
 
     // Sensor scan widgets
     SensorScanWidget** sensorScanWidgets[] = {&m_pSensorScanWidget0, &m_pSensorScanWidget1};
@@ -143,50 +148,65 @@ void MainWindow::timerEvent(QTimerEvent *event)
         return;
     }
 
-    using TMoveSpeed = ControlInputsProtocol::Message::MoveSpeed;
-    using TMessage = ControlInputsProtocol::Message;
+	// Send control inputs values to server
+	if (IsConnected())
+	{
+		using TMoveSpeed = ControlInputsProtocol::Message::MoveSpeed;
+		using TMessage = ControlInputsProtocol::Message;
 
-    if (m_ControlPanelSocket.state() != QAbstractSocket::SocketState::ConnectedState)
-        return;
+		ControlInputsProtocol::Message msg;
 
-    if (m_ControlInputsSocket.state() != QAbstractSocket::SocketState::BoundState)
-        return;
+		// Handle inputs
+		bool moveDirFwd = false;
+		TMoveSpeed moveSpeed = {};
+		bool move = InputHandling::GetMoveInput(moveSpeed, moveDirFwd);
+		float steerInputNorm = InputHandling::GetSteerInputNorm();
+		bool brakeInput = InputHandling::GetBrakeInput();
 
-    ControlInputsProtocol::Message msg;
+		if (brakeInput)
+		{
+			msg.m_CmdFlags |= TMessage::CMD_FLAG_BRAKE;
+		}
+		else if (move)
+		{
+			msg.m_CmdFlags |= TMessage::CMD_FLAG_MOVE;
+			msg.m_MoveSpeed = moveSpeed;
+			if (moveDirFwd)
+				msg.m_CmdFlags |= TMessage::CMD_FLAG_MOVE_DIR_FWD;
+		}
 
-    // Handle inputs
-    bool moveDirFwd = false;
-    TMoveSpeed moveSpeed = {};
-    bool move = InputHandling::GetMoveInput(moveSpeed, moveDirFwd);
-    float steerInputNorm = InputHandling::GetSteerInputNorm();
-    bool brakeInput = InputHandling::GetBrakeInput();
+		msg.m_fSteerNorm = steerInputNorm;
 
-    if (brakeInput)
-    {
-        msg.m_CmdFlags |= TMessage::CMD_FLAG_BRAKE;
-    }
-    else if (move)
-    {
-        msg.m_CmdFlags |= TMessage::CMD_FLAG_MOVE;
-        msg.m_MoveSpeed = moveSpeed;
-        if (moveDirFwd)
-            msg.m_CmdFlags |= TMessage::CMD_FLAG_MOVE_DIR_FWD;
-    }
+		QByteArray dataArray(reinterpret_cast<const char*>(&msg), sizeof(ControlInputsProtocol::Message));
+		QHostAddress receiverAddr = m_ControlPanelSocket.peerAddress();
+		m_ControlInputsSocket.writeDatagram(dataArray, receiverAddr, ControlInputsProtocol::CONTROL_INPUTS_PORT);
 
-    msg.m_fSteerNorm = steerInputNorm;
+		// Set label text
+		QString labelText = QString::asprintf("Move: %i\nMove Dir: %i\nMove Speed: %i\nBrake: %i\nSteer: %.2f",
+											  move,
+											  moveDirFwd,
+											  static_cast<unsigned int>(moveSpeed),
+											  static_cast<int>(brakeInput),
+											  steerInputNorm);
+		ui->ControlInputsLabel->setText(labelText);
+	}
 
-    QByteArray dataArray(reinterpret_cast<const char*>(&msg), sizeof(ControlInputsProtocol::Message));
-    QHostAddress receiverAddr = m_ControlPanelSocket.peerAddress();
-    m_ControlInputsSocket.writeDatagram(dataArray, receiverAddr, ControlInputsProtocol::CONTROL_INPUTS_PORT);
+	// Request map refresh
+	static uint s_MapUpdateTimer = 0;
+	const uint MAP_UPDATE_INTERVAL = 1 * 1000 / TIMER_INTERVAL_MS;
+	{
+		s_MapUpdateTimer++;
+		if (s_MapUpdateTimer > MAP_UPDATE_INTERVAL)
+		{
+			s_MapUpdateTimer = 0;
 
-    // Set label text
-    QString labelText = QString::asprintf("Move: %i\nMove Dir: %i\nMove Speed: %i\nBrake: %i\nSteer: %.2f",
-                                          move,
-                                          moveDirFwd,
-                                          static_cast<unsigned int>(moveSpeed),
-                                          static_cast<int>(brakeInput),
-                                          steerInputNorm);
-    ui->ControlInputsLabel->setText(labelText);
+			if (ui->AutoResfreshMapButton->isChecked() && IsConnected())
+			{
+				SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_MAP, 0, nullptr);
+				SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_LOC, 0, nullptr);
+			}
+		}
+	}
 }
 
 //------------------------------------------------------------------------------------------------------------------------
@@ -298,6 +318,7 @@ void MainWindow::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigne
 
 			ui->EnableSensorStreamButton->setChecked(opts.m_Options & TOptions::OPT_STREAM_SENSOR_DATA);
 			ui->EnableSensorMotorButton->setChecked(opts.m_Options & TOptions::OPT_SENSOR_MOTOR);
+			ui->EnableLocalizerButton->setChecked(opts.m_Options & TOptions::OPT_UPDATE_LOCALIZER);
 
 			break;
 		}
@@ -324,4 +345,11 @@ bool MainWindow::SendMessage(ControlPanelProtocol::MessageType msgType, unsigned
         m_ControlPanelSocket.write(pPayload, payloadSize);
 
     return true;
+}
+
+
+bool MainWindow::IsConnected() const
+{
+	return m_ControlPanelSocket.state() == QAbstractSocket::SocketState::ConnectedState &&
+		m_ControlInputsSocket.state() == QAbstractSocket::SocketState::BoundState;
 }
