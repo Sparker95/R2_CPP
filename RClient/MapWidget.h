@@ -16,7 +16,7 @@ public:
 
 protected:
 	// Data to display
-	Map m_Map;
+	const Map* m_pMap = nullptr;
 	QList<Pose> m_Poses;
 
 	QPointF m_ViewCenter_m; // center of view port in meters
@@ -39,8 +39,7 @@ protected:
 	void wheelEvent(QWheelEvent *event);
 
 public:
-	void SetMapData(Map& newMap);
-	void SetMapData(Map&& newMap);
+	void SetMapData(const Map* pMap);
 	void SetLocationData(QList<Pose>& newPoses);
 
 signals:

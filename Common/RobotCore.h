@@ -16,7 +16,7 @@ private:
 	bool m_PrevFrameValid = false;
 
 	// Switches for functionality
-	std::atomic<bool> m_UpdateLocalizer = true;
+	std::atomic<bool> m_UpdateLocalizer = false;
 
 public:
 	RobotCore(Localizer& pLocalizer);

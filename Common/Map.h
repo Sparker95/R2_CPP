@@ -37,6 +37,7 @@ public:
 
 	// Accessing data
 	TCellData* GetData() { return m_Data; }
+	const TCellData* GetData() const { return m_Data; }
 	uint GetDataSizeBytes() const { return m_xSize * m_ySize * sizeof(TCellData); }
 	TCellData GetDataAtPos(TCellPos mapPos) const;
 	void SetDataAtPos(TCellPos mapPos, TCellData value);

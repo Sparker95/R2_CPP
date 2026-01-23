@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include "../Common/ControlPanelProtocol.h"
+#include "../Common/Map.h"
 
 #include "SensorDataFileWriter.h"
 
@@ -33,6 +34,7 @@ private:
     QTcpSocket m_ControlPanelSocket;
     QUdpSocket m_ControlInputsSocket;
     SensorDataFileWriter m_SensorFileWriter;
+	Map m_Map; // Map data
     int m_iControlInputsTimerId = 0;
 
     // Other UI elements
@@ -59,6 +61,7 @@ private slots:
 
 	void SlotOnRequestMapButton();
 	void SlotOnAutoUpdateMapButton(bool checked = false);
+	void SlotOnSaveMapButton();
 
 	void SlotOnResetLocalizerButton();
 	void SlotOnEnableLocalizerButton(bool checked = false);

@@ -356,7 +356,7 @@ void Localizer::ApplyScan(const Pose& sensorPose, Map& map, const std::vector<Ve
 	}
 
 	// Ensure map can represent the scan boundaries
-	map.EnsureWorldBounds_Circle(lineStart_w, scanMaxDist_w);
+	map.EnsureWorldBounds_Circle(lineStart_w, scanMaxDist_w + 16.0f * map.GetResolution_w()); // WIP find why it crashes, for now request more space
 
 	for (uint i = 0; i < nSamples; i++)
 	{

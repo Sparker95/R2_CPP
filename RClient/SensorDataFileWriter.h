@@ -29,8 +29,7 @@ private:
     uint m_StatsBlockCounter = 0;
     uint m_StatsByteCounter = 0;
 
-    static void AppendFormat(std::string& appendTo, const char* format, ...);
-    static bool FileExists(const char* pFileName);
+	static void AppendFormat(std::string& appendTo, const char* format, ...);
 };
 
 #endif // SENSORDATAFILEWRITER_H

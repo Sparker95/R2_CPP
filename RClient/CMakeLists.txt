@@ -70,6 +70,8 @@ qt6_add_qml_module(RClient
 	SOURCES ../Common/StringWordWriter.h ../Common/StringWordWriter.cpp
 	SOURCES
 	SOURCES ../Common/ProbUtils.h ../Common/ProbUtils.cpp
+	SOURCES FileUtils.h
+	SOURCES FileUtils.cpp
 )
 
 target_link_libraries(RClient PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)

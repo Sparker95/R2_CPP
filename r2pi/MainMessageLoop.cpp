@@ -3,7 +3,7 @@
 #ifdef TRACY_ENABLE
 #include "Tracy/tracy/Tracy.hpp"
 #else
-#include "TracyPlug.h"
+#include "../Common/TracyPlug.h"
 #endif
 
 #include "SensorInterface.h"

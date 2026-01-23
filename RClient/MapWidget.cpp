@@ -18,6 +18,7 @@ using uint = unsigned int;
 MapWidget::MapWidget(QWidget *parent)
     : QWidget{parent}
 {
+	/*
 	// Load a test map
 	uint l2Quantization = 8;
 	const char mapPath[] = "D:\\Projects\\Robot2\\CPP\\r2offline_win\\TestMap.rmap";
@@ -36,6 +37,7 @@ MapWidget::MapWidget(QWidget *parent)
 
 		m_Poses.push_back(Pose(x, y, dir));
 	}
+	*/
 
 	// Init m_ViewSizes_m
 	m_ViewSizes_m.clear();
@@ -49,15 +51,9 @@ MapWidget::MapWidget(QWidget *parent)
 }
 
 
-void MapWidget::SetMapData(Map& newMap)
+void MapWidget::SetMapData(const Map* pMap)
 {
-	m_Map = newMap;
-	update();
-}
-
-void MapWidget::SetMapData(Map&& newMap)
-{
-	m_Map = newMap;
+	m_pMap = pMap;
 	update();
 }
 
@@ -79,8 +75,12 @@ void MapWidget::paintEvent(QPaintEvent *event)
 	// Fill background
 	painter.fillRect(0, 0, width(), height(), bgColor);
 
-	// WIP
-	Map::TCellSize mapSize = m_Map.GetSize();
+	// Bail if there is no map
+	if (!m_pMap)
+		return;
+
+	const Map& map = *m_pMap;
+	Map::TCellSize mapSize = map.GetSize();
 	QImage img(QSize(mapSize.x, mapSize.y), QImage::Format::Format_Indexed8);
 	QList<QRgb> colorTable;
 	{
@@ -103,10 +103,11 @@ void MapWidget::paintEvent(QPaintEvent *event)
 	for (int y = 0; y < img.height(); ++y)
 	{
 		uchar* imgLine = img.scanLine(y);
-		Map::TCellData* mapLine = &m_Map.GetData()[y * mapSize.x];
+		const Map::TCellData* mapLine = &map.GetData()[y * mapSize.x];
 		for (int x = 0; x < img.width(); ++x)
 		{
 			// WIP use memcpy
+
 			imgLine[x] = static_cast<uchar>(mapLine[x]);
 		}
 	}
@@ -114,8 +115,8 @@ void MapWidget::paintEvent(QPaintEvent *event)
 
 	// Scaling
 	qreal viewSize_m = m_ViewSizes_m[m_ViewSizeId];
-	qreal mapRes_w = m_Map.GetResolution_w();
-	Map::TCellSize mapCenter = m_Map.GetCenter();
+	qreal mapRes_w = map.GetResolution_w();
+	Map::TCellSize mapCenter = map.GetCenter();
 	qreal minWidthHeight = static_cast<qreal>(std::min<int>(width(), height()));
 	qreal scaleWorldToView = minWidthHeight / viewSize_m;
 

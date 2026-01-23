@@ -3,6 +3,8 @@
 #include <string>
 #include <stdio.h>
 
+#include "FileUtils.h"
+
 using uint = unsigned int;
 
 void SensorDataFileWriter::Start(const char* pFileNameNoExt)
@@ -15,21 +17,13 @@ void SensorDataFileWriter::Start(const char* pFileNameNoExt)
 
 	const char fileExtension[] = ".rstream";
 
-    // Find suitable file name.
-    // First try trivial case FileName.txt, then FileName (1).txt and so on.
-    std::string fileName = pFileNameNoExt;
-    fileName.append(fileExtension);
+	std::string fileName;
 
-    if (FileExists(fileName.data()))
-    {
-        for (uint i = 1; i < 1024; i++)
-        {
-            fileName.clear();
-            AppendFormat(fileName, "%s (%u)%s", pFileNameNoExt, i, fileExtension);
-            if (!FileExists(fileName.data()))
-                break;
-        }
-    }
+	if (!FileUtils::FindSafeFileName(pFileNameNoExt, fileExtension, fileName))
+	{
+		Stop();
+		return;
+	}
 
     m_File.open(fileName, std::ios::out | std::ios::app);
 
@@ -123,11 +117,3 @@ void SensorDataFileWriter::AppendFormat(std::string& appendTo, const char* forma
     va_end(args);
     appendTo.append(buff, strLength);
 }
-
-bool SensorDataFileWriter::FileExists(const char* pFileName)
-{
-    std::ifstream f(pFileName);
-    return f.good();
-}
-
-

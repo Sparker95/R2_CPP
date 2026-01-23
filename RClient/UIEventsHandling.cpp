@@ -18,11 +18,14 @@
 
 #include "InputHandling.h"
 #include "SensorScanWidget.h"
+#include "FileUtils.h"
 
 #include "../Common/ControlPanelProtocol.h"
 #include "../Common/ControlInputsProtocol.h"
 #include "../Common/Sensor.h"
 #include "../Common/Common.h"
+#include "../Common/MapUtils.h"
+#include "../Common/ProbUtils.h"
 
 void MainWindow::SlotOnConnectButtonClicked()
 {
@@ -112,5 +115,33 @@ void MainWindow::SlotOnEnableLocalizerButton(bool checked)
 	{
 		char payload = checked ? 1 : 0;
 		SendMessage(ControlPanelProtocol::MessageType::MSG_ENABLE_LOCALIZER, 1, &payload);
+	}
+}
+
+void MainWindow::SlotOnSaveMapButton()
+{
+	const char strFailedSave[] = "Failed to save file!";
+
+	QString fileNameEdit = ui->SaveMapNameEdit->text();
+	std::string fileNameEditStd = fileNameEdit.toStdString();
+
+	if (fileNameEditStd.empty())
+		fileNameEditStd = "Map";
+
+	std::string safeFileName;
+	if (!FileUtils::FindSafeFileName(fileNameEditStd.data(), ".rmap", safeFileName))
+	{
+		ui->SaveMapStateLabel->setText(strFailedSave);
+		return;
+	}
+
+	bool writeSuccess = MapUtils::WriteMapToFile_L2Int(m_Map, safeFileName.data(), Utils::LOG2_PROB_QUANTIZATION);
+
+	if (!writeSuccess)
+		ui->SaveMapStateLabel->setText(strFailedSave);
+	else
+	{
+		QString labelText = QString("Saved\n%1").arg(QString::fromStdString(safeFileName));
+		ui->SaveMapStateLabel->setText(labelText);
 	}
 }

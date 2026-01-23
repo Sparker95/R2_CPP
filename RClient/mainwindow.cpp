@@ -26,7 +26,8 @@ const uint TIMER_INTERVAL_MS = 40;
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
-    , m_ControlPanelSocket(this)
+	, m_ControlPanelSocket(this)
+	, m_Map(16, 16, 8, 8, 0.1f) // Must have some map data
 {
     ui->setupUi(this);
 
@@ -36,7 +37,7 @@ MainWindow::MainWindow(QWidget *parent)
 	QObject::connect(ui->AutoResfreshMapButton, &QPushButton::clicked, this, &MainWindow::SlotOnAutoUpdateMapButton);
 	QObject::connect(ui->ResetLocalizerButton, &QPushButton::clicked, this, &MainWindow::SlotOnResetLocalizerButton);
 	QObject::connect(ui->EnableLocalizerButton, &QPushButton::clicked, this, &MainWindow::SlotOnEnableLocalizerButton);
-
+	QObject::connect(ui->SaveMapButton, &QPushButton::clicked, this, &MainWindow::SlotOnSaveMapButton);
 
 	// Socket signals
     QObject::connect(&m_ControlPanelSocket, &QTcpSocket::connected, this, &MainWindow::SlotOnSocketConnected);
@@ -83,6 +84,8 @@ MainWindow::MainWindow(QWidget *parent)
 		gridLayout->addWidget(m_pMapWidget, 0, 0);
 
         ui->MapFrame->setLayout(gridLayout);
+
+		m_pMapWidget->SetMapData(&m_Map);
     }
 }
 
@@ -290,7 +293,8 @@ void MainWindow::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigne
 					m.SetDataAtPos(Map::TCellPos(x, y), reader.Read<Map::TCellData>());
 			}
 
-			m_pMapWidget->SetMapData(std::move(m));
+			m_Map = std::move(m);
+			m_pMapWidget->SetMapData(&m_Map);
 
 			break;
 		}
