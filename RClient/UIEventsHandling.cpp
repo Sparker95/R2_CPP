@@ -7,14 +7,7 @@
 #include <QList>
 #include <QPointF>
 
-// UI:
 #include <QMessageBox>
-
-// Graph related:
-#include <QQuickWidget>
-#include <QQuickItem>
-#include <QQmlContext>
-#include <QScatterSeries>
 
 #include "InputHandling.h"
 #include "SensorScanWidget.h"
