@@ -145,8 +145,8 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 			case TMoveState::FORWARD: moveStateText = "FWD"; break;
 			case TMoveState::STOP: moveStateText = "STOP"; break;
 			}
-			printf("%i, Scan Count: %u, Scan Size: %u, Odometer: %u, MoveState: %s, Steer: %.2f\n",
-				frame.m_MoveState, m_SensorScanCounter, pMsg->m_Scan.size(), static_cast<int>(frame.m_Odometer), moveStateText, frame.m_Steer);
+			printf("%u ms, Scan Count: %u, Scan Size: %u, Odometer: %u, MoveState: %s, Steer: %.2f\n",
+				frame.m_Timestamp_ms, m_SensorScanCounter, pMsg->m_Scan.size(), static_cast<int>(frame.m_Odometer), moveStateText, frame.m_Steer);
 		}
 
 		m_SensorScanCounter++;

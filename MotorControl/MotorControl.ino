@@ -417,6 +417,7 @@ void loop()
   
   // Read commands from serial interface
   // ! Now the serial streams are not separated, commands can be sent only into one
+  /*
   bool readDataAvailable = false;
   if (Serial.available())
   {
@@ -428,6 +429,10 @@ void loop()
     g_pCurrentSerial = &Serial1;
     readDataAvailable = true;
   }
+  */
+  
+  bool readDataAvailable = Serial1.available();
+  g_pCurrentSerial = &Serial1;
   
   if (readDataAvailable)
   {

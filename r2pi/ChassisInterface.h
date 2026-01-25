@@ -62,5 +62,8 @@ private:
 	// Reads response from the device, which is expected after every command sent to it.
 	bool ReadResponse(char* msgBuffer, uint msgBufferSize, uint& outMessageSize);
 
+	// Writes command to device, waits until data has been transmitted
+	void SendCommandSync(const char* pCmd);
+
 	void CloseSerialPort();
 };
