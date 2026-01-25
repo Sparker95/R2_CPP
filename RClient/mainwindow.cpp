@@ -102,6 +102,9 @@ void MainWindow::SlotOnSocketConnected()
     m_MsgDecoder.Reset();
     ui->ConnStateLabel->setText("Connected");
 
+	// Request protocol information
+	SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_PROTOCOL_INFO, 0, nullptr);
+
 	// Immediately request options from server, to update our UI
 	SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_OPTIONS, 0, nullptr);
 }
@@ -222,6 +225,29 @@ void MainWindow::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigne
 
     switch (static_cast<ControlPanelProtocol::MessageType>(msgType))
     {
+		case ControlPanelProtocol::MessageType::MSG_PROTOCOL_INFO:
+		{
+			uint8_t ctrlPanelVersion = reader.Read<uint8_t>();
+			uint8_t ctrlInputsVersion = reader.Read<uint8_t>();
+
+			if (ctrlPanelVersion != ControlPanelProtocol::PROTOCOL_VERSION ||
+				ctrlInputsVersion != ControlInputsProtocol::PROTOCOL_VERSION)
+			{
+				m_ControlPanelSocket.disconnectFromHost();
+				m_ControlInputsSocket.disconnectFromHost();
+
+				QString errorText = QString("Error: Wrong protocol version!\nThis version: %1, %2.\nServer version: %3, %4.")
+										.arg(QString::number(ControlPanelProtocol::PROTOCOL_VERSION),
+											 QString::number(ControlInputsProtocol::PROTOCOL_VERSION),
+											 QString::number(ctrlPanelVersion),
+											 QString::number(ctrlInputsVersion));
+				QMessageBox msgBox(QMessageBox::Icon::Critical, "Error", errorText);
+				msgBox.exec();
+			}
+
+			break;
+		}
+
         case ControlPanelProtocol::MessageType::MSG_PRINT:
         {
             // For safety, null terminate string

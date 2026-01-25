@@ -1,5 +1,6 @@
 #include "ControlPanelServer.h"
 #include "../Common/ControlPanelProtocol.h"
+#include "../Common/ControlInputsProtocol.h"
 #include "../Common/Sensor.h"
 #include "../Common/Common.h"
 #include "../Common/Utils.h"
@@ -35,6 +36,15 @@ void ControlPanelServer::OnProtocolNewMessage(uint8_t msgType, char* msgPayload,
 	BufferReader reader(msgPayload, msgPayloadSize);
 	switch (static_cast<ControlPanelProtocol::MessageType>(msgType))
 	{
+		case (MessageType::MSG_REQUEST_PROTOCOL_INFO):
+		{
+			// Send back protocol information
+			BufferWriter writer(g_SendBuffer, sizeof(g_SendBuffer));
+			writer.Write<uint8_t>(ControlPanelProtocol::PROTOCOL_VERSION);
+			writer.Write<uint8_t>(ControlInputsProtocol::PROTOCOL_VERSION);
+			SendMessage(MessageType::MSG_PROTOCOL_INFO, writer.GetNumBytesWritten(), g_SendBuffer);
+			break;
+		}
 		case (MessageType::MSG_PRINT):
 		{
 			// For safety, null terminate string
