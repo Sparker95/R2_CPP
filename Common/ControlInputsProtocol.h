@@ -6,6 +6,9 @@ namespace ControlInputsProtocol
 {
 	constexpr unsigned int CONTROL_INPUTS_PORT = 4568;
 
+	// !!! Remember to increase it every time version changes! !!!
+	constexpr uint8_t PROTOCOL_VERSION = 1;
+
 	struct Message
 	{
         constexpr static uint8_t MAGIC_NUMBER_0 = 0x80;

@@ -12,12 +12,19 @@ namespace ControlPanelProtocol
 	constexpr unsigned char HEADER_MAGIC_NR_0 = 0x5A;
 	constexpr unsigned char HEADER_MAGIC_NR_1 = 0xA5;
 
+	// !!! Remember to increase protocol version any time anything changes in protocol !!!
+	constexpr uint8_t PROTOCOL_VERSION = 1;
+
 	enum class MessageType : uint8_t
 	{
 		MSG_INVALID = 0,
 
+		// Protocol info
+		MSG_REQUEST_PROTOCOL_INFO,     // Request protocol information
+		MSG_PROTOCOL_INFO,             // Protocol information data (ControlPanelProtocol version, ControlInputsProtocol version)
+
 		// Universal
-		MSG_PRINT = 1, // Receiver will print characters in UI
+		MSG_PRINT, // Receiver will print characters in UI
 
 		//---------------------------------------------------
 		// Client to Server
