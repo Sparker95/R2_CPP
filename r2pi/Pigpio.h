@@ -35,6 +35,11 @@ public:
 	bool Write(unsigned int gpio, bool value);
 	bool Read(unsigned int gpio);
 
+	// PWM commands
+	bool SetPwmFrequency(unsigned int gpio, unsigned int freq);
+	bool SetPwmRange(unsigned int gpio, unsigned int range);
+	bool SetPwmDutycycle(unsigned int gpio, unsigned int dutycycle);
+	bool GetPwmDutycycle(unsigned int gpio, unsigned int& outDutycycle);
 
 	Pigpio(const Pigpio& other) = delete;
 	Pigpio(Pigpio&& other) = delete;

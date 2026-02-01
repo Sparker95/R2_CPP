@@ -145,10 +145,17 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 			case TMoveState::FORWARD: moveStateText = "FWD"; break;
 			case TMoveState::STOP: moveStateText = "STOP"; break;
 			}
-			printf("%i, Scan Count: %u, Scan Size: %u, Odometer: %u, MoveState: %s, Steer: %.2f\n",
-				frame.m_MoveState, m_SensorScanCounter, pMsg->m_Scan.size(), static_cast<int>(frame.m_Odometer), moveStateText, frame.m_Steer);
+			float scanFreq_Hz = 0;
+			if (m_TimeLastSensorScanData.time_since_epoch() != std::chrono::high_resolution_clock::time_point::duration::zero())
+			{
+				float sensorPeriod_ms = static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - m_TimeLastSensorScanData).count());
+				scanFreq_Hz = 1000.0f / sensorPeriod_ms;
+			}
+			printf("%u ms, Scan Count: %u, Scan Frequency: %.2f Hz, Scan Size: %u, Odometer: %u, MoveState: %s, Steer: %.2f\n",
+				frame.m_Timestamp_ms, m_SensorScanCounter, scanFreq_Hz, pMsg->m_Scan.size(), static_cast<int>(frame.m_Odometer), moveStateText, frame.m_Steer);
 		}
 
+		m_TimeLastSensorScanData = timeNow;
 		m_SensorScanCounter++;
 
 		FrameMark;

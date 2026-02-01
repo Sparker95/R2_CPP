@@ -96,6 +96,19 @@ bool ReadConfigChassisControlSettings(const Config& cfg, ChassisSettings::Contro
 	return true;
 }
 
+bool ReadConfigSensorSettings(const Config& cfg, float& outSensorMotorSpeed_01)
+{
+	bool cfgSuccess = cfg.Get("sensor_MotorSpeed_01", outSensorMotorSpeed_01);
+
+	if (!cfgSuccess)
+	{
+		fprintf(stderr, "Error: Failed to read sensor settings from config\n");
+		return false;
+	}
+
+	return true;
+}
+
 int main(int argc, char** argv)
 {
 	printf("Program started. PID: %i\n", getpid());
@@ -123,11 +136,14 @@ int main(int argc, char** argv)
 	ChassisInterface::MotorCtrlPidSettings pidSettings;
 	ChassisInterface::MotorCtrlAccelSettings accelSettings;
 	ChassisSettings::ControlSettings chassisControlSettings;
+	float sensorMotorSpeed_01;
 	if (!ReadConfigPidSettings(config, pidSettings))
 		initDone = false;
 	if (!ReadConfigAccelSettings(config, accelSettings))
 		initDone = false;
 	if (!ReadConfigChassisControlSettings(config, chassisControlSettings))
+		initDone = false;
+	if (!ReadConfigSensorSettings(config, sensorMotorSpeed_01))
 		initDone = false;
 
 	// The RobotCore and related parts
@@ -156,7 +172,7 @@ int main(int argc, char** argv)
 	RobotCore robotCore(localizer);
 
 	// Sensor interface
-	SensorInterface sensor;
+	SensorInterface sensor(sensorMotorSpeed_01);
 	if (!sensor.Start())
 		initDone = false;
 

@@ -29,7 +29,7 @@ public:
 public:
 	bool Start();
 	void TerminateWait();
-	SensorInterface();
+	SensorInterface(float motorSpeed_01);
 	~SensorInterface();
 
 	// !!! Invoked in thread of SensorInterface!
@@ -51,6 +51,7 @@ private:
 	std::unique_ptr<std::thread> m_pThread;
 	int m_PipeFd[2]; // 0 - read, 1 - write
 	int m_SerialPortFd = -1;
+	float m_MotorSpeed_01 = 0;
 	bool m_bRunning = false;
 
 	// Processing of scan data packets, used by ReadScanDataStream

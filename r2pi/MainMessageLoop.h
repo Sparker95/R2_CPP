@@ -65,6 +65,7 @@ private:
 
 	// Timestamp
 	std::chrono::high_resolution_clock::time_point m_TimeStart = {};
+	std::chrono::high_resolution_clock::time_point m_TimeLastSensorScanData = {};
 
 	// Queue
 	std::mutex m_QueueMutex;

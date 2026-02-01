@@ -91,3 +91,46 @@ bool Pigpio::Read(unsigned int gpio)
 
 	return static_cast<bool>(gpio_read(m_Id, gpio));
 }
+
+bool Pigpio::SetPwmFrequency(unsigned int gpio, unsigned int freq)
+{
+	if (m_Id < 0)
+		return false;
+
+	int retVal = set_PWM_frequency(m_Id, gpio, freq);
+
+	return retVal != PI_BAD_USER_GPIO && retVal != PI_NOT_PERMITTED;
+}
+
+bool Pigpio::SetPwmRange(unsigned int gpio, unsigned int range)
+{
+	if (m_Id < 0)
+		return false;
+
+	int retVal = set_PWM_range(m_Id, gpio, range);
+
+	return retVal != PI_BAD_USER_GPIO && retVal != PI_BAD_DUTYRANGE && retVal != PI_NOT_PERMITTED;
+}
+
+bool Pigpio::SetPwmDutycycle(unsigned int gpio, unsigned int dutycycle)
+{
+	if (m_Id < 0)
+		return false;
+
+	int retVal = set_PWM_dutycycle(m_Id, gpio, dutycycle);
+	return retVal != PI_BAD_USER_GPIO && retVal != PI_BAD_DUTYCYCLE && retVal != PI_NOT_PERMITTED;
+}
+
+bool Pigpio::GetPwmDutycycle(unsigned int gpio, unsigned int& outDutycycle)
+{
+	if (m_Id < 0)
+		return false;
+
+	int retVal = get_PWM_dutycycle(m_Id, gpio);
+
+	if (retVal == PI_BAD_USER_GPIO || retVal == PI_NOT_PWM_GPIO)
+		return false;
+
+	outDutycycle = static_cast<unsigned int>(retVal);
+	return true;
+}

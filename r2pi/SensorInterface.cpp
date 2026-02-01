@@ -18,7 +18,8 @@
 // WIP might be in config
 const uint MOTOR_CONTROL_GPIO = 21;
 
-SensorInterface::SensorInterface()
+SensorInterface::SensorInterface(float motorSpeed01) :
+	m_MotorSpeed_01(motorSpeed01)
 {
 	m_PipeFd[0] = -1;
 	m_PipeFd[1] = -1;
@@ -58,15 +59,24 @@ bool SensorInterface::SetMotorState_mt(bool enable)
 
 	if (enable)
 	{
+		// https://abyz.me.uk/rpi/pigpio/pdif2.html#set_PWM_frequency
+		const uint pwmRange = 2500;
+		const uint pwmFrequency = 40;
+		const uint pwmDutycycle = static_cast<uint>(m_MotorSpeed_01 * static_cast<float>(pwmRange));
+
 		return m_Gpio.SetPullUpDown(MOTOR_CONTROL_GPIO, Pigpio::PullUpDown::OFF) &&
 			m_Gpio.SetMode(MOTOR_CONTROL_GPIO, Pigpio::Mode::OUTPUT) &&
-			m_Gpio.Write(MOTOR_CONTROL_GPIO, true);
+			m_Gpio.SetPwmFrequency(MOTOR_CONTROL_GPIO, pwmFrequency) &&
+			m_Gpio.SetPwmRange(MOTOR_CONTROL_GPIO, pwmRange) &&
+			m_Gpio.SetPwmDutycycle(MOTOR_CONTROL_GPIO, pwmDutycycle);
 	}
 	else
 	{
 		return m_Gpio.Write(MOTOR_CONTROL_GPIO, false) &&
 			m_Gpio.SetPullUpDown(MOTOR_CONTROL_GPIO, Pigpio::PullUpDown::DOWN) &&
-			m_Gpio.SetMode(MOTOR_CONTROL_GPIO, Pigpio::Mode::INPUT);
+			m_Gpio.SetMode(MOTOR_CONTROL_GPIO, Pigpio::Mode::INPUT) &&
+			m_Gpio.SetPwmFrequency(MOTOR_CONTROL_GPIO, 0) &&
+			m_Gpio.SetPwmDutycycle(MOTOR_CONTROL_GPIO, 0);
 	}
 }
 
@@ -74,7 +84,11 @@ bool SensorInterface::GetMotorState_mt()
 {
 	std::unique_lock lock(m_GpioMutex);
 
-	return m_Gpio.Read(MOTOR_CONTROL_GPIO);
+	unsigned int dutycycle;
+	if (!m_Gpio.GetPwmDutycycle(MOTOR_CONTROL_GPIO, dutycycle))
+		return false;
+
+	return dutycycle != 0;
 }
 
 bool SensorInterface::Start()
