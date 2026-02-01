@@ -4,19 +4,42 @@
 
 /*
 Serial commands
-Command:   Data:      Return:                Extra:
-ST         <float>    ACK;
-GET_ST                ST <float>;
-MT_MV      <float>    ACK;
-MT_BR                 ACK;
-GET_ODO               ODO <int> <moveDir>;   <moveDir> - '0' - stopped, '+' - fwd, '-' - bwd
-MT_LOG     0/1        ACK;                   periodic: LOG ... ... ... ;
-PING                  MT_CTRL;
-STOP_ON_DC 0/1        ACK;
-SET_ACCEL  2x<float>  ACK;                   AccelMove AccelBrake
-SET_PID    5x<float>  ACK;                   P I D ErrorScale ErrorIntegralMax
+
+##   Commands in text mode:   ##
+
+Command:    Data:      Return:                Extra:
+ST;         <float>    ACK;
+GET_ST;                ST <float>;
+MT_MV;      <float>    ACK;
+MT_BR;                 ACK;
+GET_ODO;               ODO <int> <moveDir>;   <moveDir> - '0' - stopped, '+' - fwd, '-' - bwd
+MT_LOG;     0/1        ACK;                   periodic: LOG ... ... ... ;
+PING;                  MT_CTRL;
+STOP_ON_DC; 0/1        ACK;
+SET_ACCEL;  2x<float>  ACK;                   AccelMove AccelBrake
+SET_PID;    5x<float>  ACK;                   P I D ErrorScale ErrorIntegralMax
 
 Empty command ";" resets communication state, without reply.
+
+##   Commands in binary mode:   ##
+
+!!! WIP !!!
+
+Command starts with control byte:
+7      0
+AAAABBBB
+AAAA - Number of data bytes (0-15)
+BBBB - Command Index (0-15)
+
+Control byte is followed by the data bytes.
+
+Reply to command has same command index, and arbitrary data.
+
+Command ID: Function:     Data size: Data:      Return:                Extra:
+0           Get Steering                        '0',int8               -127 .. 127 translates to -1.0 .. 1.0
+1           Get Odometer                    '1',uint16,uint8       Odometer value, move state. Move state: 0 - stopped, 1 - fwd, 2 - fwd
+8           Set Motor Fr. 
+9           Brake Motor                  
 */
 
 #define MAIN_CLOCK_HZ 16000000
@@ -417,6 +440,7 @@ void loop()
   
   // Read commands from serial interface
   // ! Now the serial streams are not separated, commands can be sent only into one
+  /*
   bool readDataAvailable = false;
   if (Serial.available())
   {
@@ -428,6 +452,10 @@ void loop()
     g_pCurrentSerial = &Serial1;
     readDataAvailable = true;
   }
+  */
+  
+  bool readDataAvailable = Serial1.available();
+  g_pCurrentSerial = &Serial1;
   
   if (readDataAvailable)
   {

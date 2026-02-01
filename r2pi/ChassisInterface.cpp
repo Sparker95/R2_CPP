@@ -1,14 +1,21 @@
 #include "ChassisInterface.h"
-#include "../Common/Common.h"
 
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
-//#include <stdlib.h>
-//#include <sys/types.h> 
 #include <fcntl.h>
 #include <errno.h> // Error integer and strerror() function
 #include <termios.h> // Contains POSIX terminal control definitions
+#include <sys/ioctl.h>
+#include <linux/serial.h>
+
+#include "../Common/Common.h"
+
+#ifdef TRACY_ENABLE
+#include "Tracy/tracy/Tracy.hpp"
+#else
+#include "../Common/TracyPlug.h"
+#endif
 
 // Constants
 const char MSG_ACK[] = "ACK;";
@@ -30,7 +37,7 @@ bool ChassisInterface::Init(const MotorCtrlPidSettings& pidSettings, const Motor
     const char serialDevicePath[] = "/dev/ttyAMA3";
     printf("ChassisInterface: Initializing motor controller. Serial device: %s\n", serialDevicePath);
 
-    m_SerialPortFd = open(serialDevicePath, O_RDWR);
+    m_SerialPortFd = open(serialDevicePath, O_RDWR | O_SYNC);
 
     if (m_SerialPortFd < 0)
     {
@@ -74,24 +81,38 @@ bool ChassisInterface::Init(const MotorCtrlPidSettings& pidSettings, const Motor
 	cfsetispeed(&tty, B57600);
 	cfsetospeed(&tty, B57600);
 
+	// Set raw mode
+	cfmakeraw(&tty);
+
 	// Save tty settings, also checking for error
 	if (tcsetattr(m_SerialPortFd, TCSANOW, &tty) != 0) {
 		fprintf(stderr, "ChassisInterface: from tcsetattr error: %i, %s\n", errno, strerror(errno));
 		return false;
 	}
 
+	// Enable low latency mode
+	// https://stackoverflow.com/questions/4667141/high-delay-in-rs232-communication-on-a-pxa270
+	{
+		serial_struct _serial_struct;
+		if (ioctl(m_SerialPortFd, TIOCGSERIAL, &_serial_struct) == -1)
+		{
+			fprintf(stderr, "ChassisInterface: ioctl error: %i, %s\n", errno, strerror(errno));
+			return false;
+		}
+		_serial_struct.flags |= ASYNC_LOW_LATENCY;
+		if (ioctl(m_SerialPortFd, TIOCSSERIAL, &_serial_struct) == -1)
+		{
+			fprintf(stderr, "ChassisInterface: ioctl error: %i, %s\n", errno, strerror(errno));
+			return false;
+		}
+	}
+
+	// Flush read buffer
+	tcflush(m_SerialPortFd, TCIOFLUSH);
+
 	// Reset communication state
 	// This causes it to process leftover data in its receive buffer
 	write(m_SerialPortFd, ";;", 2);
-
-	// Flush read buffer
-	while (true)
-	{
-		char tempBuffer[16];
-		ssize_t nBytesRead = read(m_SerialPortFd, tempBuffer, sizeof(tempBuffer));
-		if (nBytesRead == 0)
-			break;
-	}
 
 	if (!SendCommand_Ping())
 	{
@@ -148,13 +169,21 @@ void ChassisInterface::CloseSerialPort()
 
 bool ChassisInterface::ReadResponse(char* msgBuffer, uint msgBufferSize, uint& outMessageSize)
 {
+	ZoneScopedN("ChassisIF:ReadResponse");
+
 	char readBuffer[32];
 
 	uint bufferWriteId = 0;
 
 	while (true)
 	{
-		ssize_t nBytesRead = read(m_SerialPortFd, readBuffer, sizeof(readBuffer));
+
+		ssize_t nBytesRead;
+		
+		{
+			ZoneScopedN("ChassisIF:ReadResponse_ReadSysCall");
+			nBytesRead = read(m_SerialPortFd, readBuffer, 1); // sizeof(readBuffer));
+		}
 		if (nBytesRead == 0)
 		{
 			fprintf(stderr, "ChassisInterface: read() timeout error\n");
@@ -236,7 +265,7 @@ bool ChassisInterface::SendCommand_GetOdometer(TOdometerCounter& outOdometerCoun
 {
 	char buf[MESSAGE_SIZE_MAX];
 	const char cmdGetOdo[] = "GET_ODO;";
-	write(m_SerialPortFd, static_cast<const void*>(cmdGetOdo), sizeof(cmdGetOdo) - 1);
+	SendCommandSync(cmdGetOdo);
 
 	uint responseSize;
 	if (!ReadResponse(buf, sizeof(buf), responseSize))
@@ -290,8 +319,8 @@ bool ChassisInterface::SendCommand_GetOdometer(TOdometerCounter& outOdometerCoun
 bool ChassisInterface::SendCommand_GetSteer(float& outSteerNorm)
 {
 	char buf[MESSAGE_SIZE_MAX];
-	const char cmdGetOdo[] = "GET_ST;";
-	write(m_SerialPortFd, static_cast<const void*>(cmdGetOdo), sizeof(cmdGetOdo) - 1);
+	const char cmdGetSteer[] = "GET_ST;";
+	SendCommandSync(cmdGetSteer);
 
 	uint responseSize;
 	if (!ReadResponse(buf, sizeof(buf), responseSize))
@@ -317,7 +346,9 @@ bool ChassisInterface::SendCommand_GetSteer(float& outSteerNorm)
 
 bool ChassisInterface::SendCommand_VerifyResponse(const char* pCmd, const char* pExpectedResponse)
 {
-	write(m_SerialPortFd, static_cast<const void*>(pCmd), strlen(pCmd));
+	ZoneScopedN("ChassisIF:SendCommand_VerifyResponse");
+
+	SendCommandSync(pCmd);
 
 	char msgBuffer[MESSAGE_SIZE_MAX];
 	uint msgSize = 0;
@@ -329,4 +360,22 @@ bool ChassisInterface::SendCommand_VerifyResponse(const char* pCmd, const char* 
 
 	fprintf(stderr, STR_UNEXPECTED_RESPONSE, msgBuffer);
 	return false;
+}
+
+void ChassisInterface::SendCommandSync(const char* pCmd)
+{
+	ZoneScopedN("ChassisIF:SendCommandSync");
+
+	{
+		ZoneScopedN("ChassisIF:SendCommandSync_WriteSysCall");
+		write(m_SerialPortFd, static_cast<const void*>(pCmd), strlen(pCmd));
+	}
+	{
+		ZoneScopedN("ChassisIF:SendCommandSync_FsyncSysCall");
+		fsync(m_SerialPortFd);
+	}
+	{
+		//ZoneScopedN("ChassisIF:SendCommandSync_DrainSysCall");
+		//tcdrain(m_SerialPortFd); // Waits until all output written fd has been transmitted
+	}
 }
