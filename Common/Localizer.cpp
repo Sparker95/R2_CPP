@@ -493,7 +493,7 @@ float Localizer::SensorRayPdf(float realDist, float expectedDist)
 
 	// https://www.desmos.com/calculator/oa2gg8rzuk
 	float diff = realDist - expectedDist;
-	float diffNorm = diff / m_Config.m_SensorPdfStdDev;
+	float diffNorm = diff / m_Config.m_SensorPdfWidth;
 	float diffNormPow2 = diffNorm * diffNorm;
 	float diffNormPow4 = diffNormPow2 * diffNormPow2;
 	float diffNormPow8 = diffNormPow4 * diffNormPow4;

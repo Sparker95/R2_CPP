@@ -78,6 +78,9 @@
     <ClCompile Include="..\Common\ProbUtils.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="..\Common\Config.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\Vector2.h">
@@ -1052,9 +1055,6 @@
     <ClInclude Include="..\Common\Chassis.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\LocalizerUtils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Tracy\tracy\Tracy.hpp">
       <Filter>Tracy</Filter>
     </ClInclude>
@@ -1065,6 +1065,12 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\TracyPlug.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Config.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\LocalizerUtils.h">
       <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>

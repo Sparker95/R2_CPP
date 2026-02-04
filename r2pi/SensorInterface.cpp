@@ -60,8 +60,8 @@ bool SensorInterface::SetMotorState_mt(bool enable)
 	if (enable)
 	{
 		// https://abyz.me.uk/rpi/pigpio/pdif2.html#set_PWM_frequency
-		const uint pwmRange = 2500;
-		const uint pwmFrequency = 40;
+		const uint pwmRange = 255;
+		const uint pwmFrequency = 80;
 		const uint pwmDutycycle = static_cast<uint>(m_MotorSpeed_01 * static_cast<float>(pwmRange));
 
 		return m_Gpio.SetPullUpDown(MOTOR_CONTROL_GPIO, Pigpio::PullUpDown::OFF) &&

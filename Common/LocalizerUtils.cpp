@@ -1,6 +1,8 @@
 #include "LocalizerUtils.h"
 
 #include "StringWordWriter.h"
+#include "Config.h"
+#include "ProbUtils.h"
 
 #include <fstream>
 
@@ -146,4 +148,31 @@ bool LocalizerUtils::WriteLocalizerHistoryToFile(const Localizer& localizer, con
 	f.write(outString.data(), outString.size());
 
     return true;
+}
+
+
+bool LocalizerUtils::ReadConfig(const Config& config, Localizer::Config& outConfig)
+{
+	Localizer::Config tempConfig;
+
+	float l2Occupied, l2Free;
+
+	bool allValuesFound = config.Get("loc_SensorPdfWidth", tempConfig.m_SensorPdfWidth) &&
+		config.Get("loc_SensorPdfFloor", tempConfig.m_SensorPdfFloor) &&
+		config.Get("loc_SensorScanRange", tempConfig.m_SensorScanRange) &&
+		config.Get("loc_MapResolution_m", tempConfig.m_MapRes_w) &&
+		config.Get("loc_NumParticles", tempConfig.m_nParticles) &&
+		config.Get("loc_L2OccupiedCell", l2Occupied) &&
+		config.Get("loc_L2FreeCell", l2Free) &&
+		config.Get("loc_ScanDecimation", tempConfig.m_ScanDecimation);
+
+	if (!allValuesFound)
+		return false;
+
+	tempConfig.m_L2IntOccupiedCell = Utils::L2FloatToL2Int(l2Occupied);
+	tempConfig.m_L2IntFreeCell = Utils::L2FloatToL2Int(l2Free);
+
+	outConfig = tempConfig;
+
+	return true;
 }

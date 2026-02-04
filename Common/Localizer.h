@@ -49,7 +49,7 @@ public:
 
 	struct Config
 	{
-		float m_SensorPdfStdDev = 2.0f * 0.0625;
+		float m_SensorPdfWidth = 2.0f * 0.0625;
 		float m_SensorPdfFloor = 0.6f;
 		float m_SensorScanRange = 12.0f;
 		float m_MapRes_w = 0.0625f;

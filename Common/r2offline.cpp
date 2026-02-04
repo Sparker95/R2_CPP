@@ -88,7 +88,7 @@ void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapF
 
 	Localizer::Config localizerConfig;
 	const float _mapRes = 0.0625;
-	localizerConfig.m_SensorPdfStdDev = 2.0f * _mapRes;
+	localizerConfig.m_SensorPdfWidth = 2.0f * _mapRes;
 	localizerConfig.m_SensorPdfFloor = 0.6f;
 	localizerConfig.m_SensorScanRange = 12.0f;
 	localizerConfig.m_MapRes_w = _mapRes;

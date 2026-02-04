@@ -137,6 +137,7 @@
   <ItemGroup>
     <ClCompile Include="..\Common\CarStatsModel.cpp" />
     <ClCompile Include="..\Common\Chassis.cpp" />
+    <ClCompile Include="..\Common\Config.cpp" />
     <ClCompile Include="..\Common\LineRasterizer.cpp" />
     <ClCompile Include="..\Common\Localizer.cpp" />
     <ClCompile Include="..\Common\LocalizerUtils.cpp" />
@@ -158,6 +159,7 @@
     <ClInclude Include="..\Common\CarStatsModel.h" />
     <ClInclude Include="..\Common\Chassis.h" />
     <ClInclude Include="..\Common\Common.h" />
+    <ClInclude Include="..\Common\Config.h" />
     <ClInclude Include="..\Common\LocalizerUtils.h" />
     <ClInclude Include="..\Common\MathUtils.h" />
     <ClInclude Include="..\Common\CommonIntTypes.h" />
