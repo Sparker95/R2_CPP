@@ -36,7 +36,7 @@ Pose Chassis::ChassisModel::CalculateRandomPoseDiff_LS(const ChassisInputs& inpu
 		chassisConf.m_wheelRadius - statsConf.m_WheelRadiusTol_abs,
 		chassisConf.m_wheelRadius + statsConf.m_WheelRadiusTol_abs)(m_Rng);
 
-	float wheelTurnAnglePerOdoPulse_rad = ((1.0f / static_cast<float>(chassisConf.m_encoderPulses)) * (static_cast<float>(chassisConf.m_gearEncoder) / static_cast<float>(chassisConf.m_gearShaft)) *
+	float wheelTurnAnglePerOdoPulse_rad = ((1.0f / static_cast<float>(chassisConf.m_encoderPulses)) *
 		(static_cast<float>(chassisConf.m_gearDiffIn) / static_cast<float>(chassisConf.m_gearDiffOut)) * PI_2X);
 
 	float odoDiff_rnd = TUniformDist(
@@ -96,7 +96,7 @@ Pose Chassis::ChassisModel::CalculatePoseDiff_LS(const ChassisInputs& inputs) co
 		return Pose(0, 0, 0);
 
 	const ChassisConfig& c = m_ChassisConfig;
-	float distPerOdoPulse = ((1.0f / static_cast<float>(c.m_encoderPulses)) * (static_cast<float>(c.m_gearEncoder) / static_cast<float>(c.m_gearShaft)) *
+	float distPerOdoPulse = ((1.0f / static_cast<float>(c.m_encoderPulses)) *
 		(static_cast<float>(c.m_gearDiffIn) / static_cast<float>(c.m_gearDiffOut)) * PI_2X * c.m_wheelRadius);
 	float moveDistAbs = odoDiff * distPerOdoPulse;
 

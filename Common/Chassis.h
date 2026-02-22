@@ -44,16 +44,15 @@ namespace Chassis
 		// gear Motor->gear Shaft -> (gear Diff In->gear Diff Out)->wheel Radius
 		//                    |
 		//                    V
-		//               gear Encoder->encoder Pulses
+		//               encoder Pulses
 
-		uint m_gearMotor = 14; // # Not needed
-		uint m_gearShaft = 72;
+		uint m_gearMotor = 14; // Not used
+		uint m_gearShaft = 72; // Not used
 		uint m_gearDiffIn = 13;
 		uint m_gearDiffOut = 38;
 
-		// Encoder
-		uint m_gearEncoder = 10;
-		uint m_encoderPulses = 8; // Per revolution
+		// Encoder - mounted on main shaft
+		uint m_encoderPulses = 20; // Per revolution
 	};
 
 	struct ChassisStatsConfig

@@ -80,7 +80,7 @@ bool Config::ReadConfig(const char* configPath)
 	}
 
 	// Print the found data
-	printf("Config: Config file data: %i entries:\n", m_KeyValueTable.size());
+	printf("Config: Config file data: %i entries:\n", static_cast<int>(m_KeyValueTable.size()));
 	for (uint i = 0; i < m_KeyValueTable.size(); i++)
 	{
 		const auto& kv = m_KeyValueTable[i];

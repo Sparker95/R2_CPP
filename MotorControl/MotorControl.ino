@@ -13,11 +13,13 @@ GET_ST;                ST <float>;
 MT_MV;      <float>    ACK;
 MT_BR;                 ACK;
 GET_ODO;               ODO <int> <moveDir>;   <moveDir> - '0' - stopped, '+' - fwd, '-' - bwd
-MT_LOG;     0/1        ACK;                   periodic: LOG ... ... ... ;
+GET_FREQ;              FREQ <float>;
+MT_LOG;     <int>      ACK;                   <int> - number of updates to log. Response: periodic: LOG ... ... ... ;
 PING;                  MT_CTRL;
 STOP_ON_DC; 0/1        ACK;
 SET_ACCEL;  2x<float>  ACK;                   AccelMove AccelBrake
 SET_PID;    5x<float>  ACK;                   P I D ErrorScale ErrorIntegralMax
+SET_DC_TIMER; <float>  ACK;                   Timer value in seconds.
 
 Empty command ";" resets communication state, without reply.
 
@@ -44,6 +46,9 @@ Command ID: Function:     Data size: Data:      Return:                Extra:
 
 #define MAIN_CLOCK_HZ 16000000
 #define MAIN_CLOCK_HZ_F 16e6
+
+// From which prescaler is timer clocked?
+#define ENCODER_TIMER_CLOCK_DIVIDER_F 64.0f
 
 // Extra pins
 #define PORTF_TIMESTAMP_0 0
@@ -145,7 +150,7 @@ Output: float control value for ESC -1.0f .. +1.0f
 class MotorController
 {
   private:
-  constexpr static uint8_t STOPPED_COUNTER_THRESHOLD = 10;
+  constexpr static uint8_t STOPPED_COUNTER_THRESHOLD = 5;
     
   enum Command : uint8_t
   {
@@ -265,7 +270,7 @@ class MotorController
     else if (m_CmdType == Command::BRAKE)
     {
       AnimateLinear(m_fSmoothFrequency_Hz, 0.0f, m_fAccelBraking_Upd);
-      if (m_fSmoothFrequency_Hz == 0.0f)
+      if (frequency_Hz == 0.0f)
       {
         // When finally stopped, reset PID, we don't want any leftover values inside
         m_PidController.Reset();
@@ -349,10 +354,10 @@ constexpr float STEER_FULL_RANGE_DEG = 90.0f;      // -1 .. 1.0 input
 constexpr float STEER_SPEED_INPUT_PER_S = STEER_SPEED_DEG_PER_S / (STEER_FULL_RANGE_DEG / 2.0f); // Turn speed converted into input units per second. 
 
 // Settings, modes of operation
-bool g_bMotorLogEnabled = false;
+uint8_t g_iMotorLogCount = 0;
 bool g_bStopOnDisconnect = true;
-uint8_t g_bDisconnectCounter = 0; // Counts only if g_bStopOnDisconnect == true
-constexpr uint8_t DISCONNECT_COUNTER_THRESHOLD = 50;
+uint8_t g_iDisconnectCounter = 0; // Counts only if g_bStopOnDisconnect == true
+uint8_t g_iDisconnectCounterThreshold = 50;
 
 // Forward declarations
 void ProcessMotorControllerLog(float encoderFreq_Hz, float pidOutputNorm);
@@ -416,7 +421,7 @@ void setup() {
   // External interrupt INT1 (PORTD1) - Encoder measurement
   EIMSK &= 1 << INT1;
   EIFR |= 1 << INTF1; // Clears the interrupt flag
-  EICRA = 1 << ISC11 | 1 << ISC10; // Rising edge
+  EICRA = 0 << ISC11 | 1 << ISC10; // Any edge
   EIMSK |= 1 << INT1; // Enable INT1 interrupt
   
   // Timestamp pins on Port F
@@ -425,12 +430,12 @@ void setup() {
   // Setup motor control
   PidController::Settings pidSettings;
   pidSettings.m_fKP = 0.5f;
-  pidSettings.m_fKI = 1.0f;
+  pidSettings.m_fKI = 0.0f;
   pidSettings.m_fKD = 0.0f;
-  pidSettings.m_fErrorScale = 0.001f;
-  pidSettings.m_fErrorIntegralMax = 1.0f;
+  pidSettings.m_fErrorScale = 0.1f;
+  pidSettings.m_fErrorIntegralMax = 100.0f;
   g_MotorController.SetPidSettings(pidSettings);
-  g_MotorController.SetAcceleration(400.0, 800.0);
+  g_MotorController.SetAcceleration(100000.0, 100000.0);
 }
 
 void loop()
@@ -440,7 +445,6 @@ void loop()
   
   // Read commands from serial interface
   // ! Now the serial streams are not separated, commands can be sent only into one
-  /*
   bool readDataAvailable = false;
   if (Serial.available())
   {
@@ -452,10 +456,6 @@ void loop()
     g_pCurrentSerial = &Serial1;
     readDataAvailable = true;
   }
-  */
-  
-  bool readDataAvailable = Serial1.available();
-  g_pCurrentSerial = &Serial1;
   
   if (readDataAvailable)
   {
@@ -506,7 +506,7 @@ void loop()
               g_pCurrentSerial->print("ACK;\n");
             
             // Correct commands reset the disconnect counter
-            g_bDisconnectCounter = 0;
+            g_iDisconnectCounter = 0;
           }
           else
           {
@@ -534,7 +534,7 @@ void loop()
     }
   }
   
-  // Triggered when motor PWM overflows every 50 Hz, the engine control code and some other logic is in this branch  
+  // Triggered when motor PWM overflows at 50 Hz, the engine control code and some other logic is in this branch  
   if (g_bTimer1InterruptFlag)
   {
     g_bTimer1InterruptFlag = false;
@@ -543,11 +543,11 @@ void loop()
     PORTF |= (1 << PORTF_TIMESTAMP_0);
     
     // Disconnection logic
-    if (g_bDisconnectCounter < DISCONNECT_COUNTER_THRESHOLD)
-      g_bDisconnectCounter++;
+    if (g_iDisconnectCounter < g_iDisconnectCounterThreshold)
+      g_iDisconnectCounter++;
     
     // If we consider communication lost, motor must be stopped, steering must be reset
-    if (g_bStopOnDisconnect && g_bDisconnectCounter == DISCONNECT_COUNTER_THRESHOLD)
+    if (g_bStopOnDisconnect && g_iDisconnectCounter >= g_iDisconnectCounterThreshold)
     {
       g_MotorController.SetCommand_Brake();
       Steer_SetRawValue(PwmControl::PWM_VALUE_NEUTRAL);
@@ -573,7 +573,7 @@ void UpdateMotorController()
   uint16_t encoderPeriod = g_iEncoderPeriod;
   float encoderFreq_Hz;
   if (encoderPeriod != 0xFFFF)
-    encoderFreq_Hz = (MAIN_CLOCK_HZ_F / 64.0f) / static_cast<float>(encoderPeriod);
+    encoderFreq_Hz = (MAIN_CLOCK_HZ_F / ENCODER_TIMER_CLOCK_DIVIDER_F) / static_cast<float>(encoderPeriod);
   else
     encoderFreq_Hz = 0.0f;
   
@@ -584,17 +584,17 @@ void UpdateMotorController()
   Motor_SetRawValue(motorOutputRaw);
   
   // Write log every update
-  if (g_bMotorLogEnabled)
+  if (g_iMotorLogCount != 0)
   {
+		g_iMotorLogCount--;
+		
     char txtBuffer[16];
-    const char strSeparator[] = ", ";
-    
-    // Smooth target frequency, Current Frequency, PID Error Scaled, PID Error Integral, Controller Output, Current Move Direction
-
+    const char strSeparator[] = " ";
+		
     g_pCurrentSerial->print("LOG ");
 
-    // Smooth target freuquency
-    dtostrf(g_MotorController.GetSmoothFrequency_Hz(), 2, 1, txtBuffer);
+    // Smooth target frequency
+    dtostrf(g_MotorController.GetSmoothFrequency_Hz(), 2, 2, txtBuffer);
     g_pCurrentSerial->print(txtBuffer);
     g_pCurrentSerial->print(strSeparator);
     
@@ -614,18 +614,24 @@ void UpdateMotorController()
     g_pCurrentSerial->print(strSeparator);
     
     // Controller Output
-    dtostrf(g_MotorController.GetOutput(), 2, 3, txtBuffer);
+    dtostrf(g_MotorController.GetOutput(), 2, 4, txtBuffer);
     g_pCurrentSerial->print(txtBuffer);
     g_pCurrentSerial->print(strSeparator);
     
     // Current Move Direction
     const char strFwd[] = "FWD";
     const char strBwd[] = "BWD";
-    if (g_MotorController.GetCurrentMoveDirectionForward())
-      g_pCurrentSerial->print(strFwd);
-    else
-      g_pCurrentSerial->print(strBwd);
-    
+		const char strStop[] = "STOP";
+		if (g_MotorController.GetStopped())
+			g_pCurrentSerial->print(strStop);
+		else
+		{
+			if (g_MotorController.GetCurrentMoveDirectionForward())
+				g_pCurrentSerial->print(strFwd);
+			else
+				g_pCurrentSerial->print(strBwd);
+    }
+		
     // New line
     g_pCurrentSerial->print("\n");
   }
@@ -692,16 +698,30 @@ bool ProcessSerialCommand(char* pCmd, uint8_t* argOffsets, uint8_t nArgs, bool& 
     // Don't print ACK here
     outPrintAck = false;
   }
+  else if (strcmp(pCmd, "GET_FREQ") == 0)
+  {
+    uint16_t encoderPeriod = g_iEncoderPeriod;
+    float encoderFreq_Hz;
+    if (encoderPeriod != 0xFFFF)
+      encoderFreq_Hz = (MAIN_CLOCK_HZ_F / ENCODER_TIMER_CLOCK_DIVIDER_F) / static_cast<float>(encoderPeriod);
+    else
+      encoderFreq_Hz = 0.0f;
+    
+    g_pCurrentSerial->write("FREQ ");
+    char txtBuffer[16];
+    dtostrf(encoderFreq_Hz, 2, 2, txtBuffer);
+    g_pCurrentSerial->write(txtBuffer);
+    g_pCurrentSerial->write(";\n");
+    
+    // Don't print ACK here
+    outPrintAck = false;
+  }
   else if (strcmp(pCmd, "MT_LOG") == 0) // Toggles motor controller logging
   {
     if (nArgs != 1)
       return false;
     
-    char value = pCmd[argOffsets[0]];
-    if (value != '0' && value != '1')
-      return false;
-    
-    g_bMotorLogEnabled = value == '1';
+		g_iMotorLogCount = static_cast<uint8_t>(atoi(&pCmd[argOffsets[0]]));
   }
   else if (strcmp(pCmd, "PING") == 0)
   {
@@ -741,6 +761,15 @@ bool ProcessSerialCommand(char* pCmd, uint8_t* argOffsets, uint8_t nArgs, bool& 
     s.m_fErrorIntegralMax = atof(&pCmd[argOffsets[4]]);
     g_MotorController.SetPidSettings(s);
   }
+	else if (strcmp(pCmd, "SET_DC_TIMER") == 0)
+	{
+		if (nArgs != 1)
+			return false;
+		
+		float timer_s = atof(&pCmd[argOffsets[0]]);
+		float timer_updates = clampf(timer_s / UPDATE_INTERVAL_S, 0.0f, 255.0f);
+		g_iDisconnectCounterThreshold = static_cast<uint8_t>(timer_updates);
+	}
   else if (*pCmd == 0)
   {
     // Silently consume ";" command, don't reply.
@@ -764,7 +793,7 @@ ISR(TIMER3_OVF_vect)
   g_iEncoderPeriod = 0xFFFF;
 }
 
-// Encoder rising edge
+// Encoder 0-1 or 1-0 transition
 ISR(INT1_vect)
 {
   uint16_t counter = TCNT3;
@@ -773,15 +802,15 @@ ISR(INT1_vect)
   TCNT3 = 0;
   TIFR3 &= 1 << TOV3; // Clears the interrupt flag
   
-  // (~ 256 us) - below this value we treat measurement as invalid:
+  // (~ 3ms) - below this value we treat measurement as invalid:
   // - Either counter has overflowed while we are in this interrupt, barely possible
   // - Motor spins so fast
   // - Noise, two pulses very close
-  // Either way we treat it same way as if counter overflowed
-  if (counter < 64) 
+  // We leave values in previous value. Overflow flag is set so that we can properly measure time between transitions.
+  if (counter < 45) 
   {
     g_bEncoderTimerOverflow = true;
-    g_iEncoderPeriod = 0xFFFF;
+    //g_iEncoderPeriod = 0xFFFF;
     return;
   }
   

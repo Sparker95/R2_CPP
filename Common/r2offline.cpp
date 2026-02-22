@@ -101,6 +101,7 @@ void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapF
 	Localizer localizer(localizerConfig, chassisModel);
 
 	RobotCore core(localizer);
+	core.SetUpdateLocalizer(true);
 
 	// Read all blocks
 	std::vector<ControlSensorFrame> sensorStreamBlocks;
