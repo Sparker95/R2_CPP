@@ -5,6 +5,7 @@
 
 #include <mutex>
 #include <cstdint>
+#include <string>
 
 // This class wraps serial communications with chassis motor controller.
 // It does not run its own thread.
@@ -18,6 +19,11 @@ public:
 	// Public types
 	using TOdometerCounter = Chassis::TOdometerCounter;
 	using MoveState = Chassis::MoveState;
+
+	struct ConnectionSettings
+	{
+		std::string m_SerialDevPath;
+	};
 
 	struct MotorCtrlPidSettings
 	{
@@ -34,8 +40,22 @@ public:
 		float m_AccelBrake = 100.0f;
 	};
 
+	struct SteeringSettings
+	{
+		float m_SteeringSpeed = 2.0f;
+	};
+
+	// Struct with all settings which can be sent to Motor Controller board
+	struct AllSettings
+	{
+		ConnectionSettings m_ConnSettings;
+		MotorCtrlPidSettings m_PidSettings;
+		MotorCtrlAccelSettings m_AccelSettings;
+		SteeringSettings m_SteeringSettings;
+	};
+
 	~ChassisInterface();
-	bool Init(const MotorCtrlPidSettings& pidSettings, const MotorCtrlAccelSettings& accelSettings);
+	bool Init(const AllSettings& settings);
 	bool Terminate();
 
 	std::mutex& GetMutex();
@@ -50,7 +70,8 @@ public:
 	bool SendCommand_GetSteer(float& outSteerNorm);
 	bool SendCommand_SetPid(const MotorCtrlPidSettings& s);
 	bool SendCommand_SetAccel(const MotorCtrlAccelSettings& s);
-	
+	bool SendCommand_SetSteerSpeed(float steerSpeed);
+
 private:
 	std::mutex m_Mutex;
 	int m_SerialPortFd = -1;

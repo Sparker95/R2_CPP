@@ -32,9 +32,9 @@ std::mutex& ChassisInterface::GetMutex()
 	return m_Mutex;
 }
 
-bool ChassisInterface::Init(const MotorCtrlPidSettings& pidSettings, const MotorCtrlAccelSettings& accelSettings)
+bool ChassisInterface::Init(const AllSettings& settings)
 {
-    const char serialDevicePath[] = "/dev/ttyAMA3";
+	const char* serialDevicePath = settings.m_ConnSettings.m_SerialDevPath.data(); //"/dev/ttyAMA3";
     printf("ChassisInterface: Initializing motor controller. Serial device: %s\n", serialDevicePath);
 
     m_SerialPortFd = open(serialDevicePath, O_RDWR | O_SYNC);
@@ -120,15 +120,21 @@ bool ChassisInterface::Init(const MotorCtrlPidSettings& pidSettings, const Motor
 		return false;
 	}
 
-	if (!SendCommand_SetPid(pidSettings))
+	if (!SendCommand_SetPid(settings.m_PidSettings))
 	{
 		fprintf(stderr, "ChassisInterface: initialization error, failed to send PID settings\n");
 		return false;
 	}
 
-	if (!SendCommand_SetAccel(accelSettings))
+	if (!SendCommand_SetAccel(settings.m_AccelSettings))
 	{
 		fprintf(stderr, "ChassisInterface: initialization error, failed to send acceleration settings\n");
+		return false;
+	}
+
+	if (!SendCommand_SetSteerSpeed(settings.m_SteeringSettings.m_SteeringSpeed))
+	{
+		fprintf(stderr, "ChassisInterface: initialization error, failed to send steering settings\n");
 		return false;
 	}
 
@@ -258,6 +264,13 @@ bool ChassisInterface::SendCommand_SetAccel(const MotorCtrlAccelSettings& s)
 	char cmd[MESSAGE_SIZE_MAX];
 	sprintf(cmd, "SET_ACCEL %.2f %.2f;",
 		s.m_AccelMove, s.m_AccelBrake);
+	return SendCommand_VerifyResponse(cmd, MSG_ACK);
+}
+
+bool ChassisInterface::SendCommand_SetSteerSpeed(float steerSpeed)
+{
+	char cmd[MESSAGE_SIZE_MAX];
+	sprintf(cmd, "SET_ST_SPEED %.2f;", steerSpeed);
 	return SendCommand_VerifyResponse(cmd, MSG_ACK);
 }
 

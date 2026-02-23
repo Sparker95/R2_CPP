@@ -151,6 +151,12 @@
     <ClCompile Include="..\Common\ProbUtils.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="..\Common\ChassisUtils.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\LocalizerUtils.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\Common.h">
@@ -1303,6 +1309,12 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\ProbUtils.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\ChassisUtils.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\LocalizerUtils.h">
       <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>

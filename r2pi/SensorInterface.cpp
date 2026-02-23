@@ -18,8 +18,8 @@
 // WIP might be in config
 const uint MOTOR_CONTROL_GPIO = 21;
 
-SensorInterface::SensorInterface(float motorSpeed01) :
-	m_MotorSpeed_01(motorSpeed01)
+SensorInterface::SensorInterface(const Settings& settings) :
+	m_Settings(settings)
 {
 	m_PipeFd[0] = -1;
 	m_PipeFd[1] = -1;
@@ -62,7 +62,7 @@ bool SensorInterface::SetMotorState_mt(bool enable)
 		// https://abyz.me.uk/rpi/pigpio/pdif2.html#set_PWM_frequency
 		const uint pwmRange = 255;
 		const uint pwmFrequency = 80;
-		const uint pwmDutycycle = static_cast<uint>(m_MotorSpeed_01 * static_cast<float>(pwmRange));
+		const uint pwmDutycycle = static_cast<uint>(m_Settings.m_MotorSpeed_01 * static_cast<float>(pwmRange));
 
 		return m_Gpio.SetPullUpDown(MOTOR_CONTROL_GPIO, Pigpio::PullUpDown::OFF) &&
 			m_Gpio.SetMode(MOTOR_CONTROL_GPIO, Pigpio::Mode::OUTPUT) &&
@@ -110,7 +110,7 @@ bool SensorInterface::Start()
 	}
 
 	// Open the serial port. Change device path as needed
-	const char serialDevicePath[] = "/dev/serial0";
+	const char* serialDevicePath = m_Settings.m_SerialDevPath.data(); // "/dev/serial0";
 	printf("SensorInterface: Initializing sensor. Serial device: %s\n", serialDevicePath);
 	m_SerialPortFd = open(serialDevicePath, O_RDWR);
 

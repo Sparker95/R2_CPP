@@ -7,19 +7,20 @@ Serial commands
 
 ##   Commands in text mode:   ##
 
-Command:    Data:      Return:                Extra:
-ST;         <float>    ACK;
-GET_ST;                ST <float>;
-MT_MV;      <float>    ACK;
-MT_BR;                 ACK;
-GET_ODO;               ODO <int> <moveDir>;   <moveDir> - '0' - stopped, '+' - fwd, '-' - bwd
-GET_FREQ;              FREQ <float>;
-MT_LOG;     <int>      ACK;                   <int> - number of updates to log. Response: periodic: LOG ... ... ... ;
-PING;                  MT_CTRL;
-STOP_ON_DC; 0/1        ACK;
-SET_ACCEL;  2x<float>  ACK;                   AccelMove AccelBrake
-SET_PID;    5x<float>  ACK;                   P I D ErrorScale ErrorIntegralMax
-SET_DC_TIMER; <float>  ACK;                   Timer value in seconds.
+Command:      Data:      Return:                Extra:
+ST            <float>    ACK;
+GET_ST;                  ST <float>;
+MT_MV         <float>    ACK;
+MT_BR;                   ACK;
+GET_ODO;                 ODO <int> <moveDir>;   <moveDir> - '0' - stopped, '+' - fwd, '-' - bwd
+GET_FREQ;                FREQ <float>;
+MT_LOG        <int>      ACK;                   <int> - number of updates to log. Response: periodic: LOG ... ... ... ;
+PING;                    MT_CTRL;
+STOP_ON_DC    0/1        ACK;
+SET_ACCEL     2x<float>  ACK;                   AccelMove AccelBrake
+SET_PID       5x<float>  ACK;                   P I D ErrorScale ErrorIntegralMax
+SET_DC_TIMER  <float>    ACK;                   Timer value in seconds.
+SET_ST_SPEED  <float>    ACK;
 
 Empty command ";" resets communication state, without reply.
 
@@ -347,8 +348,11 @@ uint8_t g_iSerialCmdBufferId = 0;
 MotorController g_MotorController;
 
 // Steering
-float m_fSteerTgt = 0.0f;
-float m_fSteerEst = 0.0f; // Estimation of real value, it is linearly animated to reach m_fSteerTgt
+float g_fSteerTgt = 0.0f;                    // Target rotation from command
+float g_fSteerTgtAnimated;                   // Animated target rotation, sent to servo
+float g_fSteerTgtAnimSpeed_PerUpdate = UPDATE_INTERVAL_S * 0.5f; // Speed of animation of steering command
+
+float g_fSteerRealEst = 0.0f; // Estimation of real value, it is linearly animated to reach m_fSteerTgtAnimated
 constexpr float STEER_SPEED_DEG_PER_S = 60.0f / 0.17f; // https://servodatabase.com/servo/traxxas/2075x
 constexpr float STEER_FULL_RANGE_DEG = 90.0f;      // -1 .. 1.0 input
 constexpr float STEER_SPEED_INPUT_PER_S = STEER_SPEED_DEG_PER_S / (STEER_FULL_RANGE_DEG / 2.0f); // Turn speed converted into input units per second. 
@@ -551,12 +555,21 @@ void loop()
     {
       g_MotorController.SetCommand_Brake();
       Steer_SetRawValue(PwmControl::PWM_VALUE_NEUTRAL);
-      m_fSteerTgt = 0.0f;
+      g_fSteerTgt = 0.0f;
     }
     
-    // Steer real value animation
-    AnimateLinear(m_fSteerEst, m_fSteerTgt, UPDATE_INTERVAL_S*STEER_SPEED_INPUT_PER_S);
-    
+		// Steering update
+		{
+			// Steer real value animation
+			AnimateLinear(g_fSteerRealEst, g_fSteerTgtAnimated, UPDATE_INTERVAL_S*STEER_SPEED_INPUT_PER_S);
+			
+			// Steer command value animation
+			AnimateLinear(g_fSteerTgtAnimated, g_fSteerTgt, g_fSteerTgtAnimSpeed_PerUpdate);
+			
+			uint16_t steerRawValue = PwmControl::FloatToRawPwm(g_fSteerTgtAnimated);
+			Steer_SetRawValue(steerRawValue);
+		}
+		
     // Update motor controller
     UpdateMotorController();
     
@@ -644,9 +657,7 @@ bool ProcessSerialCommand(char* pCmd, uint8_t* argOffsets, uint8_t nArgs, bool& 
     if (nArgs != 1)
       return false;
     
-    m_fSteerTgt = atof(&pCmd[argOffsets[0]]);
-    uint16_t steerRawValue = PwmControl::FloatToRawPwm(m_fSteerTgt);
-    Steer_SetRawValue(steerRawValue);
+    g_fSteerTgt = atof(&pCmd[argOffsets[0]]);
   }
   else if (strcmp(pCmd, "MT_MV") == 0)
   {
@@ -665,7 +676,7 @@ bool ProcessSerialCommand(char* pCmd, uint8_t* argOffsets, uint8_t nArgs, bool& 
   {
     g_pCurrentSerial->write("ST ");
     char txtBuffer[16];
-    dtostrf(m_fSteerEst, 2, 2, txtBuffer);
+    dtostrf(g_fSteerRealEst, 2, 2, txtBuffer);
     g_pCurrentSerial->write(txtBuffer);
     g_pCurrentSerial->write(";\n");
     
@@ -769,6 +780,14 @@ bool ProcessSerialCommand(char* pCmd, uint8_t* argOffsets, uint8_t nArgs, bool& 
 		float timer_s = atof(&pCmd[argOffsets[0]]);
 		float timer_updates = clampf(timer_s / UPDATE_INTERVAL_S, 0.0f, 255.0f);
 		g_iDisconnectCounterThreshold = static_cast<uint8_t>(timer_updates);
+	}
+	else if (strcmp(pCmd, "SET_ST_SPEED") == 0)
+	{
+		if (nArgs != 1)
+			return false;
+		
+		float steerSpeed_perS = atof(&pCmd[argOffsets[0]]);
+		g_fSteerTgtAnimSpeed_PerUpdate = UPDATE_INTERVAL_S * steerSpeed_perS;
 	}
   else if (*pCmd == 0)
   {

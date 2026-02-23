@@ -15,7 +15,9 @@
 #include "TracyPlug.h"
 #endif
 
+#include "Config.h"
 #include "Chassis.h"
+#include "ChassisUtils.h"
 #include "Localizer.h"
 #include "LocalizerUtils.h"
 #include "CarStatsModel.h"
@@ -65,38 +67,11 @@ void TestCarStatsModel()
 	}
 }
 
-void TestBresenhamLine()
-{
-	using TCellPos = Vector2Base<int>;
-	TCellPos start(50, 100);
-	TCellPos end(100, 40);
-	std::vector<TCellPos> points;
-	BresenhamLine::GetLine(start, end, points);
-
-	printf("Bresenham line from %i, %i to %i, %i:\n", start.x, start.y, end.x, end.y);
-	for (const auto& p : points)
-		printf("%i, %i\n", p.x, p.y);
-
-}
-
-void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapFilePath, const char* pOutLocHistoryPath)
+void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapFilePath, const char* pOutLocHistoryPath,
+	const Localizer::Config& localizerConfig, const Chassis::ChassisStatsConfig& chassisStatsConfig)
 {
 	Chassis::ChassisConfig chassisConfig;
-	Chassis::ChassisStatsConfig chassisStatsConfig;
-
 	Chassis::ChassisModel chassisModel(chassisConfig, chassisStatsConfig);
-
-	Localizer::Config localizerConfig;
-	const float _mapRes = 0.0625;
-	localizerConfig.m_SensorPdfWidth = 2.0f * _mapRes;
-	localizerConfig.m_SensorPdfFloor = 0.6f;
-	localizerConfig.m_SensorScanRange = 12.0f;
-	localizerConfig.m_MapRes_w = _mapRes;
-	localizerConfig.m_StartPose = Pose(0, 0, 0);
-	localizerConfig.m_nParticles = 256; // 128
-	localizerConfig.m_L2IntOccupiedCell = Utils::L2FloatToL2Int(3.0f);
-	localizerConfig.m_L2IntFreeCell = Utils::L2FloatToL2Int(0.5f);
-	localizerConfig.m_ScanDecimation = 1;
 
 	Localizer localizer(localizerConfig, chassisModel);
 
@@ -146,6 +121,8 @@ int main(int argc, char* argv[])
 	const char* pInStreamFilePath = nullptr;
 	const char* pOutMapFilePath = nullptr;
 	const char* pOutLocHistoryPath = nullptr;
+	const char* pInLocalizerConfig = nullptr;
+	const char* pInChassisConfig = nullptr;
 	for (int i = 1; i < argc - 1; i++)
 	{
 		std::string arg(argv[i]);
@@ -155,18 +132,35 @@ int main(int argc, char* argv[])
 			pOutMapFilePath = argv[i + 1];
 		else if (arg == "-outLocHistoryFile")
 			pOutLocHistoryPath = argv[i + 1];
-	}
-
-	if (!pInStreamFilePath || !pOutMapFilePath || !pOutLocHistoryPath)
-	{
-		printf("Not all arguments are provided!\n");
-		return 1;
+		else if (arg == "-inChassisConfig")
+			pInChassisConfig = argv[i + 1];
+		else if (arg == "-inLocalizerConfig")
+			pInLocalizerConfig = argv[i + 1];
 	}
 
 	printf("Arguments:\n");
 	printf("-inStreamFile      : %s\n", pInStreamFilePath);
 	printf("-outMapFile        : %s\n", pOutMapFilePath);
 	printf("-outLocHistoryFile : %s\n", pOutLocHistoryPath);
+	printf("-inChassisConfig   : %s\n", pInChassisConfig);
+	printf("-inLocalizerConfig : %s\n", pInLocalizerConfig);
+
+	if (!pInStreamFilePath || !pOutMapFilePath || !pOutLocHistoryPath || !pInChassisConfig || !pInLocalizerConfig)
+	{
+		printf("Not all arguments are provided!\n");
+		return 1;
+	}
+
+	// Read config files
+	Chassis::ChassisStatsConfig chassisStatsConfig;
+	Localizer::Config localizerConfig;
+
+	if (!ChassisUtils::ReadStatsConfig(Config(pInChassisConfig), chassisStatsConfig) ||
+		!LocalizerUtils::ReadConfig(Config(pInLocalizerConfig), localizerConfig))
+	{
+		printf("Failed to read config files!\n");
+		return 1;
+	}
 
 #if TRACY_ENABLE
 	char __readChar;
@@ -174,7 +168,9 @@ int main(int argc, char* argv[])
 	std::scanf("%c", &__readChar);
 #endif
 
-	ProcessSensorStreamFile(pInStreamFilePath, pOutMapFilePath, pOutLocHistoryPath);
+
+
+	ProcessSensorStreamFile(pInStreamFilePath, pOutMapFilePath, pOutLocHistoryPath, localizerConfig, chassisStatsConfig);
 
 	//TestBresenhamLine();
 	//const char* pFilePath = argv[1];

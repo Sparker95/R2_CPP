@@ -49,14 +49,14 @@ public:
 
 	struct Config
 	{
-		float m_SensorPdfWidth = 2.0f * 0.0625;
-		float m_SensorPdfFloor = 0.6f;
-		float m_SensorScanRange = 12.0f;
-		float m_MapRes_w = 0.0625f;
+		float m_SensorPdfWidth = 0.1f;
+		float m_SensorPdfFloor = 0.5f;
+		float m_SensorScanRange = 10.0f;
+		float m_MapRes_w = 0.1f;
 		Pose m_StartPose = {};
-		uint m_nParticles = 256;
-		int m_L2IntOccupiedCell = 24; // Use Utils::L2FloatToL2Int()
-		int m_L2IntFreeCell = 4;
+		uint m_nParticles = 32;
+		int m_L2IntOccupiedCell = 8; // Use Utils::L2FloatToL2Int()
+		int m_L2IntFreeCell = 8;
 		uint m_ScanDecimation = 1;
 	};
 

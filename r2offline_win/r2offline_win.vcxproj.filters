@@ -81,6 +81,9 @@
     <ClCompile Include="..\Common\Config.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="..\Common\ChassisUtils.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\Vector2.h">
@@ -1071,6 +1074,9 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\LocalizerUtils.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\ChassisUtils.h">
       <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>

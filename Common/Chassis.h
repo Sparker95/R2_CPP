@@ -57,11 +57,11 @@ namespace Chassis
 
 	struct ChassisStatsConfig
 	{
-		float m_WheelRadiusTol_abs = 0.0045f;            // +- Meters
-		float m_OdoFreeplay_abs = 1.0f;                  // +- Number of pulses
-		float m_WheelFreeplay_rad = 60.0f * PI / 180.0f; // +- Radians
-		float m_SteerTolStraight_abs = 0.25f;            // +- Steering units
-		float m_SteerTolTurn_abs = 0.5f;                 // +- Steering units
+		float m_WheelRadiusTol_abs = 0.01f;   // +- Meters
+		float m_OdoFreeplay_abs = 0.01f;      // +- Number of pulses
+		float m_WheelFreeplay_rad = 0.01f;    // +- Radians
+		float m_SteerTolStraight_abs = 0.01f; // +- Steering units
+		float m_SteerTolTurn_abs = 0.01f;     // +- Steering units
 	};
 
 	// Inputs for chassis motion model

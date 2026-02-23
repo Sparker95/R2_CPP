@@ -8,6 +8,7 @@
 #include <memory>
 #include <functional>
 #include <vector>
+#include <string>
 #include <stdint.h>
 #include <mutex>
 
@@ -27,9 +28,15 @@ public:
 	};
 
 public:
+	struct Settings
+	{
+		std::string m_SerialDevPath;
+		float m_MotorSpeed_01 = 0;
+	};
+
 	bool Start();
 	void TerminateWait();
-	SensorInterface(float motorSpeed_01);
+	SensorInterface(const Settings& settings);
 	~SensorInterface();
 
 	// !!! Invoked in thread of SensorInterface!
@@ -47,11 +54,10 @@ private:
 	// const std::vector<Sensor::ScanSample>& scanSamples,	const std::vector<Sensor::ScanSampleInt>& scanSamplesInt
 	using TOnReceivedScan = std::function<void(const std::vector<Sensor::ScanSample>&,
 												const std::vector<Sensor::ScanSampleInt>&)>;
-
+	Settings m_Settings;
 	std::unique_ptr<std::thread> m_pThread;
 	int m_PipeFd[2]; // 0 - read, 1 - write
 	int m_SerialPortFd = -1;
-	float m_MotorSpeed_01 = 0;
 	bool m_bRunning = false;
 
 	// Processing of scan data packets, used by ReadScanDataStream

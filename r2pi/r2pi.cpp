@@ -7,8 +7,10 @@
 
 #include "../Common/Config.h"
 #include "../Common/Localizer.h"
+#include "../Common/LocalizerUtils.h"
 #include "../Common/RobotCore.h"
 #include "../Common/Chassis.h"
+#include "../Common/ChassisUtils.h"
 #include "../Common/ProbUtils.h"
 
 #include <cstring>
@@ -26,49 +28,28 @@ void SignalHandler(int s)
 		pMsgLoop->HandleOsSignal(s);
 }
 
-/*
-mt_ctrl_P 0.5
-mt_ctrl_I 1.0
-mt_ctrl_D 0.0
-mt_ctrl_ErrorScale 0.001
-mt_ctrl_ErrorIntegralMax 1.0
-mt_ctrl_AccelMove 400.0
-mt_ctrl_AccelBrake 800.0
-*/
-
-bool ReadConfigPidSettings(const Config& cfg, ChassisInterface::MotorCtrlPidSettings& outSettings)
+bool ReadConfigChassisInterfaceSettings(const Config& cfg, ChassisInterface::AllSettings& outSettings)
 {
-	ChassisInterface::MotorCtrlPidSettings s;
+	ChassisInterface::AllSettings s;
 
 	bool cfgSuccess =
-		cfg.Get("mt_ctrl_P", s.m_KP) &&
-		cfg.Get("mt_ctrl_I", s.m_KI) &&
-		cfg.Get("mt_ctrl_D", s.m_KD) &&
-		cfg.Get("mt_ctrl_ErrorScale", s.m_ErrorScale) &&
-		cfg.Get("mt_ctrl_ErrorIntegralMax", s.m_ErrorIntegralMax);
+		// Connection settings
+		cfg.Get("SerialDevPath", s.m_ConnSettings.m_SerialDevPath) &&
+		// PID settings
+		cfg.Get("MotorControllerKP", s.m_PidSettings.m_KP) &&
+		cfg.Get("MotorControllerKI", s.m_PidSettings.m_KI) &&
+		cfg.Get("MotorControllerKD", s.m_PidSettings.m_KD) &&
+		cfg.Get("MotorControllerErrorScale", s.m_PidSettings.m_ErrorScale) &&
+		cfg.Get("MotorControllerErrorIntegralMax", s.m_PidSettings.m_ErrorIntegralMax) &&
+		// Acceleration settings
+		cfg.Get("MotorControllerAccelMove", s.m_AccelSettings.m_AccelMove) &&
+		cfg.Get("MotorControllerAccelBrake", s.m_AccelSettings.m_AccelBrake) &&
+		// Steering settings
+		cfg.Get("SteerSpeed", s.m_SteeringSettings.m_SteeringSpeed);
 
 	if (!cfgSuccess)
 	{
-		fprintf(stderr, "Error: Failed to read PID settings from config\n");
-		return false;
-	}
-
-	// Try to preserve default values in case of failure
-	outSettings = s;
-	return true;
-}
-
-bool ReadConfigAccelSettings(const Config& cfg, ChassisInterface::MotorCtrlAccelSettings& outSettings)
-{
-	ChassisInterface::MotorCtrlAccelSettings s;
-
-	bool cfgSuccess =
-		cfg.Get("mt_ctrl_AccelMove", s.m_AccelMove) &&
-		cfg.Get("mt_ctrl_AccelBrake", s.m_AccelBrake);
-
-	if (!cfgSuccess)
-	{
-		fprintf(stderr, "Error: Failed to read acceleration settings from config\n");
+		fprintf(stderr, "Error: Failed to read chassis interface settings from config\n");
 		return false;
 	}
 
@@ -81,10 +62,10 @@ bool ReadConfigChassisControlSettings(const Config& cfg, ChassisSettings::Contro
 	ChassisSettings::ControlSettings s;
 
 	bool cfgSuccess =
-		cfg.Get("ctrl_SteerOutputMax", s.m_SteerOutputMax) &&
-		cfg.Get("ctrl_SpeedSlow_Hz", s.m_SpeedSlow_Hz) &&
-		cfg.Get("ctrl_SpeedCruise_Hz", s.m_SpeedCruise_Hz) &&
-		cfg.Get("ctrl_SpeedFast_Hz", s.m_SpeedFast_Hz);
+		cfg.Get("SteerOutputMax", s.m_SteerOutputMax) &&
+		cfg.Get("SpeedSlow_Hz", s.m_SpeedSlow_Hz) &&
+		cfg.Get("SpeedCruise_Hz", s.m_SpeedCruise_Hz) &&
+		cfg.Get("SpeedFast_Hz", s.m_SpeedFast_Hz);
 
 	if (!cfgSuccess)
 	{
@@ -96,9 +77,12 @@ bool ReadConfigChassisControlSettings(const Config& cfg, ChassisSettings::Contro
 	return true;
 }
 
-bool ReadConfigSensorSettings(const Config& cfg, float& outSensorMotorSpeed_01)
+bool ReadConfigSensorInterfaceSettings(const Config& cfg, SensorInterface::Settings& outSettings)
 {
-	bool cfgSuccess = cfg.Get("sensor_MotorSpeed_01", outSensorMotorSpeed_01);
+	SensorInterface::Settings s;
+
+	bool cfgSuccess = cfg.Get("SerialDevPath", s.m_SerialDevPath) &&
+		cfg.Get("MotorSpeed_01", s.m_MotorSpeed_01);
 
 	if (!cfgSuccess)
 	{
@@ -106,6 +90,7 @@ bool ReadConfigSensorSettings(const Config& cfg, float& outSensorMotorSpeed_01)
 		return false;
 	}
 
+	outSettings = s;
 	return true;
 }
 
@@ -127,58 +112,79 @@ int main(int argc, char** argv)
 			printf("sigaction SIGTERM error\n");
 	}
 
+	// Extract command line arguments
+	const char* pInLocalizerConfig = nullptr;
+	const char* pInChassisStatsConfig = nullptr;
+	const char* pInChassisIfConfig = nullptr;
+	const char* pInSensorIfConfig = nullptr;
+	const char* pInChassisControlConfig = nullptr;
+	for (int i = 1; i < argc - 1; i++)
+	{
+		std::string arg(argv[i]);
+		if (arg == "-inChassisIfConfig")
+			pInChassisIfConfig = argv[i + 1];
+		else if (arg == "-inChassisStatsConfig")
+			pInChassisStatsConfig = argv[i + 1];
+		else if (arg == "-inLocalizerConfig")
+			pInLocalizerConfig = argv[i + 1];
+		else if (arg == "-inSensorIfConfig")
+			pInSensorIfConfig = argv[i + 1];
+		else if (arg == "-inChassisControlConfig")
+			pInChassisControlConfig = argv[i + 1];
+	}
+
+	printf("Command Line Arguments:\n");
+	printf("-inChassisIfConfig      : %s\n", pInChassisIfConfig);
+	printf("-inChassisStatsConfig   : %s\n", pInChassisStatsConfig);
+	printf("-inLocalizerConfig      : %s\n", pInLocalizerConfig);
+	printf("-inSensorIfConfig       : %s\n", pInSensorIfConfig);
+	printf("-inChassisControlConfig : %s\n", pInChassisControlConfig);
+
+	if (!pInChassisIfConfig || !pInChassisStatsConfig || !pInLocalizerConfig)
+	{
+		printf("Not all arguments are provided!\n");
+		return 1;
+	}
+
 	bool initDone = true;
 
-	// Read config file
-	Config config;
-	if (!config.ReadConfig("../../../config.cfg"))
-		initDone = false;
-	ChassisInterface::MotorCtrlPidSettings pidSettings;
-	ChassisInterface::MotorCtrlAccelSettings accelSettings;
+	// Read config files
+	ChassisInterface::AllSettings    chassisIfSettings;
 	ChassisSettings::ControlSettings chassisControlSettings;
-	float sensorMotorSpeed_01;
-	if (!ReadConfigPidSettings(config, pidSettings))
-		initDone = false;
-	if (!ReadConfigAccelSettings(config, accelSettings))
-		initDone = false;
-	if (!ReadConfigChassisControlSettings(config, chassisControlSettings))
-		initDone = false;
-	if (!ReadConfigSensorSettings(config, sensorMotorSpeed_01))
-		initDone = false;
+	SensorInterface::Settings        sensorIfSettings;
+	Localizer::Config                localizerConfig;
+	Chassis::ChassisStatsConfig      chassisStatsConfig;
+	initDone = initDone && ReadConfigChassisInterfaceSettings(Config(pInChassisIfConfig), chassisIfSettings);
+	initDone = initDone && ReadConfigChassisControlSettings(Config(pInChassisControlConfig), chassisControlSettings);
+	initDone = initDone && ReadConfigSensorInterfaceSettings(Config(pInSensorIfConfig), sensorIfSettings);
+	initDone = initDone && LocalizerUtils::ReadConfig(Config(pInLocalizerConfig), localizerConfig);
+	initDone = initDone && ChassisUtils::ReadStatsConfig(Config(pInChassisStatsConfig), chassisStatsConfig);
+
+	if (!initDone)
+	{
+		printf("Failed to read config files!\n");
+		return 1;
+	}
 
 	// The RobotCore and related parts
 	// Chassis
-	Chassis::ChassisConfig chassisConfig;
-	Chassis::ChassisStatsConfig chassisStatsConfig;
-
+	Chassis::ChassisConfig chassisConfig; // Using defaults
 	Chassis::ChassisModel chassisModel(chassisConfig, chassisStatsConfig);
 
 	// Localizer
-	Localizer::Config localizerConfig;
-	const float _mapRes = 0.0625;
-	localizerConfig.m_SensorPdfWidth = 2.0f * _mapRes;
-	localizerConfig.m_SensorPdfFloor = 0.6f;
-	localizerConfig.m_SensorScanRange = 12.0f;
-	localizerConfig.m_MapRes_w = _mapRes;
-	localizerConfig.m_StartPose = Pose(0, 0, 0);
-	localizerConfig.m_nParticles = 256; // 128
-	localizerConfig.m_L2IntOccupiedCell = Utils::L2FloatToL2Int(3.0f);
-	localizerConfig.m_L2IntFreeCell = Utils::L2FloatToL2Int(0.5f);
-	localizerConfig.m_ScanDecimation = 1;
-
 	Localizer localizer(localizerConfig, chassisModel);
 
 	// Core
 	RobotCore robotCore(localizer);
 
 	// Sensor interface
-	SensorInterface sensor(sensorMotorSpeed_01);
+	SensorInterface sensor(sensorIfSettings);
 	if (!sensor.Start())
 		initDone = false;
 
 	// Chassis interface
 	ChassisInterface chassis;
-	if (!chassis.Init(pidSettings, accelSettings))
+	if (!chassis.Init(chassisIfSettings))
 		initDone = false;
 
 	// Main message loop

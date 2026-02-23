@@ -10,6 +10,11 @@ Config::Config()
 
 }
 
+Config::Config(const char* configPath)
+{
+	ReadConfig(configPath);
+}
+
 Config::~Config()
 {
 	if (m_pConfigData)
@@ -59,7 +64,9 @@ bool Config::ReadConfig(const char* configPath)
 	{
 		char* pSpace = strchr(pLineStart, ' ');
 		char* pNewLine = strchr(pLineStart, '\n');
-		if (pSpace == nullptr || (pSpace > pNewLine && pNewLine != nullptr))
+		if (pSpace == nullptr) // Either error, or end (empty string with one newline)
+			break;
+		if (pSpace > pNewLine && pNewLine != nullptr) // Line without space
 		{
 			fprintf(stderr, "Config: File data error\n");
 			return false;
@@ -110,6 +117,18 @@ bool Config::Get(const char* pKeyName, uint& outValue, bool reportError /*= true
 		return false;
 
 	outValue = static_cast<uint>(std::atol(pValueStr));
+
+	return true;
+}
+
+bool Config::Get(const char* pKeyName, std::string& outValue, bool reportError /*= true*/) const
+{
+	const char* pValueStr = FindValue(pKeyName, reportError);
+
+	if (!pValueStr)
+		return false;
+
+	outValue = pValueStr;
 
 	return true;
 }
