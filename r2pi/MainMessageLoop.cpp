@@ -27,8 +27,9 @@ MainMessageLoop::MainMessageLoop(SensorInterface& sensorInterface, ChassisInterf
 	m_pRobotCore = &robotCore;
 
 	m_pSensorInterface->BindOnReceivedScan(
-		[this](const std::vector<Sensor::ScanSample>& scanSamples, const std::vector<Sensor::ScanSampleInt>& scanSamplesInt)
-		{ OnReceivedScan_mt(scanSamples, scanSamplesInt); } );
+		[this](const std::vector<Sensor::ScanSample>& scanSamples, const std::vector<Sensor::ScanSampleInt>& scanSamplesInt,
+			SensorInterface::TTimestamp timeEnd, float scanPeriod_s)
+		{ OnReceivedScan_mt(scanSamples, scanSamplesInt, timeEnd, scanPeriod_s); } );
 
 	m_TimeStart = std::chrono::high_resolution_clock::now();
 }
@@ -110,9 +111,8 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 
 		frame.m_ScanSamples = pMsg->m_Scan;
 
-		// WIP later sensor itself will provide time stamp
-		auto timeNow = std::chrono::high_resolution_clock::now();
-		frame.m_Timestamp_ms = static_cast<uint>(std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - m_TimeStart).count());
+		// WIP Now we store only the timestamp of scan end
+		frame.m_TimeScanEnd_ms = static_cast<uint>(std::chrono::duration_cast<std::chrono::milliseconds>(pMsg->m_TimeEnd - m_TimeStart).count());
 
 		//printf("MainMessageLoop: Received new scan: %i raw samples\n", pMsg->m_RawSampleCount);
 
@@ -129,7 +129,7 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 		if (m_pCtrlPanelServer->GetConnected() && m_pCtrlPanelServer->GetStreamSensorData())
 		{
 			// Scan data is sent in integer format, to save bandwidth
-			m_pCtrlPanelServer->SendSensorData_mt(frame.m_Timestamp_ms, pMsg->m_ScanInt, frame.m_Odometer, frame.m_MoveState, frame.m_Steer);
+			m_pCtrlPanelServer->SendSensorData_mt(frame.m_TimeScanEnd_ms, pMsg->m_ScanInt, frame.m_Odometer, frame.m_MoveState, frame.m_Steer);
 		}
 
 		// Pass data to RobotCore
@@ -145,17 +145,10 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 			case TMoveState::FORWARD: moveStateText = "FWD"; break;
 			case TMoveState::STOP: moveStateText = "STOP"; break;
 			}
-			float scanFreq_Hz = 0;
-			if (m_TimeLastSensorScanData.time_since_epoch() != std::chrono::high_resolution_clock::time_point::duration::zero())
-			{
-				float sensorPeriod_ms = static_cast<float>(std::chrono::duration_cast<std::chrono::milliseconds>(timeNow - m_TimeLastSensorScanData).count());
-				scanFreq_Hz = 1000.0f / sensorPeriod_ms;
-			}
 			printf("%u ms, Scan Count: %u, Scan Frequency: %.2f Hz, Scan Size: %u, Odometer: %u, MoveState: %s, Steer: %.2f\n",
-				frame.m_Timestamp_ms, m_SensorScanCounter, scanFreq_Hz, pMsg->m_Scan.size(), static_cast<int>(frame.m_Odometer), moveStateText, frame.m_Steer);
+				frame.m_TimeScanEnd_ms, m_SensorScanCounter, 1/pMsg->m_ScanPeriod_s, pMsg->m_Scan.size(), static_cast<int>(frame.m_Odometer), moveStateText, frame.m_Steer);
 		}
 
-		m_TimeLastSensorScanData = timeNow;
 		m_SensorScanCounter++;
 
 		FrameMark;
@@ -249,12 +242,16 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 //------------------------------------------------------------------------------------------------------------------------
 // Connection with other objects
 
-void MainMessageLoop::OnReceivedScan_mt(const std::vector<Sensor::ScanSample>& scanSamples, const std::vector<Sensor::ScanSampleInt>& scanSamplesInt)
+void MainMessageLoop::OnReceivedScan_mt(const std::vector<Sensor::ScanSample>& scanSamples,
+	const std::vector<Sensor::ScanSampleInt>& scanSamplesInt,
+	SensorInterface::TTimestamp timeEnd, float scanPeriod_s)
 {
 	MessageNewSensorScanData* pMsg = new MessageNewSensorScanData();
 
 	pMsg->m_Scan = scanSamples;
 	pMsg->m_ScanInt = scanSamplesInt;
+	pMsg->m_TimeEnd = timeEnd;
+	pMsg->m_ScanPeriod_s = scanPeriod_s;
 
 	PostMessage(std::unique_ptr<MessageBase>(pMsg));
 }

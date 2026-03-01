@@ -3,6 +3,8 @@
 #include "../Common/CommonIntTypes.h"
 #include "../Common/Sensor.h"
 
+#include "PidController.h"
+
 #include "Pigpio.h"
 
 #include <memory>
@@ -11,6 +13,8 @@
 #include <string>
 #include <stdint.h>
 #include <mutex>
+#include <chrono>
+#include <atomic>
 
 namespace std
 {
@@ -20,6 +24,8 @@ namespace std
 class SensorInterface
 {
 public:
+	using TTimestamp = std::chrono::high_resolution_clock::time_point;
+
 	struct RawScanSample
 	{
 		ushort m_RawAngle;
@@ -31,7 +37,10 @@ public:
 	struct Settings
 	{
 		std::string m_SerialDevPath;
-		float m_MotorSpeed_01 = 0;
+		float m_MotorSpeed_Hz = 0;
+		PidController::Settings m_MotorControllerPidSettings;
+		float m_MotorControllerStartPwmValue_01 = 1.0; // Initial value used to start the motor
+		float m_MotorControllerMinPwmValue_01 = 0;
 	};
 
 	bool Start();
@@ -52,8 +61,11 @@ private:
 	constexpr static char PIPE_CMD_TERMINATE = 0x78; // Sent into pipe to termiante the thread
 
 	// const std::vector<Sensor::ScanSample>& scanSamples,	const std::vector<Sensor::ScanSampleInt>& scanSamplesInt
+	// TTimestamp timeEnd, float scanPeriod_s
 	using TOnReceivedScan = std::function<void(const std::vector<Sensor::ScanSample>&,
-												const std::vector<Sensor::ScanSampleInt>&)>;
+												const std::vector<Sensor::ScanSampleInt>&,
+												TTimestamp,
+												float)>;
 	Settings m_Settings;
 	std::unique_ptr<std::thread> m_pThread;
 	int m_PipeFd[2]; // 0 - read, 1 - write
@@ -65,6 +77,7 @@ private:
 	std::vector<Sensor::ScanSample> m_OutScanSamples;
 	std::vector<Sensor::ScanSampleInt> m_OutIntScanSamples;
 
+	TTimestamp m_TimeLastScanStart = {};
 	uint m_ReceivedScanCount = 0; // Total number of scans received
 	uint m_PacketByteId = 0;
 	uchar m_ScanPacketBuffer[5]; // Packet is read byte by byte into this buffer
@@ -74,9 +87,11 @@ private:
 	// !!! Invoked in thread of SensorInterface!
 	std::vector<TOnReceivedScan> m_OnReceivedScan;
 
-	// GPIO
+	// Motor control, GPIO
 	Pigpio m_Gpio;
 	std::mutex m_GpioMutex;
+	PidController m_MotorPidController;
+	std::atomic_bool m_MotorState = false; // Atomic since it's read from another thread
 
 	void ThreadFunction();
 	void ClosePipe();
@@ -84,7 +99,8 @@ private:
 
 	void ReadScanDataStream(const uchar* pData, uint nBytes);
 	void ProcessScanDataPacket();
-	void ProcessScanResult(); // Convert raw data to floats, invoke events
+	void ProcessScanResult(TTimestamp timeNow, float scanPeriod_s); // Convert raw data to floats, invoke events
+	void UpdateMotorPidController(float dt_s);
 
 	bool InitSensor();
 };

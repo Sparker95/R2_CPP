@@ -434,6 +434,7 @@
     <ClInclude Include="Eigen\src\SVD\UpperBidiagonalization.h" />
     <ClInclude Include="Eigen\src\UmfPackSupport\UmfPackSupport.h" />
     <ClInclude Include="MainMessageLoop.h" />
+    <ClInclude Include="PidController.h" />
     <ClInclude Include="Pigpio.h" />
     <ClInclude Include="SensorInterface.h" />
     <ClInclude Include="Tracy\client\TracyArmCpuTable.hpp" />

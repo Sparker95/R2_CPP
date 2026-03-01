@@ -4,6 +4,8 @@
 #include "../Common/MathUtils.h"
 
 #include <thread>
+#include <algorithm>
+#include <math.h>
 
 #include <unistd.h>
 #include <stdio.h>
@@ -17,6 +19,9 @@
 // GPIO index of motor control pin
 // WIP might be in config
 const uint MOTOR_CONTROL_GPIO = 21;
+const uint MOTOR_CONTROL_PWM_FREQUENCY = 80;
+const uint MOTOR_CONTROL_PWM_RANGE = 255;
+
 
 SensorInterface::SensorInterface(const Settings& settings) :
 	m_Settings(settings)
@@ -57,21 +62,28 @@ bool SensorInterface::SetMotorState_mt(bool enable)
 {
 	std::unique_lock lock(m_GpioMutex);
 
+	m_MotorState.store(enable);
+
 	if (enable)
 	{
+		// Setup PID controller
+		m_MotorPidController.Setup(m_Settings.m_MotorControllerPidSettings);
+		m_MotorPidController.SetPoint(m_Settings.m_MotorSpeed_Hz);
+
 		// https://abyz.me.uk/rpi/pigpio/pdif2.html#set_PWM_frequency
-		const uint pwmRange = 255;
-		const uint pwmFrequency = 80;
-		const uint pwmDutycycle = static_cast<uint>(m_Settings.m_MotorSpeed_01 * static_cast<float>(pwmRange));
+		const uint pwmDutycycle = static_cast<uint>(roundf(m_Settings.m_MotorControllerStartPwmValue_01 * MOTOR_CONTROL_PWM_RANGE));
 
 		return m_Gpio.SetPullUpDown(MOTOR_CONTROL_GPIO, Pigpio::PullUpDown::OFF) &&
 			m_Gpio.SetMode(MOTOR_CONTROL_GPIO, Pigpio::Mode::OUTPUT) &&
-			m_Gpio.SetPwmFrequency(MOTOR_CONTROL_GPIO, pwmFrequency) &&
-			m_Gpio.SetPwmRange(MOTOR_CONTROL_GPIO, pwmRange) &&
+			m_Gpio.SetPwmFrequency(MOTOR_CONTROL_GPIO, MOTOR_CONTROL_PWM_FREQUENCY) &&
+			m_Gpio.SetPwmRange(MOTOR_CONTROL_GPIO, MOTOR_CONTROL_PWM_RANGE) &&
 			m_Gpio.SetPwmDutycycle(MOTOR_CONTROL_GPIO, pwmDutycycle);
 	}
 	else
 	{
+		// Reset PID controller
+		m_MotorPidController.Reset();
+
 		return m_Gpio.Write(MOTOR_CONTROL_GPIO, false) &&
 			m_Gpio.SetPullUpDown(MOTOR_CONTROL_GPIO, Pigpio::PullUpDown::DOWN) &&
 			m_Gpio.SetMode(MOTOR_CONTROL_GPIO, Pigpio::Mode::INPUT) &&
@@ -82,13 +94,16 @@ bool SensorInterface::SetMotorState_mt(bool enable)
 
 bool SensorInterface::GetMotorState_mt()
 {
+	/*
+	// Legacy code: reads state from gpio state
 	std::unique_lock lock(m_GpioMutex);
 
 	unsigned int dutycycle;
 	if (!m_Gpio.GetPwmDutycycle(MOTOR_CONTROL_GPIO, dutycycle))
 		return false;
+	*/
 
-	return dutycycle != 0;
+	return m_MotorState.load();
 }
 
 bool SensorInterface::Start()
@@ -420,12 +435,18 @@ void SensorInterface::ProcessScanDataPacket()
 
 	if (startOfNewScan)
 	{
+		auto timeNow = std::chrono::high_resolution_clock::now();
+
 		if (!m_WaitingFirstScanStart)
 		{
-			ProcessScanResult();
+			float dt_s = 1e-6f * static_cast<float>(std::chrono::duration_cast<std::chrono::microseconds>(timeNow - m_TimeLastScanStart).count());
+
+			ProcessScanResult(timeNow, dt_s);
+			UpdateMotorPidController(dt_s);
 		}
 		m_WaitingFirstScanStart = false;
 		m_RawScanSampleBuffer.clear();
+		m_TimeLastScanStart = timeNow;
 	}
 
 	if (m_RawScanSampleBuffer.size() < 1024)
@@ -447,7 +468,7 @@ void SensorInterface::ProcessScanDataPacket()
 	}
 }
 
-void SensorInterface::ProcessScanResult()
+void SensorInterface::ProcessScanResult(TTimestamp timeNow, float scanPeriod_s)
 {
 	// m_pScanSampleBuffer contains scan data, convert it and invoke event for subscriber
 
@@ -470,10 +491,31 @@ void SensorInterface::ProcessScanResult()
 		m_OutIntScanSamples.push_back(outSampleInt);
 	}
 
-	// printf("SensorInterface: Received scan: total samples: %i, valid samples: %i\n", m_ScanSampleId, outSampleId);
-
 	for (uint i = 0; i < m_OnReceivedScan.size(); i++)
 	{
-		m_OnReceivedScan[i](m_OutScanSamples, m_OutIntScanSamples);
+		m_OnReceivedScan[i](m_OutScanSamples, m_OutIntScanSamples, timeNow, scanPeriod_s);
+	}
+}
+
+void SensorInterface::UpdateMotorPidController(float dt_s)
+{
+	// This is inertia of motor after it's been switched off, ignore
+	if (!m_MotorState.load())
+		return;
+
+	// This code assumes the GPIO is already set up (SetMotorState_mt has been called)
+	{
+		std::unique_lock lock(m_GpioMutex);
+
+		dt_s = std::clamp(dt_s, 0.0f, 10.0f);
+
+		m_MotorPidController.Update(dt_s, 1.0f / dt_s);
+
+		// PID output must not reach value below threshold, or motor will stop and won't start
+		float motorPidOutput = std::clamp(m_MotorPidController.GetOutput(), m_Settings.m_MotorControllerMinPwmValue_01, 1.0f);
+
+		uint pwmDutycycle = static_cast<uint>(roundf(motorPidOutput * MOTOR_CONTROL_PWM_RANGE));
+
+		m_Gpio.SetPwmDutycycle(MOTOR_CONTROL_GPIO, pwmDutycycle);
 	}
 }

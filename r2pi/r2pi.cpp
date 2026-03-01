@@ -82,7 +82,14 @@ bool ReadConfigSensorInterfaceSettings(const Config& cfg, SensorInterface::Setti
 	SensorInterface::Settings s;
 
 	bool cfgSuccess = cfg.Get("SerialDevPath", s.m_SerialDevPath) &&
-		cfg.Get("MotorSpeed_01", s.m_MotorSpeed_01);
+		cfg.Get("MotorSpeed_Hz", s.m_MotorSpeed_Hz) &&
+		cfg.Get("MotorControllerKP", s.m_MotorControllerPidSettings.m_fKP) &&
+		cfg.Get("MotorControllerKI", s.m_MotorControllerPidSettings.m_fKI) &&
+		cfg.Get("MotorControllerKD", s.m_MotorControllerPidSettings.m_fKD) &&
+		cfg.Get("MotorControllerErrorScale", s.m_MotorControllerPidSettings.m_fErrorScale) &&
+		cfg.Get("MotorControllerErrorIntegralMax", s.m_MotorControllerPidSettings.m_fErrorIntegralMax) &&
+		cfg.Get("MotorControllerStartPwmValue_01", s.m_MotorControllerStartPwmValue_01) &&
+		cfg.Get("MotorControllerMinPwmValue_01", s.m_MotorControllerMinPwmValue_01);
 
 	if (!cfgSuccess)
 	{

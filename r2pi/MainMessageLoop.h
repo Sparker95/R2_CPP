@@ -5,6 +5,8 @@
 #include "../Common/ControlPanelProtocol.h"
 #include "../Common/ControlSensorFrame.h"
 
+#include "SensorInterface.h"
+
 #include <mutex>
 #include <queue>
 #include <memory>
@@ -30,6 +32,8 @@ public:
 	{
 		std::vector<Sensor::ScanSample> m_Scan;
 		std::vector<Sensor::ScanSampleInt> m_ScanInt;
+		SensorInterface::TTimestamp m_TimeEnd;
+		float m_ScanPeriod_s = 0;
 	};
 
 	// For all trivial messaages from control panel.
@@ -64,8 +68,8 @@ private:
 	RobotCore* m_pRobotCore = nullptr;
 
 	// Timestamp
+	// This should serve as start timestamp for everything else in program
 	std::chrono::high_resolution_clock::time_point m_TimeStart = {};
-	std::chrono::high_resolution_clock::time_point m_TimeLastSensorScanData = {};
 
 	// Queue
 	std::mutex m_QueueMutex;
@@ -85,6 +89,7 @@ private:
 	void ProcessMessage(MessageBase& msgBase);
 
 	// Called from SensorInterface thread!
-	void OnReceivedScan_mt(const std::vector<Sensor::ScanSample>&,
-		const std::vector<Sensor::ScanSampleInt>&);
+	void OnReceivedScan_mt(const std::vector<Sensor::ScanSample>& scanSamples,
+		const std::vector<Sensor::ScanSampleInt>& scanSamplesInt,
+		SensorInterface::TTimestamp timeEnd, float scanPeriod_s);
 };

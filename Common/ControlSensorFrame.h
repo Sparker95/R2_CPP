@@ -14,7 +14,7 @@
 // Contains both chassis inputs and sensor data.
 struct ControlSensorFrame // Control And Sensor Frame
 {
-	uint32_t m_Timestamp_ms;
+	uint32_t m_TimeScanEnd_ms;
 	Chassis::TOdometerCounter m_Odometer;
 	Chassis::MoveState m_MoveState;
 	float m_Steer;
