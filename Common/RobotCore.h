@@ -7,11 +7,13 @@
 // Handles the Update() cycle. Propagates data between other parts.
 
 class Localizer;
+class CrashDetector;
 
 class RobotCore
 {
 private:
 	Localizer* m_pLocalizer;
+	CrashDetector* m_pCrashDetector;
 	ControlSensorFrame m_PrevFrame;
 	bool m_PrevFrameValid = false;
 
@@ -19,7 +21,7 @@ private:
 	std::atomic<bool> m_UpdateLocalizer = false;
 
 public:
-	RobotCore(Localizer& pLocalizer);
+	RobotCore(Localizer& localizer, CrashDetector& crashDetector);
 
 	void Update(const ControlSensorFrame& frame);
 
@@ -30,4 +32,6 @@ public:
 
 	// Trivial getters
 	Localizer* GetLocalizer() { return m_pLocalizer; }
+
+	bool GetBrakeOverride() const;
 };

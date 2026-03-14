@@ -1,16 +1,13 @@
 #include "RobotCore.h"
 
-#ifdef TRACY_ENABLE
-#include "Tracy/tracy/Tracy.hpp"
-#else
 #include "TracyPlug.h"
-#endif
 
 #include "Chassis.h"
 #include "Localizer.h"
+#include "CrashDetector.h"
 
-RobotCore::RobotCore(Localizer& pLocalizer)
-	: m_pLocalizer(&pLocalizer)
+RobotCore::RobotCore(Localizer& localizer, CrashDetector& crashDetector)
+	: m_pLocalizer(&localizer), m_pCrashDetector(&crashDetector)
 {
 }
 
@@ -26,15 +23,12 @@ void RobotCore::Update(const ControlSensorFrame& frame)
 
 	Chassis::TOdometerCounter odoDiff = Chassis::CalculateOdometerDifference(frame.m_Odometer, m_PrevFrame.m_Odometer);
 
-	if (odoDiff == 0)
-	{
-		m_PrevFrame = frame;
-		return;
-	}
-
 	ZoneScopedN("RobotCore::Update");
 
-	if (m_UpdateLocalizer)
+	// CrashDetector must be updated before Localizer. Localizer takes long time.
+	m_pCrashDetector->Update(frame, m_PrevFrame);
+
+	if (m_UpdateLocalizer && odoDiff != 0)
 	{
 		Chassis::ChassisInputs inputs;
 		inputs.m_MoveState = frame.m_MoveState;
@@ -49,4 +43,9 @@ void RobotCore::Update(const ControlSensorFrame& frame)
 void RobotCore::ResetLocalizer()
 {
 	m_pLocalizer->Reset();
+}
+
+bool RobotCore::GetBrakeOverride() const
+{
+	return m_pCrashDetector->GetBrakeOverride_mt();
 }

@@ -157,6 +157,9 @@
     <ClCompile Include="..\Common\LocalizerUtils.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="..\Common\CrashDetector.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\Common.h">
@@ -1319,6 +1322,9 @@
     </ClInclude>
     <ClInclude Include="PidController.h">
       <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CrashDetector.h">
+      <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

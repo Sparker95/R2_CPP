@@ -2,6 +2,7 @@
 
 #include "ChassisInterface.h"
 #include "../Common/ControlInputsProtocol.h"
+#include "../Common/CrashDetector.h"
 
 #include <thread>
 #include <algorithm>
@@ -18,9 +19,12 @@
 #include <fcntl.h>
 
 
-ControlInputsSocket::ControlInputsSocket(ChassisInterface* pChassisInterface, const ChassisSettings::ControlSettings* pChassisCtrlSettings)
-	: m_pChassisInterface(pChassisInterface),
-	m_pChassisCtrlSettings(pChassisCtrlSettings)
+ControlInputsSocket::ControlInputsSocket(ChassisInterface& chassisInterface,
+	const ChassisSettings::ControlSettings& chassisCtrlSettings,
+	const CrashDetector& crashDetector)
+	: m_pChassisInterface(&chassisInterface),
+	m_pChassisCtrlSettings(&chassisCtrlSettings),
+	m_pCrashDetector(&crashDetector)
 {
 	m_PipeFd[0] = -1;
 	m_PipeFd[1] = -1;
@@ -147,29 +151,35 @@ bool ControlInputsSocket::ProcessMessage(const char* pMsg, uint msgSize)
 	{
 		std::unique_lock chassisLock(m_pChassisInterface->GetMutex());
 
+		// Crash detector can request brake override
+		bool crashBrakeOverride = m_pCrashDetector->GetBrakeOverride_mt();
+
 		// Movement or braking
-		if (pControlInputsMsg->m_CmdFlags & ControlInputsProtocol::Message::CMD_FLAG_BRAKE)
-			m_pChassisInterface->SendCommand_MotorBrake();
-		else if (pControlInputsMsg->m_CmdFlags & ControlInputsProtocol::Message::CMD_FLAG_MOVE)
+		if (!crashBrakeOverride)
 		{
-			using TMoveSpeed = ControlInputsProtocol::Message::MoveSpeed;
-			float moveCmdValue = 0;
-			switch (pControlInputsMsg->m_MoveSpeed)
+			if (pControlInputsMsg->m_CmdFlags & ControlInputsProtocol::Message::CMD_FLAG_BRAKE)
+				m_pChassisInterface->SendCommand_MotorBrake();
+			else if (pControlInputsMsg->m_CmdFlags & ControlInputsProtocol::Message::CMD_FLAG_MOVE)
 			{
-				case TMoveSpeed::SLOW:   moveCmdValue = m_pChassisCtrlSettings->m_SpeedSlow_Hz; break;
-				case TMoveSpeed::CRUISE: moveCmdValue = m_pChassisCtrlSettings->m_SpeedCruise_Hz; break;
-				case TMoveSpeed::FAST:   moveCmdValue = m_pChassisCtrlSettings->m_SpeedFast_Hz; break;
+				using TMoveSpeed = ControlInputsProtocol::Message::MoveSpeed;
+				float moveCmdValue = 0;
+				switch (pControlInputsMsg->m_MoveSpeed)
+				{
+					case TMoveSpeed::SLOW:   moveCmdValue = m_pChassisCtrlSettings->m_SpeedSlow_Hz; break;
+					case TMoveSpeed::CRUISE: moveCmdValue = m_pChassisCtrlSettings->m_SpeedCruise_Hz; break;
+					case TMoveSpeed::FAST:   moveCmdValue = m_pChassisCtrlSettings->m_SpeedFast_Hz; break;
+				}
+
+				if (!(pControlInputsMsg->m_CmdFlags & ControlInputsProtocol::Message::CMD_FLAG_MOVE_DIR_FWD))
+					moveCmdValue = -moveCmdValue;
+
+				m_pChassisInterface->SendCommand_MotorMove(moveCmdValue);
 			}
-
-			if (!(pControlInputsMsg->m_CmdFlags & ControlInputsProtocol::Message::CMD_FLAG_MOVE_DIR_FWD))
-				moveCmdValue = -moveCmdValue;
-
-			m_pChassisInterface->SendCommand_MotorMove(moveCmdValue);
-		}
-		else
-		{
-			// Not moving, not braking -> slow down to 0
-			m_pChassisInterface->SendCommand_MotorMove(0.0f);
+			else
+			{
+				// Not moving, not braking -> slow down to 0
+				m_pChassisInterface->SendCommand_MotorMove(0.0f);
+			}
 		}
 
 		// Steering

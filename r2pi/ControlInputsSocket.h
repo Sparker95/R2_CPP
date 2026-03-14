@@ -12,23 +12,25 @@ namespace std
 }
 
 class ChassisInterface;
+class CrashDetector;
 
 class ControlInputsSocket
 {
 public:
 	bool Start();
 	void TerminateWait();
-	ControlInputsSocket(ChassisInterface* pChassisInterface, const ChassisSettings::ControlSettings* pChassisCtrlSettings);
+	ControlInputsSocket(ChassisInterface& chassisInterface, const ChassisSettings::ControlSettings& chassisCtrlSettings, const CrashDetector & crashDetector);
 	~ControlInputsSocket();
 
 private:
 	constexpr static const char PIPE_CMD_TERMINATE = 0x78; // Sent into pipe to termiante the thread
 
-	ChassisInterface* m_pChassisInterface;
+	ChassisInterface* m_pChassisInterface = nullptr;
+	const ChassisSettings::ControlSettings* m_pChassisCtrlSettings = nullptr;
+	const CrashDetector* m_pCrashDetector = nullptr;
 	std::unique_ptr<std::thread> m_pThread;
 	int m_PipeFd[2]; // 0 - read, 1 - write
 	bool m_bRunning = false;
-	const ChassisSettings::ControlSettings* m_pChassisCtrlSettings = nullptr;
 
 	void ThreadFunction();
 	void ClosePipe();

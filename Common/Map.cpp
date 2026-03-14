@@ -1,11 +1,6 @@
 #include "Map.h"
 
-// Tracy
-#ifdef TRACY_ENABLE
-#include "Tracy/tracy/Tracy.hpp"
-#else
 #include "TracyPlug.h"
-#endif
 
 #include <cmath>
 #include <cstdio>

@@ -1,14 +1,10 @@
 #pragma once
 
-// Empty defines for Tracy macros, can be used if Tracy is not available.
+// Must be included instead of Tracy.hpp
 
-/*
 #ifdef TRACY_ENABLE
 #include "Tracy/tracy/Tracy.hpp"
 #else
-#include "TracyPlug.h"
-#endif
-*/
 
 #ifndef ZoneScopedN
 #define ZoneScopedN(a)
@@ -17,3 +13,7 @@
 #ifndef FrameMark
 #define FrameMark
 #endif
+
+#endif // if TRACY_ENABLE
+
+

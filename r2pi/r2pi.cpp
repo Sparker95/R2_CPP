@@ -12,6 +12,7 @@
 #include "../Common/Chassis.h"
 #include "../Common/ChassisUtils.h"
 #include "../Common/ProbUtils.h"
+#include "../Common/CrashDetector.h"
 
 #include <cstring>
 #include <thread>
@@ -57,7 +58,7 @@ bool ReadConfigChassisInterfaceSettings(const Config& cfg, ChassisInterface::All
 	return true;
 }
 
-bool ReadConfigChassisControlSettings(const Config& cfg, ChassisSettings::ControlSettings& outSettings)
+bool ReadConfigChassisControlSettings(const Config& cfg, ChassisSettings::ControlSettings& outSettings, CrashDetector::Settings& outCrashDetectorSettings)
 {
 	ChassisSettings::ControlSettings s;
 
@@ -65,7 +66,9 @@ bool ReadConfigChassisControlSettings(const Config& cfg, ChassisSettings::Contro
 		cfg.Get("SteerOutputMax", s.m_SteerOutputMax) &&
 		cfg.Get("SpeedSlow_Hz", s.m_SpeedSlow_Hz) &&
 		cfg.Get("SpeedCruise_Hz", s.m_SpeedCruise_Hz) &&
-		cfg.Get("SpeedFast_Hz", s.m_SpeedFast_Hz);
+		cfg.Get("SpeedFast_Hz", s.m_SpeedFast_Hz) &&
+		cfg.Get("CrashDetector_BrakeAccel", outCrashDetectorSettings.m_BrakeAccel_freq_s2) &&
+		cfg.Get("CrashDetector_ExtraTimeToCrash_s", outCrashDetectorSettings.m_ExtraTimeToCrash_s);
 
 	if (!cfgSuccess)
 	{
@@ -158,11 +161,12 @@ int main(int argc, char** argv)
 	// Read config files
 	ChassisInterface::AllSettings    chassisIfSettings;
 	ChassisSettings::ControlSettings chassisControlSettings;
+	CrashDetector::Settings crashDetectorSettings;
 	SensorInterface::Settings        sensorIfSettings;
 	Localizer::Config                localizerConfig;
 	Chassis::ChassisStatsConfig      chassisStatsConfig;
 	initDone = initDone && ReadConfigChassisInterfaceSettings(Config(pInChassisIfConfig), chassisIfSettings);
-	initDone = initDone && ReadConfigChassisControlSettings(Config(pInChassisControlConfig), chassisControlSettings);
+	initDone = initDone && ReadConfigChassisControlSettings(Config(pInChassisControlConfig), chassisControlSettings, crashDetectorSettings);
 	initDone = initDone && ReadConfigSensorInterfaceSettings(Config(pInSensorIfConfig), sensorIfSettings);
 	initDone = initDone && LocalizerUtils::ReadConfig(Config(pInLocalizerConfig), localizerConfig);
 	initDone = initDone && ChassisUtils::ReadStatsConfig(Config(pInChassisStatsConfig), chassisStatsConfig);
@@ -173,6 +177,7 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
+
 	// The RobotCore and related parts
 	// Chassis
 	Chassis::ChassisConfig chassisConfig; // Using defaults
@@ -181,8 +186,11 @@ int main(int argc, char** argv)
 	// Localizer
 	Localizer localizer(localizerConfig, chassisModel);
 
+	// Crash detector
+	CrashDetector crashDetector(crashDetectorSettings, chassisModel);
+
 	// Core
-	RobotCore robotCore(localizer);
+	RobotCore robotCore(localizer, crashDetector);
 
 	// Sensor interface
 	SensorInterface sensor(sensorIfSettings);
@@ -203,7 +211,7 @@ int main(int argc, char** argv)
 	ctrlPanelServer.Start();
 
 	// Control inputs
-	ControlInputsSocket inputsSocket(&chassis, &chassisControlSettings);
+	ControlInputsSocket inputsSocket(chassis, chassisControlSettings, crashDetector);
 	inputsSocket.Start();
 
 	// Finish message loop init

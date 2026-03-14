@@ -135,6 +135,17 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 		// Pass data to RobotCore
 		m_pRobotCore->Update(frame);
 
+		// Send brake command, if crash detector was triggered
+		// WIP it's not nice that the command is delayed by duration of Localizer update in RobotCore
+		if (m_pRobotCore->GetBrakeOverride())
+		{
+			{
+				std::unique_lock chassisLock(m_pChassisInterface->GetMutex());
+				m_pChassisInterface->SendCommand_MotorBrake();
+			}
+			printf("%u ms, ! Warning ! Incoming collision detected!\n", frame.m_TimeScanEnd_ms);
+		}
+
 		// Print debug text
 		if (m_SensorScanCounter % 30 == 0)
 		{
