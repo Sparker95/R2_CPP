@@ -122,7 +122,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;TRACY_ENABLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir);..\Common;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -139,11 +139,13 @@
     <ClCompile Include="..\Common\Chassis.cpp" />
     <ClCompile Include="..\Common\ChassisUtils.cpp" />
     <ClCompile Include="..\Common\Config.cpp" />
+    <ClCompile Include="..\Common\CrashDetector.cpp" />
     <ClCompile Include="..\Common\LineRasterizer.cpp" />
     <ClCompile Include="..\Common\Localizer.cpp" />
     <ClCompile Include="..\Common\LocalizerUtils.cpp" />
     <ClCompile Include="..\Common\Map.cpp" />
     <ClCompile Include="..\Common\MapUtils.cpp" />
+    <ClCompile Include="..\Common\PathFinding.cpp" />
     <ClCompile Include="..\Common\ProbUtils.cpp" />
     <ClCompile Include="..\Common\r2offline.cpp" />
     <ClCompile Include="..\Common\RobotCore.cpp" />
@@ -162,6 +164,7 @@
     <ClInclude Include="..\Common\ChassisUtils.h" />
     <ClInclude Include="..\Common\Common.h" />
     <ClInclude Include="..\Common\Config.h" />
+    <ClInclude Include="..\Common\CrashDetector.h" />
     <ClInclude Include="..\Common\LocalizerUtils.h" />
     <ClInclude Include="..\Common\MathUtils.h" />
     <ClInclude Include="..\Common\CommonIntTypes.h" />
@@ -169,6 +172,7 @@
     <ClInclude Include="..\Common\Localizer.h" />
     <ClInclude Include="..\Common\Map.h" />
     <ClInclude Include="..\Common\MapUtils.h" />
+    <ClInclude Include="..\Common\PathFinding.h" />
     <ClInclude Include="..\Common\ProbUtils.h" />
     <ClInclude Include="..\Common\RobotCore.h" />
     <ClInclude Include="..\Common\Scan.h" />

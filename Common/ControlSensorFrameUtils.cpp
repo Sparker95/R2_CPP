@@ -13,7 +13,7 @@ bool ControlSensorFrameUtils::ReadFrameFromString(StringWordReader& reader, Cont
 	if (!reader.ReadCompareWord("TIME"))
 		return false;
 
-	if (!reader.Read<uint>(outBlock.m_Timestamp_ms, true))
+	if (!reader.Read<uint>(outBlock.m_TimeScanEnd_ms, true))
 		return false;
 	if (!reader.ReadCompareWord("ODO"))
 		return false;

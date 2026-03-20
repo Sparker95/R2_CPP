@@ -15,6 +15,7 @@
 #include "TracyPlug.h"
 #endif
 
+#include "MathUtils.h"
 #include "Config.h"
 #include "Chassis.h"
 #include "ChassisUtils.h"
@@ -31,6 +32,8 @@
 #include "ProbUtils.h"
 #include "LineRasterizer.h"
 #include "RobotCore.h"
+#include "CrashDetector.h"
+#include "PathFinding.h"
 
 void TestReadStreamFile(const char* pFilePath)
 {
@@ -73,9 +76,12 @@ void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapF
 	Chassis::ChassisConfig chassisConfig;
 	Chassis::ChassisModel chassisModel(chassisConfig, chassisStatsConfig);
 
+	CrashDetector::Settings crashDetectorSettings;
+	CrashDetector crashDetector(crashDetectorSettings, chassisModel);
+
 	Localizer localizer(localizerConfig, chassisModel);
 
-	RobotCore core(localizer);
+	RobotCore core(localizer, crashDetector);
 	core.SetUpdateLocalizer(true);
 
 	// Read all blocks
@@ -107,9 +113,98 @@ void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapF
 	LocalizerUtils::WriteLocalizerHistoryToFile(localizer, pOutLocHistoryPath, 32);
 }
 
+void TestPathFinding()
+{
+	const char* mapPath = "D:\\Projects\\Robot2\\Records\\Legacy Encoder\\Office 26 Jan 2026\\Office1.rmap";
+	Map map;
+	uint quantization;
+	MapUtils::ReadMapFromFile_L2Int(mapPath, map, quantization);
+
+	if (map.GetSize().x == 0)
+		return;
+
+	Map distMap = PathFinding::CalculateDistanceMap(map, 0);
+	MapUtils::WriteMapToFile_L2Int(distMap, "TestDistMap.rmap", 8);
+
+	Map structureMap = PathFinding::CalculateStructureMap(distMap, 0.2f, 0.2f);
+	MapUtils::WriteMapToFile_L2Int(structureMap, "TestStructureMap.rmap", 8);
+
+	// Test rect rasterizer
+	std::vector<LineRasterizer::HSpan> rectSpans;
+	LineRasterizer::RasterizeRect({ 5.6, 7.8 }, { 3.3, 4.4 }, { std::cos(0.3f), std::sin(0.3f) }, rectSpans);
+	//LineRasterizer::RasterizeRect({ 0, 0 }, { 3.1, 3.1 }, { std::cos(0.0f), std::sin(0.0f) }, rectSpans);
+	printf("Rectangle has been rasterized!\n");
+
+	// Test line rasterizer
+	std::vector<Vector2Base<int>> lineCells;
+	LineRasterizer::RasterizeLine({ 0, 0 }, { 4.3, 7.1 }, lineCells);
+	printf("Line rasterization has ended!\n");
+
+	// Test path finding
+	PathFinding::Config pfConfig;
+	{
+		pfConfig.m_TurnRadius = 0.6f;
+		pfConfig.m_NumDirs = 12;   // Number of directions.Direction index is 0..NumDirs - 1.
+
+		// Car dimensions
+		pfConfig.m_CarWidth = 0.22f;
+		pfConfig.m_CarLengthFwd = 0.33f;
+		pfConfig.m_CarLengthBwd = 0.04f;
+
+		// Properties and costs and  of search
+		pfConfig.m_HeuristicMult = 5.0f;
+		pfConfig.m_OffStructureMult = 7.0f;  // Penalty of moving off structure map
+		pfConfig.m_StructureMapWidth = 0.2f; // Width of skeleton
+		pfConfig.m_MaxNodes = 50000;
+
+		// Multipliers of cost for each transition ID
+		pfConfig.m_MultFwd = 1.0f;
+		pfConfig.m_MultTurnFwd = 1.2f;
+		pfConfig.m_MultBwd = 10.0f;
+		pfConfig.m_MultTurnBwd = 12.0f;
+	}
+	pfConfig.Init(); // Remember to call this!
+	PathFinding::Node::Pose startNodePose = { 0, 0, 1 };
+	Vector2 destPos(-1.0f, -10.0f); // Reception desk
+	float destRadius = 0.3f;
+	PathFinding::PathFindingResult pfResult;
+	PathFinding::FindPath(pfConfig, map, startNodePose, destPos, destRadius, pfResult);
+
+	std::vector<Vector2> pfResultPoints;
+	for (const auto& node : pfResult.m_Nodes)
+		pfResultPoints.push_back({ node.m_Pose.x, node.m_Pose.y });
+
+	Vector2 firstPathPoint = pfResultPoints[0];
+
+	printf("Path finding has ended!\n");
+
+
+	// Test pose calculations
+	/*
+	{
+		PathFinding::Node::Pose testNodePose = PathFinding::CalculateNodePose(pfConfig, 0, 0, 11.9f * PI_2X / 12.0f);
+		printf("Pose calculation test\n");
+	}
+	*/
+}
+
 int main(int argc, char* argv[])
 {
+#if TRACY_ENABLE
+	char __readChar;
+	printf("Connect Tracy and press any button: \n");
+	std::scanf("%c", &__readChar);
+#endif
+
 	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+
+	// WIP path finding tests
+	int8_t __a = -3;
+	uint __b = 255; // static_cast<uint8_t>(__a);
+	int8_t __c = static_cast<int8_t>(__b);
+	TestPathFinding();
+	return 0;
+	///////////////////////////
 
 	if (argc == 1)
 	{
@@ -161,14 +256,6 @@ int main(int argc, char* argv[])
 		printf("Failed to read config files!\n");
 		return 1;
 	}
-
-#if TRACY_ENABLE
-	char __readChar;
-	printf("Connect Tracy and press any button: \n");
-	std::scanf("%c", &__readChar);
-#endif
-
-
 
 	ProcessSensorStreamFile(pInStreamFilePath, pOutMapFilePath, pOutLocHistoryPath, localizerConfig, chassisStatsConfig);
 

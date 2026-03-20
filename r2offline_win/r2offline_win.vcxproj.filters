@@ -84,6 +84,12 @@
     <ClCompile Include="..\Common\ChassisUtils.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="..\Common\PathFinding.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\CrashDetector.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\Vector2.h">
@@ -1077,6 +1083,12 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\ChassisUtils.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\PathFinding.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\CrashDetector.h">
       <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>

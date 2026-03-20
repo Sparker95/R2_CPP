@@ -1,0 +1,563 @@
+#include "PathFinding.h"
+
+#include "MathUtils.h"
+#include "Map.h"
+#include "LineRasterizer.h"
+#include "TracyPlug.h"
+#include "Utils.h"
+
+#include <cmath>
+#include <unordered_map>
+
+#include <cstdio>
+
+using namespace PathFinding;
+
+void PathFinding::Config::Init()
+{
+	m_StepDist = PI_2X / static_cast<float>(m_NumDirs) * m_TurnRadius;
+	m_StepDir = PI_2X / static_cast<float>(m_NumDirs);
+
+	m_TransIdMult[(int)Transition::NONE] = 1.0f;
+	m_TransIdMult[(int)Transition::FWD] = m_MultFwd;
+	m_TransIdMult[(int)Transition::FWD_L] = m_MultTurnFwd;
+	m_TransIdMult[(int)Transition::BWD_L] = m_MultTurnBwd;
+	m_TransIdMult[(int)Transition::BWD] = m_MultBwd;
+	m_TransIdMult[(int)Transition::BWD_R] = m_MultTurnBwd;
+	m_TransIdMult[(int)Transition::FWD_R] = m_MultTurnFwd;
+
+	m_DirVectors.resize(m_NumDirs);
+	for (uint i = 0; i < m_NumDirs; i++)
+	{
+		float dir_rad = PI_2X / static_cast<float>(m_NumDirs) * i;
+		m_DirVectors[i].x = std::cos(dir_rad);
+		m_DirVectors[i].y = std::sin(dir_rad);
+	}
+}
+
+// #https://stackoverflow.com/questions/2259476/rotating-a-point-about-another-point-2d
+Vector2 RotatePoint(const Vector2& pivot, float angle_rad, const Vector2& pt)
+{
+	float s = std::sin(angle_rad);
+	float c = std::cos(angle_rad);
+
+	// translate point back to origin :
+	float cx = pivot.x;
+	float cy = pivot.y;
+	float x = pt.x - cx;
+	float y = pt.y - cy;
+
+	// rotate point
+	float xnew = x * c - y * s;
+	float ynew = x * s + y * c;
+
+	// translate point back :
+	return Vector2(xnew + cx, ynew + cy);
+}
+
+void FindNeighborNodes(const Config& config, const Node& node, std::vector<Node>& outNodes)
+{
+	outNodes.clear();
+
+	Vector2 currentPos(node.m_Pose.x, node.m_Pose.y);
+	uint dir_id = node.m_Pose.dir;
+
+	const Vector2& vDir = config.m_DirVectors[dir_id]; //  Vector of current direction
+	uint transId = node.m_TransId;
+
+	// First trivial cases - move straight fwd or backward
+	float stepDist = config.m_StepDist;
+	if (transId != Transition::BWD)
+	{
+		Node newNode(node, Node::Pose(currentPos.x + stepDist * vDir.x, currentPos.y + stepDist * vDir.y, dir_id), Transition::FWD);
+		outNodes.push_back(newNode);
+	}
+	if (transId != Transition::FWD)
+	{
+		Node newNode(node, Node::Pose(currentPos.x - stepDist * vDir.x, currentPos.y - stepDist * vDir.y, dir_id), Transition::BWD);
+		outNodes.push_back(newNode);
+	}
+
+	Vector2 vSide(vDir.y, -vDir.x);
+	float turnRadius = config.m_TurnRadius;
+
+	// !!! Be careful with % operator, it is problematic with negative numbers. In Python it behaves different.
+
+	// Rotate around right point
+	Vector2 rightTurnPt(currentPos.x + turnRadius * vSide.x, currentPos.y + turnRadius * vSide.y);
+	if (transId != Transition::BWD_R)
+	{
+		Vector2 ptRtFwd = RotatePoint(rightTurnPt, -config.m_StepDir, currentPos);
+		Node newNode(node, Node::Pose(ptRtFwd.x, ptRtFwd.y, (dir_id - 1 + config.m_NumDirs) % config.m_NumDirs), Transition::FWD_R);
+		outNodes.push_back(newNode);
+	}
+	if (transId != Transition::FWD_R)
+	{
+		Vector2 ptRtBwd = RotatePoint(rightTurnPt, config.m_StepDir, currentPos);
+		Node newNode(node, Node::Pose(ptRtBwd.x, ptRtBwd.y, (dir_id + 1) % config.m_NumDirs), Transition::BWD_R);
+		outNodes.push_back(newNode);
+	}
+
+	// Rotate around left point
+	Vector2 leftTurnPt(currentPos.x - turnRadius * vSide.x, currentPos.y - turnRadius * vSide.y);
+	if (transId != Transition::BWD_L)
+	{
+		Vector2 ptLtFwd = RotatePoint(leftTurnPt, config.m_StepDir, currentPos);
+		Node newNode(node, Node::Pose(ptLtFwd.x, ptLtFwd.y, (dir_id + 1) % config.m_NumDirs), Transition::FWD_L);
+		outNodes.push_back(newNode);
+	}
+	if (transId != Transition::FWD_L)
+	{
+		Vector2 ptLtBwd = RotatePoint(leftTurnPt, -config.m_StepDir, currentPos);
+		Node newNode(node, Node::Pose(ptLtBwd.x, ptLtBwd.y, (dir_id - 1 + config.m_NumDirs) % config.m_NumDirs), Transition::BWD_L);
+		outNodes.push_back(newNode);
+	}
+}
+
+float Heuristic(const Config& config, const Node::Pose& thisPose, const Node::Pose& otherPose)
+{
+	// Direction is irrelevant! Function accepts poses for consistency.
+	float dx = otherPose.x - thisPose.x;
+	float dy = otherPose.y - thisPose.y;
+	return config.m_HeuristicMult * std::sqrt(dx * dx + dy * dy);
+}
+
+// Calculates direction index from direction in radians
+uint CalculateDirectionId(float dir_rad, uint numDirs)
+{
+	float step_dir = PI_2X / static_cast<float>(numDirs);
+	uint dir_id = static_cast<uint>(std::round(Utils::WrapAngleFull(dir_rad) / step_dir)) % numDirs;
+	return dir_id;
+}
+
+// Map calculations
+Map PathFinding::CalculateDistanceMap(const Map& map, int threshold)
+{
+	ZoneScopedN("PathFinding::CalculateDistanceMap");
+
+	// WIP make Map TCellData a template, one byte is not enough!
+	using TCellData = Map::TCellData;
+	using TUCellData = uint8_t; // Unsigned variant of TCellData
+	uint VALUE_MAX = 127; // Max supported by Map class
+
+	auto mapCenter = map.GetCenter();
+	auto mapSize = map.GetSize();
+	Map distMap(mapSize.x, mapSize.y, mapCenter.x, mapCenter.y, map.GetResolution_w());
+
+	// Same but signed
+	Vector2Base<int> smapSize(static_cast<int>(mapSize.x), static_cast<int>(mapSize.y));
+
+	for (int y = 0; y < smapSize.y; y++)
+	{
+		for (int x = 0; x < smapSize.x; x++)
+		{
+			if (static_cast<int>(map.GetDataAtPos(Map::TCellPos(x, y))) >= threshold)
+				distMap.SetDataAtPos(Map::TCellPos(x, y), 0);
+			else
+				distMap.SetDataAtPos(Map::TCellPos(x, y), static_cast<TCellData>(VALUE_MAX));
+		}
+	}
+
+	// Note that we ignore border row and column completely!
+	for (int j = 1; j < smapSize.y - 1; j++)
+	{
+		for (int i = 1; i < smapSize.x - 1; i++)
+		{
+			TCellData e[4] = {
+				distMap.GetDataAtPos({i,j - 1}) + 3,
+				distMap.GetDataAtPos({i - 1, j}) + 3,
+				distMap.GetDataAtPos({i - 1, j - 1}) + 4,
+				distMap.GetDataAtPos({i - 1, j + 1}) + 4 };
+
+			for (TCellData f : e)
+			{
+				TCellData centerValue = distMap.GetDataAtPos({ i, j });
+				if (static_cast<TUCellData>(centerValue) > static_cast<TUCellData>(f))
+					distMap.SetDataAtPos({ i, j }, f);
+			}
+		}
+	}
+
+	for (int j = smapSize.y - 2; j > 0; j--)
+	{
+		for (int i = smapSize.x - 2; i > 0; i--)
+		{
+			TCellData e[4] = {
+				distMap.GetDataAtPos({i, j + 1}) + 3,
+				distMap.GetDataAtPos({i + 1, j}) + 3,
+				distMap.GetDataAtPos({i + 1, j - 1}) + 4,
+				distMap.GetDataAtPos({i + 1, j + 1}) + 4
+			};
+
+			for (TCellData f : e)
+			{
+				TCellData centerValue = distMap.GetDataAtPos({ i, j });
+				if (static_cast<TUCellData>(centerValue) > static_cast<TUCellData>(f))
+					distMap.SetDataAtPos({ i, j }, f);
+			}
+		}
+	}
+
+	return distMap;
+}
+
+Map PathFinding::CalculateStructureMap(const Map& distMap, float structureWidth_w, float minDistToObstacle_w)
+{
+	auto mapCenter = distMap.GetCenter();
+	auto mapSize = distMap.GetSize();
+	Map structureMap(mapSize.x, mapSize.y, mapCenter.x, mapCenter.y, distMap.GetResolution_w());
+	Vector2Base<int> smapSize(static_cast<int>(mapSize.x), static_cast<int>(mapSize.y));
+
+	Vector2Base<int> offsetPairs[4][2] = {
+		{{-1,  0}, {1, 0}},
+		{{0,  -1}, {0, 1}},
+		{{-1, -1}, {1, 1}},
+		{{-1,  1}, {1, -1}}
+	};
+
+	for (int y = 1; y < smapSize.y - 1; y++)
+	{
+		for (int x = 1; x < smapSize.x - 1; x++)
+		{
+			bool ridge = false;
+			uint centerValue = static_cast<uint>(distMap.GetDataAtPos({ x, y }));
+			for (int pairId = 0; pairId < 4; pairId++)
+			{
+				uint v0 = static_cast<uint>(distMap.GetDataAtPos({
+					x + offsetPairs[pairId][0].x,
+					y + offsetPairs[pairId][0].y }));
+				uint v1 = static_cast<uint>(distMap.GetDataAtPos({
+					x + offsetPairs[pairId][1].x,
+					y + offsetPairs[pairId][1].y
+					}));
+
+				if (centerValue > v0 && centerValue > v1)
+				{
+					ridge = true;
+					break;
+				}
+			}
+
+			if (ridge && centerValue != 0)
+				structureMap.SetDataAtPos({ x, y }, 1);
+			else
+				structureMap.SetDataAtPos({ x, y }, 0);
+		}
+	}
+
+	// Make structure wider
+	Map structureDistMap = CalculateDistanceMap(structureMap, 1);
+
+	uint structureDistMapTreshold = static_cast<uint>(std::ceil(0.5f * structureWidth_w / distMap.GetResolution_w())) * 3;
+	uint distToObstacleThreshold = static_cast<uint>(std::floor(minDistToObstacle_w / distMap.GetResolution_w())) * 3;
+
+	for (int y = 0; y < smapSize.y; y++)
+	{
+		for (int x = 0; x < smapSize.x; x++)
+		{
+			if (static_cast<uint>(structureDistMap.GetDataAtPos({ x, y })) < structureDistMapTreshold && // Close to structure
+				static_cast<uint>(distMap.GetDataAtPos({ x, y })) > distToObstacleThreshold) // Not too close to obstacle
+				structureDistMap.SetDataAtPos({ x, y }, 1);
+			else
+				structureDistMap.SetDataAtPos({ x, y }, 0);
+		}
+	}
+
+	return structureDistMap;
+}
+
+// Converts between distance map distance values and world values
+float DistanceMapValueToWorld(Map::TCellData distMapValue, float mapRes_w)
+{
+	return static_cast<float>(static_cast<uint>(distMapValue)) / 3.0f * mapRes_w;
+}
+
+bool CheckCollision(const Config& config, const Node::Pose& pose, const Map& map)
+{
+	float mapRes_w = map.GetResolution_w();
+	uint dir_id = pose.dir;
+	Vector2 pos_u(pose.x / mapRes_w, pose.y / mapRes_w); // In unscaled coordinates(not world coordinates)
+
+	Map::TCellPos mapPos = map.PosWorldUnscaledToMap({ pos_u.x, pos_u.y });
+
+	if (!map.IsMapPosWithinBounds(mapPos))
+		return false;
+
+	// Check if this position is occupied
+	if (map.GetDataAtPos(mapPos) >= 0)
+		return false;
+
+	// Car width fits, now check if given car orientation fits
+	float offsetFwd_u = 0.5f * (config.m_CarLengthFwd - config.m_CarLengthBwd) / mapRes_w;
+	Vector2 rectCenterPos_u(pos_u.x + offsetFwd_u * config.m_DirVectors[dir_id].x, pos_u.y + offsetFwd_u * config.m_DirVectors[dir_id].y);
+
+	std::vector<LineRasterizer::HSpan> rectSpans;
+	Vector2 rectSize(config.m_CarWidth / mapRes_w, (config.m_CarLengthFwd + config.m_CarLengthBwd) / mapRes_w);
+	LineRasterizer::RasterizeRect(rectCenterPos_u, rectSize, { config.m_DirVectors[dir_id].x, config.m_DirVectors[dir_id].y }, rectSpans);
+
+	// Iterate spans of rectangle
+	Map::TCellSize mapCenter = map.GetCenter();
+	for (const auto& span : rectSpans)
+	{
+		int y_map = span.y + mapCenter.y; // Indices are in map's native form
+		int xStart_map = span.xStart + mapCenter.x;
+		int xEnd_map = span.xEnd + mapCenter.x;
+
+		// This is a single line (row) with start and end x coordinate, and fixed y coordinate
+		// If either end doesn't fit, we're out of map
+
+		if (!map.IsMapPosWithinBounds({ xStart_map, y_map }))
+			return false;
+
+		if (!map.IsMapPosWithinBounds({ xEnd_map, y_map }))
+			return false;
+
+		// This line span is inside map, check individual cells
+		for (int x_map = xStart_map; x_map <= xEnd_map; x_map++)
+		{
+			if (map.GetDataAtPos({ x_map, y_map }) >= 0)
+				return false;
+		}
+	}
+
+	return true;
+}
+
+void RestorePath(const Node& endNode, const std::vector<Node>& allNodes, std::vector<Node>& outNodes)
+{
+	uint nNodes = 1;
+	const Node* pCurrentNode = &endNode;
+
+	// Iterate first time to count nodes
+	while (pCurrentNode->m_NodeFrom != -1)
+	{
+		nNodes++;
+		pCurrentNode = &allNodes[pCurrentNode->m_NodeFrom];
+	}
+
+	// Iterate second time to copy nodes
+	outNodes.resize(nNodes);
+	pCurrentNode = &endNode;
+	uint currentNodeOutId = nNodes - 1;
+	while (pCurrentNode->m_NodeFrom != -1)
+	{
+		outNodes[currentNodeOutId] = *pCurrentNode;
+		currentNodeOutId--;
+		pCurrentNode = &allNodes[pCurrentNode->m_NodeFrom];
+	}
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+// Public functions
+
+void PathFinding::CalculateSmoothTransition(const Config& config, const Node& nodeFrom, const Node& nodeTo,
+	std::vector<Vector2>& outPositions, uint nIntervals, bool addLastPoint)
+{
+	uint transId = nodeTo.m_TransId;
+
+	// Trivial case, fwd or bwd, return just pair of points without smoothing
+	if (transId == Transition::FWD || transId == Transition::BWD)
+	{
+		outPositions.push_back(Vector2(nodeFrom.m_Pose.x, nodeFrom.m_Pose.y));
+		if (addLastPoint)
+			outPositions.push_back(Vector2(nodeTo.m_Pose.x, nodeTo.m_Pose.y));
+	}
+
+	// Non trivial cases
+	const Vector2& vDir = config.m_DirVectors[nodeFrom.m_Pose.dir];
+	Vector2 vSide(vDir.y, -vDir.x);
+	float turnRadius = config.m_TurnRadius;
+	float turnPointSign = (transId == Transition::FWD_R || transId == Transition::BWD_R) ? 1.0f : -1.0f;
+
+	Vector2 turnPoint(nodeFrom.m_Pose.x + turnPointSign * turnRadius * vSide.x, nodeFrom.m_Pose.y + turnPointSign * turnRadius * vSide.y);
+	Vector2 turnFromPos(nodeFrom.m_Pose.x, nodeFrom.m_Pose.y);
+
+	float turnAngleSign = (transId == Transition::FWD_L || transId == Transition::BWD_R) ? 1.0f : -1.0f;
+
+	uint nOutPoints = nIntervals;
+	if (addLastPoint)
+		nOutPoints++;
+
+	outPositions.resize(nOutPoints);
+	for (uint i = 0; i < nOutPoints; i++)
+	{
+		float turnAngle_rad = i * turnAngleSign * config.m_StepDir / static_cast<float>(nIntervals);
+		Vector2 smoothPos = RotatePoint(turnPoint, turnAngle_rad, turnFromPos);
+		outPositions[i] = smoothPos;
+	}
+}
+
+Node::Pose PathFinding::CalculateNodePose(const Config& config, float x, float y, float dir_rad)
+{
+	Node::Pose p;
+	p.x = x;
+	p.y = y;
+	p.dir = CalculateDirectionId(dir_rad, config.m_NumDirs);
+	return p;
+}
+
+struct PoseHashKey
+{
+	int x;
+	int y;
+	uint dir;
+
+	PoseHashKey() = default;
+
+	bool operator==(const PoseHashKey& other) const noexcept
+	{
+		return x == other.x && y == other.y && dir == other.dir;
+	}
+
+	static PoseHashKey InitFromNode(const Node& node, const Map& map)
+	{
+		PoseHashKey k;
+		Map::TCellPos mapPos = map.PosWorldToMap({ node.m_Pose.x, node.m_Pose.y });
+		k.x = mapPos.x;
+		k.y = mapPos.y;
+		k.dir = node.m_Pose.dir;
+		return k;
+	}
+};
+
+template<>
+struct std::hash<PoseHashKey>
+{
+	std::size_t operator()(const PoseHashKey& hk) const noexcept
+	{
+		return static_cast<std::size_t>(hk.x & 0xFFFF) |
+			(static_cast<std::size_t>(hk.y & 0xFFFF) << 16) |
+			(static_cast<std::size_t>(hk.dir & 0xFF) << 32);
+	}
+};
+
+void PathFinding::FindPath(const Config& config, const Map& map, const Node::Pose& startPose, const Vector2& destPos, float destRadius, PathFindingResult& outResult)
+{
+	ZoneScopedN("PathFinding::FindPath");
+
+	Map distMap = CalculateDistanceMap(map);
+	Map structureMap = CalculateStructureMap(distMap, config.m_StructureMapWidth, 0.5f * config.m_CarWidth);
+
+	Node startNode;
+	Node::Pose destPose(destPos.x, destPos.y, 0);
+	startNode.m_Pose = startPose;
+	startNode.m_F = Heuristic(config, startPose, destPose);
+	startNode.m_Id = 0;
+
+	std::vector<Node> allNodes;
+	std::vector<uint> openSet;
+
+	allNodes.push_back(startNode);
+	openSet.push_back(0);
+
+	std::unordered_map<PoseHashKey, uint> nodeHashMap; // Key - cell position & dir, value - node index
+	nodeHashMap.insert({ PoseHashKey::InitFromNode(startNode, map), 0 });
+
+	std::vector<Node> neighborNodes;
+	neighborNodes.reserve(6);
+
+	while (!openSet.empty() && allNodes.size() < config.m_MaxNodes)
+	{
+		// Find lowest F score node
+		uint minFScoreNodeId = openSet[0]; // Index of lowest F score node in allNodes
+		uint minFScoreOpenSetId = 0; // Index of element in open set, pointing at that node
+		float minFScore = allNodes[openSet[0]].m_F;
+		for (uint i = 0, ossize = (uint)openSet.size(); i < ossize; i++)
+		{
+			uint nodeId = openSet[i];
+			if (allNodes[nodeId].m_F < minFScore)
+			{
+				minFScore = allNodes[nodeId].m_F;
+				minFScoreNodeId = nodeId;
+				minFScoreOpenSetId = i;
+			}
+		}
+
+		uint currentNodeId = minFScoreNodeId;
+		openSet.erase(openSet.begin() + minFScoreOpenSetId);
+
+		/*
+		printf("Current node: %u %.4f %.4f %u G: %.4f F: %4f\n",
+			allNodes[currentNodeId].m_Id,
+			allNodes[currentNodeId].m_Pose.x,
+			allNodes[currentNodeId].m_Pose.y,
+			allNodes[currentNodeId].m_Pose.dir,
+			allNodes[currentNodeId].m_G,
+			allNodes[currentNodeId].m_F);
+		*/
+
+		// We have arrived
+		float dx = allNodes[currentNodeId].m_Pose.x - destPos.x;
+		float dy = allNodes[currentNodeId].m_Pose.y - destPos.y;
+		if (dx * dx + dy * dy < destRadius * destRadius)
+		{
+			RestorePath(allNodes[currentNodeId], allNodes, outResult.m_Nodes);
+			outResult.m_NodesExplored = static_cast<uint>(allNodes.size());
+			return;
+		}
+
+		// Check collision at this node, skip it if car can't be here
+		if (!CheckCollision(config, allNodes[currentNodeId].m_Pose, map))
+			continue;
+
+		FindNeighborNodes(config, allNodes[currentNodeId], neighborNodes);
+		for (Node& neighborNode : neighborNodes)
+		{
+			Map::TCellPos neighborNodeMapPos = map.PosWorldToMap({ neighborNode.m_Pose.x, neighborNode.m_Pose.y });
+
+			// Instantly check if it's out of bounds or is instantly in obstacle
+			if (!map.IsMapPosWithinBounds(neighborNodeMapPos))
+				continue;
+			if (map.GetDataAtPos(neighborNodeMapPos) >= 0)
+				continue;
+
+			// However don't do full collision test yet
+
+			float edgeWeight = 1.0f;
+			edgeWeight *= config.m_TransIdMult[neighborNode.m_TransId];
+			edgeWeight *= config.m_StepDist;
+			if (structureMap.GetDataAtPos(neighborNodeMapPos) != 1) // If we step out of structure
+				edgeWeight *= config.m_OffStructureMult;
+
+			float neighborNodeG = allNodes[currentNodeId].m_G + edgeWeight;
+
+			PoseHashKey poseHashKey = { neighborNodeMapPos.x, neighborNodeMapPos.y, neighborNode.m_Pose.dir };
+
+			auto nodeIdFromDictIt = nodeHashMap.find(poseHashKey);
+
+			if (nodeIdFromDictIt != nodeHashMap.end())
+			{
+				// We have already been there
+				uint nodeFromDictId = (*nodeIdFromDictIt).second;
+				Node& nodeFromDict = allNodes[nodeFromDictId];
+
+				if (nodeFromDict.m_Pose.dir != neighborNode.m_Pose.dir)
+					throw std::exception();
+
+				if (nodeFromDict.m_G > neighborNodeG)
+				{
+					nodeFromDict.m_G = neighborNodeG;
+					nodeFromDict.m_F = neighborNodeG + Heuristic(config, neighborNode.m_Pose, destPose);
+					nodeFromDict.m_NodeFrom = currentNodeId;
+					nodeFromDict.m_TransId = neighborNode.m_TransId;
+					// Do NOT add to allNode and openSet
+				}
+			}
+			else
+			{
+				// We have never been there
+				neighborNode.m_G = neighborNodeG;
+				neighborNode.m_F = neighborNodeG + Heuristic(config, neighborNode.m_Pose, destPose);
+				neighborNode.m_Id = static_cast<uint>(allNodes.size());
+
+				// Add to allNodes and openSet and nodeHashMap
+				allNodes.push_back(neighborNode);
+				openSet.push_back(neighborNode.m_Id);
+				nodeHashMap.insert({ poseHashKey, neighborNode.m_Id });
+			}
+		}
+	}
+
+	// If we are here, we failed to find path
+	return;
+}
