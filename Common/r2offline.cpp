@@ -17,8 +17,8 @@
 
 #include "MathUtils.h"
 #include "Config.h"
+#include "ConfigUtils.h"
 #include "Chassis.h"
-#include "ChassisUtils.h"
 #include "Localizer.h"
 #include "LocalizerUtils.h"
 #include "CarStatsModel.h"
@@ -115,7 +115,8 @@ void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapF
 
 void TestPathFinding()
 {
-	const char* mapPath = "D:\\Projects\\Robot2\\Records\\Legacy Encoder\\Office 26 Jan 2026\\Office1.rmap";
+	//const char* mapPath = "D:\\Projects\\Robot2\\Records\\Legacy Encoder\\Office 26 Jan 2026\\Office1.rmap";
+	const char* mapPath = "/home/pi/projects/r2offline_pi/Office1.rmap";
 	Map map;
 	uint quantization;
 	MapUtils::ReadMapFromFile_L2Int(mapPath, map, quantization);
@@ -142,6 +143,15 @@ void TestPathFinding()
 
 	// Test path finding
 	PathFinding::Config pfConfig;
+	//const char* configPath = "D:\\Projects\\Robot2\\CPP\\Config\\PathFinding.cfg";
+	const char* configPath = "/home/pi/projects/r2pi/PathFinding.cfg"; // Linux
+	if (!ConfigUtils::ReadPathFindingConfig(Config(configPath), pfConfig))
+	{
+		printf("Failed to read Path Finding config! We can't find path without config!\n");
+		return;
+	}
+
+	/*
 	{
 		pfConfig.m_TurnRadius = 0.6f;
 		pfConfig.m_NumDirs = 12;   // Number of directions.Direction index is 0..NumDirs - 1.
@@ -163,6 +173,7 @@ void TestPathFinding()
 		pfConfig.m_MultBwd = 10.0f;
 		pfConfig.m_MultTurnBwd = 12.0f;
 	}
+	*/
 	pfConfig.Init(); // Remember to call this!
 	PathFinding::Node::Pose startNodePose = { 0, 0, 1 };
 	Vector2 destPos(-1.0f, -10.0f); // Reception desk
@@ -250,8 +261,8 @@ int main(int argc, char* argv[])
 	Chassis::ChassisStatsConfig chassisStatsConfig;
 	Localizer::Config localizerConfig;
 
-	if (!ChassisUtils::ReadStatsConfig(Config(pInChassisConfig), chassisStatsConfig) ||
-		!LocalizerUtils::ReadConfig(Config(pInLocalizerConfig), localizerConfig))
+	if (!ConfigUtils::ReadChassisStatsConfig(Config(pInChassisConfig), chassisStatsConfig) ||
+		!ConfigUtils::ReadLocalizerConfig(Config(pInLocalizerConfig), localizerConfig))
 	{
 		printf("Failed to read config files!\n");
 		return 1;

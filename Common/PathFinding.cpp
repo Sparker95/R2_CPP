@@ -29,7 +29,7 @@ void PathFinding::Config::Init()
 	m_DirVectors.resize(m_NumDirs);
 	for (uint i = 0; i < m_NumDirs; i++)
 	{
-		float dir_rad = PI_2X / static_cast<float>(m_NumDirs) * i;
+		float dir_rad = PI_2X / static_cast<float>(m_NumDirs) * static_cast<float>(i);
 		m_DirVectors[i].x = std::cos(dir_rad);
 		m_DirVectors[i].y = std::sin(dir_rad);
 	}
@@ -164,10 +164,10 @@ Map PathFinding::CalculateDistanceMap(const Map& map, int threshold)
 		for (int i = 1; i < smapSize.x - 1; i++)
 		{
 			TCellData e[4] = {
-				distMap.GetDataAtPos({i,j - 1}) + 3,
-				distMap.GetDataAtPos({i - 1, j}) + 3,
-				distMap.GetDataAtPos({i - 1, j - 1}) + 4,
-				distMap.GetDataAtPos({i - 1, j + 1}) + 4 };
+				static_cast<TCellData>(distMap.GetDataAtPos({i,j - 1}) + 3),
+				static_cast<TCellData>(distMap.GetDataAtPos({i - 1, j}) + 3),
+				static_cast<TCellData>(distMap.GetDataAtPos({i - 1, j - 1}) + 4),
+				static_cast<TCellData>(distMap.GetDataAtPos({i - 1, j + 1}) + 4) };
 
 			for (TCellData f : e)
 			{
@@ -183,10 +183,10 @@ Map PathFinding::CalculateDistanceMap(const Map& map, int threshold)
 		for (int i = smapSize.x - 2; i > 0; i--)
 		{
 			TCellData e[4] = {
-				distMap.GetDataAtPos({i, j + 1}) + 3,
-				distMap.GetDataAtPos({i + 1, j}) + 3,
-				distMap.GetDataAtPos({i + 1, j - 1}) + 4,
-				distMap.GetDataAtPos({i + 1, j + 1}) + 4
+				static_cast<TCellData>(distMap.GetDataAtPos({i, j + 1}) + 3),
+				static_cast<TCellData>(distMap.GetDataAtPos({i + 1, j}) + 3),
+				static_cast<TCellData>(distMap.GetDataAtPos({i + 1, j - 1}) + 4),
+				static_cast<TCellData>(distMap.GetDataAtPos({i + 1, j + 1}) + 4)
 			};
 
 			for (TCellData f : e)
@@ -329,7 +329,7 @@ void RestorePath(const Node& endNode, const std::vector<Node>& allNodes, std::ve
 	const Node* pCurrentNode = &endNode;
 
 	// Iterate first time to count nodes
-	while (pCurrentNode->m_NodeFrom != -1)
+	while (pCurrentNode->m_NodeFrom != static_cast<uint>(-1))
 	{
 		nNodes++;
 		pCurrentNode = &allNodes[pCurrentNode->m_NodeFrom];
@@ -339,7 +339,7 @@ void RestorePath(const Node& endNode, const std::vector<Node>& allNodes, std::ve
 	outNodes.resize(nNodes);
 	pCurrentNode = &endNode;
 	uint currentNodeOutId = nNodes - 1;
-	while (pCurrentNode->m_NodeFrom != -1)
+	while (pCurrentNode->m_NodeFrom != static_cast<uint>(-1))
 	{
 		outNodes[currentNodeOutId] = *pCurrentNode;
 		currentNodeOutId--;
@@ -381,7 +381,7 @@ void PathFinding::CalculateSmoothTransition(const Config& config, const Node& no
 	outPositions.resize(nOutPoints);
 	for (uint i = 0; i < nOutPoints; i++)
 	{
-		float turnAngle_rad = i * turnAngleSign * config.m_StepDir / static_cast<float>(nIntervals);
+		float turnAngle_rad = static_cast<float>(i) * turnAngleSign * config.m_StepDir / static_cast<float>(nIntervals);
 		Vector2 smoothPos = RotatePoint(turnPoint, turnAngle_rad, turnFromPos);
 		outPositions[i] = smoothPos;
 	}

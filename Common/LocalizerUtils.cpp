@@ -149,30 +149,3 @@ bool LocalizerUtils::WriteLocalizerHistoryToFile(const Localizer& localizer, con
 
     return true;
 }
-
-
-bool LocalizerUtils::ReadConfig(const Config& config, Localizer::Config& outConfig)
-{
-	Localizer::Config tempConfig;
-
-	float l2Occupied, l2Free;
-
-	bool allValuesFound = config.Get("SensorPdfWidth", tempConfig.m_SensorPdfWidth) &&
-		config.Get("SensorPdfFloor", tempConfig.m_SensorPdfFloor) &&
-		config.Get("SensorScanRange", tempConfig.m_SensorScanRange) &&
-		config.Get("MapResolution_m", tempConfig.m_MapRes_w) &&
-		config.Get("NumParticles", tempConfig.m_nParticles) &&
-		config.Get("L2OccupiedCell", l2Occupied) &&
-		config.Get("L2FreeCell", l2Free) &&
-		config.Get("ScanDecimation", tempConfig.m_ScanDecimation);
-
-	if (!allValuesFound)
-		return false;
-
-	tempConfig.m_L2IntOccupiedCell = Utils::L2FloatToL2Int(l2Occupied);
-	tempConfig.m_L2IntFreeCell = Utils::L2FloatToL2Int(l2Free);
-
-	outConfig = tempConfig;
-
-	return true;
-}

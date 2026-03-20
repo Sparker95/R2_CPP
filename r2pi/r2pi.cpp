@@ -6,6 +6,7 @@
 #include "ChassisSettings.h"
 
 #include "../Common/Config.h"
+#include "../Common/ConfigUtils.h"
 #include "../Common/Localizer.h"
 #include "../Common/LocalizerUtils.h"
 #include "../Common/RobotCore.h"
@@ -168,8 +169,8 @@ int main(int argc, char** argv)
 	initDone = initDone && ReadConfigChassisInterfaceSettings(Config(pInChassisIfConfig), chassisIfSettings);
 	initDone = initDone && ReadConfigChassisControlSettings(Config(pInChassisControlConfig), chassisControlSettings, crashDetectorSettings);
 	initDone = initDone && ReadConfigSensorInterfaceSettings(Config(pInSensorIfConfig), sensorIfSettings);
-	initDone = initDone && LocalizerUtils::ReadConfig(Config(pInLocalizerConfig), localizerConfig);
-	initDone = initDone && ChassisUtils::ReadStatsConfig(Config(pInChassisStatsConfig), chassisStatsConfig);
+	initDone = initDone && ConfigUtils::ReadLocalizerConfig(Config(pInLocalizerConfig), localizerConfig);
+	initDone = initDone && ConfigUtils::ReadChassisStatsConfig(Config(pInChassisStatsConfig), chassisStatsConfig);
 
 	if (!initDone)
 	{

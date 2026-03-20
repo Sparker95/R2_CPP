@@ -81,13 +81,13 @@
     <ClCompile Include="..\Common\Config.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="..\Common\ChassisUtils.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
     <ClCompile Include="..\Common\PathFinding.cpp">
       <Filter>Common</Filter>
     </ClCompile>
     <ClCompile Include="..\Common\CrashDetector.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\ConfigUtils.cpp">
       <Filter>Common</Filter>
     </ClCompile>
   </ItemGroup>
@@ -1082,13 +1082,13 @@
     <ClInclude Include="..\Common\LocalizerUtils.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\ChassisUtils.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\PathFinding.h">
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\CrashDetector.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\ConfigUtils.h">
       <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>
