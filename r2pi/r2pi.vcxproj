@@ -100,7 +100,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\Chassis.h" />
-    <ClInclude Include="..\Common\Common.h" />
     <ClInclude Include="..\Common\CommonIntTypes.h" />
     <ClInclude Include="..\Common\Config.h" />
     <ClInclude Include="..\Common\ConfigUtils.h" />
@@ -115,6 +114,8 @@
     <ClInclude Include="..\Common\MapUtils.h" />
     <ClInclude Include="..\Common\MathUtils.h" />
     <ClInclude Include="..\Common\PathFinding.h" />
+    <ClInclude Include="..\Common\PathPlanner.h" />
+    <ClInclude Include="..\Common\Pose.h" />
     <ClInclude Include="..\Common\ProbUtils.h" />
     <ClInclude Include="..\Common\RobotCore.h" />
     <ClInclude Include="..\Common\Scan.h" />
@@ -438,6 +439,7 @@
     <ClInclude Include="MainMessageLoop.h" />
     <ClInclude Include="PidController.h" />
     <ClInclude Include="Pigpio.h" />
+    <ClInclude Include="PlatformConfigUtils.h" />
     <ClInclude Include="SensorInterface.h" />
     <ClInclude Include="Tracy\client\TracyArmCpuTable.hpp" />
     <ClInclude Include="Tracy\client\TracyCallstack.h" />
@@ -502,6 +504,7 @@
     <ClCompile Include="..\Common\Map.cpp" />
     <ClCompile Include="..\Common\MapUtils.cpp" />
     <ClCompile Include="..\Common\PathFinding.cpp" />
+    <ClCompile Include="..\Common\PathPlanner.cpp" />
     <ClCompile Include="..\Common\ProbUtils.cpp" />
     <ClCompile Include="..\Common\RobotCore.cpp" />
     <ClCompile Include="..\Common\Scan.cpp" />
@@ -516,6 +519,7 @@
     <ClCompile Include="ControlPanelServerMessages.cpp" />
     <ClCompile Include="MainMessageLoop.cpp" />
     <ClCompile Include="Pigpio.cpp" />
+    <ClCompile Include="PlatformConfigUtils.cpp" />
     <ClCompile Include="SensorInterface.cpp" />
     <ClCompile Include="r2pi.cpp" />
     <ClCompile Include="Tracy\client\TracyAlloc.cpp">

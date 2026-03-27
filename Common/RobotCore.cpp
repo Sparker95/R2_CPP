@@ -6,8 +6,8 @@
 #include "Localizer.h"
 #include "CrashDetector.h"
 
-RobotCore::RobotCore(Localizer& localizer, CrashDetector& crashDetector)
-	: m_pLocalizer(&localizer), m_pCrashDetector(&crashDetector)
+RobotCore::RobotCore(Localizer& localizer, CrashDetector& crashDetector, PathPlanner& pathPlanner)
+	: m_pLocalizer(&localizer), m_pCrashDetector(&crashDetector), m_pPathPlanner(&pathPlanner)
 {
 }
 
@@ -34,7 +34,8 @@ void RobotCore::Update(const ControlSensorFrame& frame)
 		inputs.m_MoveState = frame.m_MoveState;
 		inputs.m_OdoDiff = odoDiff;
 		inputs.m_Steer = frame.m_Steer;
-		m_pLocalizer->Update(inputs, frame.m_ScanSamples);
+		Localizer::Mode localizerMode = static_cast<Localizer::Mode>(m_LocalizerMode.load());
+		m_pLocalizer->Update(inputs, frame.m_ScanSamples, localizerMode);
 	}
 
 	m_PrevFrame = frame;
@@ -43,6 +44,12 @@ void RobotCore::Update(const ControlSensorFrame& frame)
 void RobotCore::ResetLocalizer()
 {
 	m_pLocalizer->Reset();
+}
+
+void RobotCore::SwitchLocalizerMode(Localizer::Mode newMode)
+{
+	m_pLocalizer->SwitchMode(newMode);
+	m_LocalizerMode.store(static_cast<char>(newMode));
 }
 
 bool RobotCore::GetBrakeOverride() const

@@ -34,6 +34,7 @@
 #include "RobotCore.h"
 #include "CrashDetector.h"
 #include "PathFinding.h"
+#include "PathPlanner.h"
 
 void TestReadStreamFile(const char* pFilePath)
 {
@@ -57,19 +58,6 @@ void TestWriteMap(const char* pFilePath)
 	MapUtils::WriteMapToFile_L2Int(map, pFilePath, 8);
 }
 
-void TestCarStatsModel()
-{
-	CarStatsModel model(0.1f, 0.1f);
-
-	for (uint i = 0; i < 10; i++)
-	{
-		Pose p(1.0f, 1.0f, PI);
-		Pose poseDiffLocal(1.0f, 0.0f, 0.1f);
-		Pose newPose = model.GetPoseSample(p, poseDiffLocal);
-		printf("new pose x: %.3f, y: %.3f, dir: %.3f\n", newPose.x, newPose.y, newPose.dir);
-	}
-}
-
 void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapFilePath, const char* pOutLocHistoryPath,
 	const Localizer::Config& localizerConfig, const Chassis::ChassisStatsConfig& chassisStatsConfig)
 {
@@ -79,9 +67,12 @@ void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapF
 	CrashDetector::Settings crashDetectorSettings;
 	CrashDetector crashDetector(crashDetectorSettings, chassisModel);
 
+	PathFinding::Config pfConfig;
+	PathPlanner pathPlanner(pfConfig);
+
 	Localizer localizer(localizerConfig, chassisModel);
 
-	RobotCore core(localizer, crashDetector);
+	RobotCore core(localizer, crashDetector, pathPlanner);
 	core.SetUpdateLocalizer(true);
 
 	// Read all blocks

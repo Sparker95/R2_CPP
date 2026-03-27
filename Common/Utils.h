@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Common.h"
+#include "Pose.h"
 #include "Sensor.h"
 #include "Scan.h"
 

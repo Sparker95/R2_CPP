@@ -400,3 +400,13 @@ void ControlPanelServer::SendOptions_mt()
 	PipeMsgSendOptions* pMsg = new PipeMsgSendOptions();
 	PostPipeMessage(pMsg);
 }
+
+void ControlPanelServer::SendPath_mt(const std::vector<Vector2> path)
+{
+	if (!GetConnected())
+		return;
+
+	PipeMsgPath* pMsg = new PipeMsgPath();
+	pMsg->m_PathPoints = path;
+	PostPipeMessage(pMsg);
+}

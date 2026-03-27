@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Common/Common.h"
+#include "../Common/Pose.h"
 #include "../Common/Sensor.h"
 #include "../Common/ControlPanelProtocol.h"
 #include "../Common/ControlSensorFrame.h"

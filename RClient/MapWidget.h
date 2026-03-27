@@ -2,7 +2,8 @@
 #define MAPWIDGET_H
 
 #include "../Common/Map.h"
-#include "../Common/Common.h"
+#include "../Common/Pose.h"
+#include "../Common/Vector2.h"
 #include "../Common/CommonIntTypes.h"
 
 #include <QWidget>
@@ -18,6 +19,9 @@ protected:
 	// Data to display
 	const Map* m_pMap = nullptr;
 	QList<Pose> m_Poses;
+	QList<Vector2> m_Path;
+	QPointF m_CursorMarkerPos;
+	bool m_CursorMarkerEnabled = false;
 
 	QPointF m_ViewCenter_m; // center of view port in meters
 
@@ -41,6 +45,9 @@ protected:
 public:
 	void SetMapData(const Map* pMap);
 	void SetLocationData(QList<Pose>& newPoses);
+	void SetPathData(QList<Vector2>& newPath);
+
+	bool GetCursorMarkerPos(QPointF& outPos) { outPos = m_CursorMarkerPos; return m_CursorMarkerEnabled; };
 
 signals:
 };

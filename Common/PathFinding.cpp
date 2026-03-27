@@ -325,24 +325,14 @@ bool CheckCollision(const Config& config, const Node::Pose& pose, const Map& map
 
 void RestorePath(const Node& endNode, const std::vector<Node>& allNodes, std::vector<Node>& outNodes)
 {
-	uint nNodes = 1;
 	const Node* pCurrentNode = &endNode;
 
-	// Iterate first time to count nodes
-	while (pCurrentNode->m_NodeFrom != static_cast<uint>(-1))
+	outNodes.clear();
+	while (true)
 	{
-		nNodes++;
-		pCurrentNode = &allNodes[pCurrentNode->m_NodeFrom];
-	}
-
-	// Iterate second time to copy nodes
-	outNodes.resize(nNodes);
-	pCurrentNode = &endNode;
-	uint currentNodeOutId = nNodes - 1;
-	while (pCurrentNode->m_NodeFrom != static_cast<uint>(-1))
-	{
-		outNodes[currentNodeOutId] = *pCurrentNode;
-		currentNodeOutId--;
+		outNodes.insert(outNodes.begin(), *pCurrentNode);
+		if (pCurrentNode->m_NodeFrom == static_cast<uint>(-1))
+			break;
 		pCurrentNode = &allNodes[pCurrentNode->m_NodeFrom];
 	}
 }
@@ -358,9 +348,11 @@ void PathFinding::CalculateSmoothTransition(const Config& config, const Node& no
 	// Trivial case, fwd or bwd, return just pair of points without smoothing
 	if (transId == Transition::FWD || transId == Transition::BWD)
 	{
+		outPositions.clear();
 		outPositions.push_back(Vector2(nodeFrom.m_Pose.x, nodeFrom.m_Pose.y));
 		if (addLastPoint)
 			outPositions.push_back(Vector2(nodeTo.m_Pose.x, nodeTo.m_Pose.y));
+		return;
 	}
 
 	// Non trivial cases

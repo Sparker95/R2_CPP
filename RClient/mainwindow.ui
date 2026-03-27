@@ -368,7 +368,7 @@
     <property name="geometry">
      <rect>
       <x>1210</x>
-      <y>180</y>
+      <y>280</y>
       <width>120</width>
       <height>121</height>
      </rect>
@@ -419,6 +419,58 @@
      </property>
      <property name="alignment">
       <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignTop</set>
+     </property>
+    </widget>
+   </widget>
+   <widget class="QPushButton" name="PlanPathButton">
+    <property name="geometry">
+     <rect>
+      <x>1210</x>
+      <y>430</y>
+      <width>121</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Plan Path</string>
+    </property>
+   </widget>
+   <widget class="QGroupBox" name="LocalizerModeGroup">
+    <property name="geometry">
+     <rect>
+      <x>1210</x>
+      <y>180</y>
+      <width>121</width>
+      <height>91</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>Localizer Mode</string>
+    </property>
+    <widget class="QRadioButton" name="LocMode0Button">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>20</y>
+       <width>121</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>SLAM</string>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="LocMode1Button">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>40</y>
+       <width>101</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Common Loc.</string>
      </property>
     </widget>
    </widget>

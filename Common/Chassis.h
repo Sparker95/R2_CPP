@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <random>
 
-#include "Common.h"
+#include "Pose.h"
 #include "CommonIntTypes.h"
 #include "MathUtils.h"
 

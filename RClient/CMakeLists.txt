@@ -28,10 +28,12 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ../Common/ControlPanelProtocol.cpp
 	FileUtils.cpp InputHandling.cpp main.cpp mainwindow.cpp MapWidget.cpp SensorDataFileWriter.cpp SensorScanWidget.cpp UIEventsHandling.cpp FileUtils.h InputHandling.h mainwindow.h MapWidget.h SensorDataFileWriter.h SensorScanWidget.h
 	../Common/Map.cpp ../Common/Map.h
-	../Common/Common.h ../Common/ControlInputsProtocol.h ../Common/MapUtils.cpp ../Common/MapUtils.h ../Common/ProbUtils.cpp ../Common/ProbUtils.h ../Common/Sensor.cpp ../Common/Sensor.h
+	../Common/ControlInputsProtocol.h ../Common/MapUtils.cpp ../Common/MapUtils.h ../Common/ProbUtils.cpp ../Common/ProbUtils.h ../Common/Sensor.cpp ../Common/Sensor.h
 	../Common/Chassis.h ../Common/ControlPanelProtocol.h ../Common/Sensor.cpp ../Common/Sensor.h
 	../Common/StringWordWriter.cpp ../Common/StringWordWriter.h
 	../Common/StringWordReader.cpp ../Common/StringWordReader.h
+	../Common/Vector2.cpp ../Common/Vector2.h
+	../Common/Localizer.h
     )
 
 # Define target properties for Android with Qt 6 as:

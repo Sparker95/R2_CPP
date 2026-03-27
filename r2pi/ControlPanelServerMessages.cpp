@@ -2,11 +2,12 @@
 #include "../Common/ControlPanelProtocol.h"
 #include "../Common/ControlInputsProtocol.h"
 #include "../Common/Sensor.h"
-#include "../Common/Common.h"
+#include "../Common/Pose.h"
 #include "../Common/Utils.h"
 #include "../Common/Scan.h"
 #include "../Common/Map.h"
 #include "../Common/RobotCore.h"
+#include "../Common/Localizer.h"
 
 #include "MainMessageLoop.h"
 #include "SensorInterface.h"
@@ -87,8 +88,11 @@ void ControlPanelServer::OnProtocolNewMessage(uint8_t msgType, char* msgPayload,
 		// Trivial messages for Main Message Loop are redirected to it, it decodes them itself
 		case (MessageType::MSG_REQUEST_MAP):
 		case (MessageType::MSG_REQUEST_LOC):
+		case (MessageType::MSG_REQUEST_PATH):
+		case (MessageType::MSG_PLAN_PATH):
 		case (MessageType::MSG_ENABLE_LOCALIZER):
 		case (MessageType::MSG_RESET_LOCALIZER):
+		case (MessageType::MSG_SWITCH_LOCALIZER_MODE):
 		{
 			// Notitify main msg loop, it will send back map
 			MainMessageLoop::MessageControlPanel* pMsgCtrl = new MainMessageLoop::MessageControlPanel();
@@ -156,9 +160,6 @@ void ControlPanelServer::ProcessPipeMessage(PipeMsgBase* pMsg, bool& outTerminat
 
 		Map& m = pMsgMap->m_Map;
 
-		// Serialize map
-		BufferWriter writer(g_SendBuffer, sizeof(g_SendBuffer));
-
 		ControlPanelProtocol::MapDataHeader mapHeader;
 		mapHeader.m_Res_w = m.GetResolution_w();
 		mapHeader.m_xSize = m.GetSize().x;
@@ -181,8 +182,6 @@ void ControlPanelServer::ProcessPipeMessage(PipeMsgBase* pMsg, bool& outTerminat
 		if (!GetConnected())
 			return;
 
-		BufferWriter writer(g_SendBuffer, sizeof(g_SendBuffer));
-
 		writer.Write<uint>(static_cast<uint>(pMsgLoc->m_Poses.size()));
 
 		for (Pose& p : pMsgLoc->m_Poses)
@@ -193,6 +192,19 @@ void ControlPanelServer::ProcessPipeMessage(PipeMsgBase* pMsg, bool& outTerminat
 	else if (dynamic_cast<PipeMsgSendOptions*>(pMsg))
 	{
 		SendOptions();
+	}
+	else if (PipeMsgPath* pMsgPath = dynamic_cast<PipeMsgPath*>(pMsg))
+	{
+		// Send path to client
+
+		if (!GetConnected())
+			return;
+
+		writer.Write<uint>(static_cast<uint>(pMsgPath->m_PathPoints.size()));
+		for (Vector2& p : pMsgPath->m_PathPoints)
+			writer.Write(p);
+
+		SendMessage(MessageType::MSG_PATH, writer.GetNumBytesWritten(), g_SendBuffer);
 	}
 }
 
@@ -206,8 +218,10 @@ void ControlPanelServer::FillOptionsValues(ControlPanelProtocol::OptionsHeader& 
 	if (m_pSensorInterface->GetMotorState_mt())
 		optsHeader.m_Options |= THeader::OPT_SENSOR_MOTOR;
 
-	if (m_pRobotCore->GetUpdateLocalizer())
+	if (m_pRobotCore->GetUpdateLocalizer_mt())
 		optsHeader.m_Options |= THeader::OPT_UPDATE_LOCALIZER;
+
+	optsHeader.m_LocalizerMode = static_cast<uint8_t>(m_pRobotCore->GetLocalizerMode_mt());
 }
 
 void ControlPanelServer::SendOptions()

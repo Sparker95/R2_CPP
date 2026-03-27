@@ -3,7 +3,7 @@
 #include <vector>
 #include <random>
 
-#include "Common.h"
+#include "Pose.h"
 #include "Map.h"
 #include "Sensor.h"
 #include "MathUtils.h"
@@ -19,6 +19,21 @@ namespace Chassis
 class Localizer
 {
 public:
+	enum class Mode
+	{
+		// Normal mode (full SLAM):
+		// - Each particle has own map
+		// - Weight is calculated from map of particle
+		// - Map of particle is updated
+		LOC_AND_MAP = 0,
+
+		// Localization mode:
+		// - Particle weight is calculated from common map,
+		// - Map of particle is not updated
+		COMMON_LOC = 1
+
+	};
+
 	struct Particle
 	{
 		Pose m_Pose; // Pose of car, not pose of sensor!
@@ -63,6 +78,7 @@ public:
 private:
 	Chassis::ChassisModel* m_pChassisModel = nullptr;
 	std::vector<Particle> m_Particles;
+	Map m_LocalizationCommonMap; // Map used in mode COMMON_LOC
 	const Config m_Config;
 	std::minstd_rand m_RngResample;
 
@@ -83,8 +99,9 @@ public:
 	Localizer(const Config& config, Chassis::ChassisModel& statsModel);
 
 	// Main functions
-	void Update(const Chassis::ChassisInputs& inputs, const std::vector<Sensor::ScanSample>& realScanPolar);
+	void Update(const Chassis::ChassisInputs& inputs, const std::vector<Sensor::ScanSample>& realScanPolar, Mode mode);
 	void Reset(); // Resets all particles and history
+	void SwitchMode(Mode newMode);
 private:
 	void NormalizeWeights();
 	void ResampleParticles();
@@ -93,6 +110,8 @@ public:
 	const std::vector<Particle>& GetParticles() const { return m_Particles; }
 	std::vector<Particle>& GetParticles() { return m_Particles; }
 	const Particle& GetMostLikelyParticle() const;
+
+	const Map& GetLocalizationCommonMap() const { return m_LocalizationCommonMap; }
 
 	// Diagnostics
 	const std::vector<HistoryEntry>& GetHistory() const { return m_History; }

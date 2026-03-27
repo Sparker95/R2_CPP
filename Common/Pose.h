@@ -1,7 +1,5 @@
 #pragma once
 
-// Common definitions and types
-
 // Full robot pose in the world
 struct Pose
 {

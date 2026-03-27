@@ -4,11 +4,11 @@
     <ShowAllFiles>false</ShowAllFiles>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-    <RemoteDebuggerCommandArguments>-inChassisIfConfig ../../../ChassisInterface.cfg -inChassisStatsConfig ../../../ChassisStats.cfg -inLocalizerConfig ../../../Localizer.cfg -inSensorIfConfig ../../../SensorInterface.cfg -inChassisControlConfig ../../../ChassisControl.cfg</RemoteDebuggerCommandArguments>
+    <RemoteDebuggerCommandArguments>-inChassisIfConfig ../../../ChassisInterface.cfg -inChassisStatsConfig ../../../ChassisStats.cfg -inLocalizerConfig ../../../Localizer.cfg -inSensorIfConfig ../../../SensorInterface.cfg -inChassisControlConfig ../../../ChassisControl.cfg  -inCrashDetectorConfig ../../../CrashDetector.cfg -inPathFindingConfig ../../../PathFinding.cfg</RemoteDebuggerCommandArguments>
     <DebuggerFlavor>LinuxDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <RemoteDebuggerCommandArguments>-inChassisIfConfig ../../../ChassisInterface.cfg -inChassisStatsConfig ../../../ChassisStats.cfg -inLocalizerConfig ../../../Localizer.cfg -inSensorIfConfig ../../../SensorInterface.cfg -inChassisControlConfig ../../../ChassisControl.cfg</RemoteDebuggerCommandArguments>
+    <RemoteDebuggerCommandArguments>-inChassisIfConfig ../../../ChassisInterface.cfg -inChassisStatsConfig ../../../ChassisStats.cfg -inLocalizerConfig ../../../Localizer.cfg -inSensorIfConfig ../../../SensorInterface.cfg -inChassisControlConfig ../../../ChassisControl.cfg  -inCrashDetectorConfig ../../../CrashDetector.cfg -inPathFindingConfig ../../../PathFinding.cfg</RemoteDebuggerCommandArguments>
     <DebuggerFlavor>LinuxDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

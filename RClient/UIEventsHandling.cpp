@@ -12,13 +12,15 @@
 #include "InputHandling.h"
 #include "SensorScanWidget.h"
 #include "FileUtils.h"
+#include "MapWidget.h"
 
 #include "../Common/ControlPanelProtocol.h"
 #include "../Common/ControlInputsProtocol.h"
 #include "../Common/Sensor.h"
-#include "../Common/Common.h"
+#include "../Common/Pose.h"
 #include "../Common/MapUtils.h"
 #include "../Common/ProbUtils.h"
+#include "../common/Localizer.h"
 
 void MainWindow::SlotOnConnectButtonClicked()
 {
@@ -137,4 +139,46 @@ void MainWindow::SlotOnSaveMapButton()
 		QString labelText = QString("Saved\n%1").arg(QString::fromStdString(safeFileName));
 		ui->SaveMapStateLabel->setText(labelText);
 	}
+}
+
+void MainWindow::SlotOnPlanPathButton()
+{
+	if (!IsConnected())
+		return;
+
+	QPointF mapCursorPos_m;
+
+	// Bail if no cursor is placed
+	if (!m_pMapWidget->GetCursorMarkerPos(mapCursorPos_m))
+		return;
+
+	ControlPanelProtocol::PlanPathHeader header;
+	header.m_X = (float)mapCursorPos_m.x();
+	header.m_Y = (float)mapCursorPos_m.y();
+	header.m_Radius = 0.3f;
+
+	SendMessage(ControlPanelProtocol::MessageType::MSG_PLAN_PATH, sizeof(header), (const char*)&header);
+
+	// Request path as well
+	SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_PATH, 0, nullptr);
+}
+
+void MainWindow::SlotOnLocalizerModeButton()
+{
+	if (!IsConnected())
+		return;
+
+	// Both radio buttons are connected here
+	// Which one is pressed?
+
+	Localizer::Mode newMode = {};
+	if (ui->LocMode0Button->isChecked())
+		newMode = Localizer::Mode::LOC_AND_MAP;
+	else if (ui->LocMode1Button->isChecked())
+		newMode = Localizer::Mode::COMMON_LOC;
+	else
+		return; // Makes no sense, something must be checked
+
+	uint8_t payload = static_cast<uint8_t>(newMode);
+	SendMessage(ControlPanelProtocol::MessageType::MSG_SWITCH_LOCALIZER_MODE, 1, (const char*)&payload);
 }

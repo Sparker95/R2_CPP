@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Common/Common.h"
+#include "../Common/Pose.h"
 #include "../Common/Chassis.h"
 
 #include <mutex>

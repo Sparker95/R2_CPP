@@ -44,6 +44,7 @@ void Localizer::Reset()
 		p.m_PoseHistory.clear();
 #endif
 	}
+	m_LocalizationCommonMap = Map(m_Config.m_MapRes_w);
 
 	m_RngResample.seed(RNG_DEFAULT_SEED);
 
@@ -54,7 +55,28 @@ void Localizer::Reset()
 #endif
 }
 
-void Localizer::Update(const Chassis::ChassisInputs& inputs, const std::vector<Sensor::ScanSample>& realScanPolar)
+void Localizer::SwitchMode(Localizer::Mode mode)
+{
+	if (mode == Localizer::Mode::LOC_AND_MAP)
+	{
+		// Copy map TO all particles
+		for (Particle& p : m_Particles)
+			p.m_Map = m_LocalizationCommonMap;
+		m_LocalizationCommonMap.SetAllData(0);
+	}
+	else if (mode == Localizer::Mode::COMMON_LOC)
+	{
+		// From now localize based on map from most likely particle
+		const Particle& mlp = GetMostLikelyParticle();
+		m_LocalizationCommonMap = mlp.m_Map;
+
+		// Maps of all particles get replaced with MLP map
+		for (Particle& p : m_Particles)
+			p.m_Map = m_LocalizationCommonMap;
+	}
+}
+
+void Localizer::Update(const Chassis::ChassisInputs& inputs, const std::vector<Sensor::ScanSample>& realScanPolar, Mode mode)
 {
 	ZoneScopedN("Localizer::Update");
 
@@ -93,13 +115,15 @@ void Localizer::Update(const Chassis::ChassisInputs& inputs, const std::vector<S
 		// WIP disabled compensation
 		//m_ScanPolarCompensated = realScanPolar;
 
-		// Calculate weight
-		float weight = CalculateParticleWeight(particleSensorPose, p.m_Map, m_ScanDirections, m_ScanPolarCompensated);
+		// Calculate weight. Which map to use depends on mode.
+		const Map& mapCalcWeight = mode == Mode::LOC_AND_MAP ? p.m_Map : m_LocalizationCommonMap;
+		float weight = CalculateParticleWeight(particleSensorPose, mapCalcWeight, m_ScanDirections, m_ScanPolarCompensated);
 		p.m_Weight = weight;
 
-		// Update map
+		// Update map - depends on mode.
 		// Scan is applied at pose where Sensor is in World Space
-		ApplyScan(particleSensorPose, p.m_Map, m_ScanDirections, m_ScanPolarCompensated);
+		if (mode == Mode::LOC_AND_MAP)
+			ApplyScan(particleSensorPose, p.m_Map, m_ScanDirections, m_ScanPolarCompensated);
 	}
 
 	NormalizeWeights();

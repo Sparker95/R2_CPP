@@ -51,9 +51,6 @@
     <ClCompile Include="..\Common\MapUtils.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="..\Common\CarStatsModel.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
     <ClCompile Include="..\Common\Localizer.cpp">
       <Filter>Common</Filter>
     </ClCompile>
@@ -89,6 +86,9 @@
     </ClCompile>
     <ClCompile Include="..\Common\ConfigUtils.cpp">
       <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\PathPlanner.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1055,9 +1055,6 @@
     <ClInclude Include="..\Common\Sensor.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="..\Common\CarStatsModel.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\Localizer.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -1090,6 +1087,9 @@
     </ClInclude>
     <ClInclude Include="..\Common\ConfigUtils.h">
       <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\PathPlanner.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

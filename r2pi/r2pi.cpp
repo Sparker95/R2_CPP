@@ -11,9 +11,12 @@
 #include "../Common/LocalizerUtils.h"
 #include "../Common/RobotCore.h"
 #include "../Common/Chassis.h"
-#include "../Common/ChassisUtils.h"
 #include "../Common/ProbUtils.h"
 #include "../Common/CrashDetector.h"
+#include "../Common/PathFinding.h"
+#include "../Common/PathPlanner.h"
+
+#include "PlatformConfigUtils.h"
 
 #include <cstring>
 #include <thread>
@@ -28,81 +31,6 @@ void SignalHandler(int s)
 	auto* pMsgLoop = g_pMsgLoop.load();
 	if (pMsgLoop)
 		pMsgLoop->HandleOsSignal(s);
-}
-
-bool ReadConfigChassisInterfaceSettings(const Config& cfg, ChassisInterface::AllSettings& outSettings)
-{
-	ChassisInterface::AllSettings s;
-
-	bool cfgSuccess =
-		// Connection settings
-		cfg.Get("SerialDevPath", s.m_ConnSettings.m_SerialDevPath) &&
-		// PID settings
-		cfg.Get("MotorControllerKP", s.m_PidSettings.m_KP) &&
-		cfg.Get("MotorControllerKI", s.m_PidSettings.m_KI) &&
-		cfg.Get("MotorControllerKD", s.m_PidSettings.m_KD) &&
-		cfg.Get("MotorControllerErrorScale", s.m_PidSettings.m_ErrorScale) &&
-		cfg.Get("MotorControllerErrorIntegralMax", s.m_PidSettings.m_ErrorIntegralMax) &&
-		// Acceleration settings
-		cfg.Get("MotorControllerAccelMove", s.m_AccelSettings.m_AccelMove) &&
-		cfg.Get("MotorControllerAccelBrake", s.m_AccelSettings.m_AccelBrake) &&
-		// Steering settings
-		cfg.Get("SteerSpeed", s.m_SteeringSettings.m_SteeringSpeed);
-
-	if (!cfgSuccess)
-	{
-		fprintf(stderr, "Error: Failed to read chassis interface settings from config\n");
-		return false;
-	}
-
-	outSettings = s;
-	return true;
-}
-
-bool ReadConfigChassisControlSettings(const Config& cfg, ChassisSettings::ControlSettings& outSettings, CrashDetector::Settings& outCrashDetectorSettings)
-{
-	ChassisSettings::ControlSettings s;
-
-	bool cfgSuccess =
-		cfg.Get("SteerOutputMax", s.m_SteerOutputMax) &&
-		cfg.Get("SpeedSlow_Hz", s.m_SpeedSlow_Hz) &&
-		cfg.Get("SpeedCruise_Hz", s.m_SpeedCruise_Hz) &&
-		cfg.Get("SpeedFast_Hz", s.m_SpeedFast_Hz) &&
-		cfg.Get("CrashDetector_BrakeAccel", outCrashDetectorSettings.m_BrakeAccel_freq_s2) &&
-		cfg.Get("CrashDetector_ExtraTimeToCrash_s", outCrashDetectorSettings.m_ExtraTimeToCrash_s);
-
-	if (!cfgSuccess)
-	{
-		fprintf(stderr, "Error: Failed to read chassis control settings from config\n");
-		return false;
-	}
-	
-	outSettings = s;
-	return true;
-}
-
-bool ReadConfigSensorInterfaceSettings(const Config& cfg, SensorInterface::Settings& outSettings)
-{
-	SensorInterface::Settings s;
-
-	bool cfgSuccess = cfg.Get("SerialDevPath", s.m_SerialDevPath) &&
-		cfg.Get("MotorSpeed_Hz", s.m_MotorSpeed_Hz) &&
-		cfg.Get("MotorControllerKP", s.m_MotorControllerPidSettings.m_fKP) &&
-		cfg.Get("MotorControllerKI", s.m_MotorControllerPidSettings.m_fKI) &&
-		cfg.Get("MotorControllerKD", s.m_MotorControllerPidSettings.m_fKD) &&
-		cfg.Get("MotorControllerErrorScale", s.m_MotorControllerPidSettings.m_fErrorScale) &&
-		cfg.Get("MotorControllerErrorIntegralMax", s.m_MotorControllerPidSettings.m_fErrorIntegralMax) &&
-		cfg.Get("MotorControllerStartPwmValue_01", s.m_MotorControllerStartPwmValue_01) &&
-		cfg.Get("MotorControllerMinPwmValue_01", s.m_MotorControllerMinPwmValue_01);
-
-	if (!cfgSuccess)
-	{
-		fprintf(stderr, "Error: Failed to read sensor settings from config\n");
-		return false;
-	}
-
-	outSettings = s;
-	return true;
 }
 
 int main(int argc, char** argv)
@@ -129,6 +57,8 @@ int main(int argc, char** argv)
 	const char* pInChassisIfConfig = nullptr;
 	const char* pInSensorIfConfig = nullptr;
 	const char* pInChassisControlConfig = nullptr;
+	const char* pInCrashDetectorConfig = nullptr;
+	const char* pInPathFindingConfig = nullptr;
 	for (int i = 1; i < argc - 1; i++)
 	{
 		std::string arg(argv[i]);
@@ -142,6 +72,10 @@ int main(int argc, char** argv)
 			pInSensorIfConfig = argv[i + 1];
 		else if (arg == "-inChassisControlConfig")
 			pInChassisControlConfig = argv[i + 1];
+		else if (arg == "-inCrashDetectorConfig")
+			pInCrashDetectorConfig = argv[i + 1];
+		else if (arg == "-inPathFindingConfig")
+			pInPathFindingConfig = argv[i + 1];
 	}
 
 	printf("Command Line Arguments:\n");
@@ -150,8 +84,11 @@ int main(int argc, char** argv)
 	printf("-inLocalizerConfig      : %s\n", pInLocalizerConfig);
 	printf("-inSensorIfConfig       : %s\n", pInSensorIfConfig);
 	printf("-inChassisControlConfig : %s\n", pInChassisControlConfig);
+	printf("-inCrashDetectorConfig  : %s\n", pInCrashDetectorConfig);
+	printf("-inPathFindingConfig    : %s\n", pInPathFindingConfig);
 
-	if (!pInChassisIfConfig || !pInChassisStatsConfig || !pInLocalizerConfig)
+	if (!pInChassisIfConfig || !pInChassisStatsConfig || !pInLocalizerConfig || !pInSensorIfConfig ||
+		!pInChassisControlConfig || !pInCrashDetectorConfig || !pInPathFindingConfig)
 	{
 		printf("Not all arguments are provided!\n");
 		return 1;
@@ -166,11 +103,14 @@ int main(int argc, char** argv)
 	SensorInterface::Settings        sensorIfSettings;
 	Localizer::Config                localizerConfig;
 	Chassis::ChassisStatsConfig      chassisStatsConfig;
-	initDone = initDone && ReadConfigChassisInterfaceSettings(Config(pInChassisIfConfig), chassisIfSettings);
-	initDone = initDone && ReadConfigChassisControlSettings(Config(pInChassisControlConfig), chassisControlSettings, crashDetectorSettings);
-	initDone = initDone && ReadConfigSensorInterfaceSettings(Config(pInSensorIfConfig), sensorIfSettings);
+	PathFinding::Config              pathFindingConfig;
+	initDone = initDone && PlatformConfigUtils::ReadChassisInterfaceSettingsConfig(Config(pInChassisIfConfig), chassisIfSettings);
+	initDone = initDone && PlatformConfigUtils::ReadChassisControlSettingsConfig(Config(pInChassisControlConfig), chassisControlSettings);
+	initDone = initDone && PlatformConfigUtils::ReadSensorInterfaceSettingsConfig(Config(pInSensorIfConfig), sensorIfSettings);
+	initDone = initDone && ConfigUtils::ReadCrashDetectorConfig(Config(pInCrashDetectorConfig), crashDetectorSettings);
 	initDone = initDone && ConfigUtils::ReadLocalizerConfig(Config(pInLocalizerConfig), localizerConfig);
 	initDone = initDone && ConfigUtils::ReadChassisStatsConfig(Config(pInChassisStatsConfig), chassisStatsConfig);
+	initDone = initDone && ConfigUtils::ReadPathFindingConfig(Config(pInPathFindingConfig), pathFindingConfig);
 
 	if (!initDone)
 	{
@@ -190,8 +130,11 @@ int main(int argc, char** argv)
 	// Crash detector
 	CrashDetector crashDetector(crashDetectorSettings, chassisModel);
 
+	// Path planner
+	PathPlanner pathPlanner(pathFindingConfig);
+
 	// Core
-	RobotCore robotCore(localizer, crashDetector);
+	RobotCore robotCore(localizer, crashDetector, pathPlanner);
 
 	// Sensor interface
 	SensorInterface sensor(sensorIfSettings);

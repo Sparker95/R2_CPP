@@ -13,6 +13,7 @@
 #include "../Common/RobotCore.h"
 #include "../Common/ControlSensorFrame.h"
 #include "../Common/Localizer.h"
+#include "../Common/PathPlanner.h"
 
 #include <stdio.h>
 
@@ -189,8 +190,20 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 				}
 				*/
 
-				const Map& mostLikelyMap = m_pRobotCore->GetLocalizer()->GetMostLikelyParticle().m_Map;
-				m_pCtrlPanelServer->SendMap_mt(mostLikelyMap);
+				// Send common map or most likely map, depends on mode
+
+				auto locMode = m_pRobotCore->GetLocalizerMode_mt();
+
+				if (locMode == Localizer::Mode::LOC_AND_MAP)
+				{
+					const Map& mostLikelyMap = m_pRobotCore->GetLocalizer()->GetMostLikelyParticle().m_Map;
+					m_pCtrlPanelServer->SendMap_mt(mostLikelyMap);
+				}
+				else if (locMode == Localizer::Mode::COMMON_LOC)
+				{
+					const Map& commonMap = m_pRobotCore->GetLocalizer()->GetLocalizationCommonMap();
+					m_pCtrlPanelServer->SendMap_mt(commonMap);
+				}
 
 				break;
 			}
@@ -234,6 +247,34 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 			case TCtrlPanelMsgType::MSG_RESET_LOCALIZER:
 			{
 				m_pRobotCore->ResetLocalizer();
+				break;
+			}
+			case TCtrlPanelMsgType::MSG_SWITCH_LOCALIZER_MODE:
+			{
+				Localizer::Mode newMode = static_cast<Localizer::Mode>(pMsg->m_Payload[0]);
+				m_pRobotCore->SwitchLocalizerMode(newMode);
+				break;
+			}
+			case TCtrlPanelMsgType::MSG_REQUEST_PATH:
+			{
+				PathPlanner* pPathPlanner = m_pRobotCore->GetPathPlanner();
+				const std::vector<Vector2>& pathPoints = pPathPlanner->GetPath();
+
+				m_pCtrlPanelServer->SendPath_mt(pathPoints);
+				break;
+			}
+			case TCtrlPanelMsgType::MSG_PLAN_PATH:
+			{
+				using THeader = ControlPanelProtocol::PlanPathHeader;
+				THeader* header = reinterpret_cast<THeader*>(pMsg->m_Payload);
+
+				PathPlanner* pPathPlanner = m_pRobotCore->GetPathPlanner();
+				Localizer* pLocalizer = m_pRobotCore->GetLocalizer();
+
+				const Localizer::Particle& locParticle = pLocalizer->GetMostLikelyParticle();
+
+				pPathPlanner->PlanPath(locParticle.m_Map, locParticle.m_Pose, { header->m_X, header->m_Y }, header->m_Radius);
+
 				break;
 			}
 			default:

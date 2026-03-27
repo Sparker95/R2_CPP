@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Localizer.h"
+#include "CrashDetector.h"
 
 /*
 Contains functions for reading config files of many classes.
@@ -23,4 +24,5 @@ namespace ConfigUtils
 	bool ReadLocalizerConfig(const Config& config, Localizer::Config& outConfig);
 	bool ReadChassisStatsConfig(const Config& config, Chassis::ChassisStatsConfig& outConfig);
 	bool ReadPathFindingConfig(const Config& config, PathFinding::Config& outConfig);
+	bool ReadCrashDetectorConfig(const Config& cfg, CrashDetector::Settings& outCrashDetectorSettings);
 }

@@ -19,7 +19,7 @@
 #include "../Common/ControlInputsProtocol.h"
 #include "../Common/Chassis.h"
 #include "../Common/Sensor.h"
-#include "../Common/Common.h"
+#include "../Common/Pose.h"
 
 const uint TIMER_INTERVAL_MS = 40;
 
@@ -37,7 +37,10 @@ MainWindow::MainWindow(QWidget *parent)
 	QObject::connect(ui->AutoResfreshMapButton, &QPushButton::clicked, this, &MainWindow::SlotOnAutoUpdateMapButton);
 	QObject::connect(ui->ResetLocalizerButton, &QPushButton::clicked, this, &MainWindow::SlotOnResetLocalizerButton);
 	QObject::connect(ui->EnableLocalizerButton, &QPushButton::clicked, this, &MainWindow::SlotOnEnableLocalizerButton);
+	QObject::connect(ui->LocMode0Button, &QRadioButton::clicked, this, &MainWindow::SlotOnLocalizerModeButton); // Both radio buttons connected to same slot
+	QObject::connect(ui->LocMode1Button, &QRadioButton::clicked, this, &MainWindow::SlotOnLocalizerModeButton);
 	QObject::connect(ui->SaveMapButton, &QPushButton::clicked, this, &MainWindow::SlotOnSaveMapButton);
+	QObject::connect(ui->PlanPathButton, &QPushButton::clicked, this, &MainWindow::SlotOnPlanPathButton);
 
 	// Socket signals
     QObject::connect(&m_ControlPanelSocket, &QTcpSocket::connected, this, &MainWindow::SlotOnSocketConnected);
@@ -107,6 +110,9 @@ void MainWindow::SlotOnSocketConnected()
 
 	// Immediately request options from server, to update our UI
 	SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_OPTIONS, 0, nullptr);
+
+	// Request path
+	SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_PATH, 0, nullptr);
 }
 
 void MainWindow::SlotOnSocketDisconnected()
@@ -349,6 +355,25 @@ void MainWindow::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigne
 			ui->EnableSensorStreamButton->setChecked(opts.m_Options & TOptions::OPT_STREAM_SENSOR_DATA);
 			ui->EnableSensorMotorButton->setChecked(opts.m_Options & TOptions::OPT_SENSOR_MOTOR);
 			ui->EnableLocalizerButton->setChecked(opts.m_Options & TOptions::OPT_UPDATE_LOCALIZER);
+
+			if (opts.m_LocalizerMode == 0)
+				ui->LocMode0Button->setChecked(true);
+			else if (opts.m_LocalizerMode == 1)
+				ui->LocMode1Button->setChecked(true);
+
+			break;
+		}
+
+		case ControlPanelProtocol::MessageType::MSG_PATH:
+		{
+			uint nPoints = reader.Read<uint>();
+
+			QList<Vector2> points;
+			points.resize(nPoints);
+			for (uint i = 0; i < nPoints; i++)
+				points[i] = reader.Read<Vector2>();
+
+			m_pMapWidget->SetPathData(points);
 
 			break;
 		}

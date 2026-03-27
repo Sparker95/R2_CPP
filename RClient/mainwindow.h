@@ -65,6 +65,9 @@ private slots:
 
 	void SlotOnResetLocalizerButton();
 	void SlotOnEnableLocalizerButton(bool checked = false);
+	void SlotOnLocalizerModeButton(); // Used for both radio buttons
+
+	void SlotOnPlanPathButton();
 
     void SlotOnSensorScaleValueChanged0(int value);
     void SlotOnSensorScaleValueChanged1(int value);

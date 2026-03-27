@@ -135,7 +135,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\Common\CarStatsModel.cpp" />
     <ClCompile Include="..\Common\Chassis.cpp" />
     <ClCompile Include="..\Common\Config.cpp" />
     <ClCompile Include="..\Common\ConfigUtils.cpp" />
@@ -146,6 +145,7 @@
     <ClCompile Include="..\Common\Map.cpp" />
     <ClCompile Include="..\Common\MapUtils.cpp" />
     <ClCompile Include="..\Common\PathFinding.cpp" />
+    <ClCompile Include="..\Common\PathPlanner.cpp" />
     <ClCompile Include="..\Common\ProbUtils.cpp" />
     <ClCompile Include="..\Common\r2offline.cpp" />
     <ClCompile Include="..\Common\RobotCore.cpp" />
@@ -159,7 +159,6 @@
     <ClCompile Include="Tracy\TracyClient.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Common\CarStatsModel.h" />
     <ClInclude Include="..\Common\Chassis.h" />
     <ClInclude Include="..\Common\Common.h" />
     <ClInclude Include="..\Common\Config.h" />
@@ -173,6 +172,7 @@
     <ClInclude Include="..\Common\Map.h" />
     <ClInclude Include="..\Common\MapUtils.h" />
     <ClInclude Include="..\Common\PathFinding.h" />
+    <ClInclude Include="..\Common\PathPlanner.h" />
     <ClInclude Include="..\Common\ProbUtils.h" />
     <ClInclude Include="..\Common\RobotCore.h" />
     <ClInclude Include="..\Common\Scan.h" />

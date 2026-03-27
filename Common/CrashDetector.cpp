@@ -16,6 +16,9 @@ CrashDetector::CrashDetector(const Settings& settings, const Chassis::ChassisMod
 
 void CrashDetector::Update(const ControlSensorFrame& frame, const ControlSensorFrame& prevFrame)
 {
+	if (!m_Settings.m_Enabled)
+		return;
+
 	ZoneScopedN("CrashDetector::Update");
 
 	float dt_s = 1e-3f * static_cast<float>((frame.m_TimeScanEnd_ms - prevFrame.m_TimeScanEnd_ms));

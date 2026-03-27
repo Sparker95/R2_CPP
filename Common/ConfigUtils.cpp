@@ -6,6 +6,7 @@
 #include "MathUtils.h"
 #include "ProbUtils.h"
 #include "PathFinding.h"
+#include "CrashDetector.h"
 
 bool ConfigUtils::ReadChassisStatsConfig(const Config& config, Chassis::ChassisStatsConfig& outConfig)
 {
@@ -86,5 +87,21 @@ bool ConfigUtils::ReadPathFindingConfig(const Config& config, PathFinding::Confi
 
 	tempConfig.Init(); // Remember to call this!
 	outConfig = tempConfig;
+	return true;
+}
+
+bool ConfigUtils::ReadCrashDetectorConfig(const Config& cfg, CrashDetector::Settings& outCrashDetectorSettings)
+{
+	CrashDetector::Settings s;
+
+	bool cfgSuccess =
+		cfg.Get("Enabled", s.m_Enabled) &&
+		cfg.Get("BrakeAccel_Hz/s^2", s.m_BrakeAccel_freq_s2) &&
+		cfg.Get("ExtraTimeToCrash_s", s.m_ExtraTimeToCrash_s);
+
+	if (!cfgSuccess)
+		return false;
+
+	outCrashDetectorSettings = s;
 	return true;
 }

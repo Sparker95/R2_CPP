@@ -163,11 +163,14 @@
     <ClCompile Include="..\Common\PathFinding.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="PlatformConfigUtils.cpp">
+      <Filter>Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\PathPlanner.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Common\Common.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="..\Common\ControlPanelProtocol.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -1330,6 +1333,15 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\PathFinding.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="PlatformConfigUtils.h">
+      <Filter>Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\PathPlanner.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Pose.h">
       <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>

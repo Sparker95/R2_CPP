@@ -9,8 +9,6 @@
 #include <sys/ioctl.h>
 #include <linux/serial.h>
 
-#include "../Common/Common.h"
-
 #ifdef TRACY_ENABLE
 #include "Tracy/tracy/Tracy.hpp"
 #else

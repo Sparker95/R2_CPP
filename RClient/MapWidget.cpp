@@ -39,6 +39,16 @@ MapWidget::MapWidget(QWidget *parent)
 	}
 	*/
 
+	// Load test path
+	/*
+	m_Path.clear();
+	for (float x = 0; x < 4.0f; x+=0.1f)
+	{
+		float y = 0.4f * x*x;
+		m_Path.push_back({x, y});
+	}
+	*/
+
 	// Init m_ViewSizes_m
 	m_ViewSizes_m.clear();
 	qreal viewSize = 0.25;
@@ -63,12 +73,19 @@ void MapWidget::SetLocationData(QList<Pose>& newPoses)
 	update();
 }
 
+void MapWidget::SetPathData(QList<Vector2>& newPath)
+{
+	m_Path = newPath;
+	update();
+}
+
 void MapWidget::paintEvent(QPaintEvent *event)
 {
 	QPainter painter(this);
 
 	const QColor bgColor(0, 0, 105);
 	const QColor poseColor(255, 0, 128);
+	const QColor pathColor(0, 0, 255);
 
 	QPainterStateGuard Johny(&painter);
 
@@ -149,6 +166,33 @@ void MapWidget::paintEvent(QPaintEvent *event)
 		}
 	}
 
+	// Draw path
+	if (m_Path.size() > 1)
+	{
+		QPen pen;
+		pen.setCosmetic(true);
+		pen.setColor(pathColor);
+
+		// Draw lines
+		pen.setWidth(2);
+		painter.setPen(pen);
+		for (uint i = 0; i < (uint)m_Path.size()-1; i++)
+		{
+			Vector2& p0 = m_Path[i];
+			Vector2& p1 = m_Path[i+1];
+			painter.drawLine(QPointF(p0.x, p0.y), QPointF(p1.x, p1.y));
+		}
+
+		// Draw points
+		pen.setWidth(5);
+		painter.setPen(pen);
+		for (uint i = 0; i < (uint)m_Path.size(); i++)
+		{
+			Vector2& p0 = m_Path[i];
+			painter.drawLine(QPointF(p0.x, p0.y), QPointF(p0.x, p0.y));
+		}
+	}
+
 	// Map origin is indicated by two lines 1m in length (1m each direction from center)
 	{
 		// X axis
@@ -164,6 +208,20 @@ void MapWidget::paintEvent(QPaintEvent *event)
 		painter.setPen(pen);
 		painter.drawLine(QPointF(0, -1), QPointF(0, 1.0));
 	}
+
+	// Cursor marker
+	if (m_CursorMarkerEnabled)
+	{
+		QPen pen;
+		pen.setCosmetic(true);
+		pen.setColor(QColor(255, 0, 0));
+		pen.setWidth(2);
+		painter.setPen(pen);
+		QPointF mrkSize = QPointF(10, 10) / scaleWorldToView;
+		painter.drawLine(m_CursorMarkerPos - mrkSize, m_CursorMarkerPos + mrkSize);
+		mrkSize.setY(-mrkSize.y());
+		painter.drawLine(m_CursorMarkerPos - mrkSize, m_CursorMarkerPos + mrkSize);
+	}
 }
 
 void MapWidget::mousePressEvent(QMouseEvent *event)
@@ -178,6 +236,20 @@ void MapWidget::mouseReleaseEvent(QMouseEvent *event)
 {
 	event->accept();
 	m_Dragging = false;
+
+	if (event->position() == m_DragStartPos)
+	{
+		// Calculate marker position in world space
+		qreal minWidthHeight = static_cast<qreal>(std::min<int>(width(), height()));
+		qreal scaleViewToWorld = m_ViewSizes_m[m_ViewSizeId] / minWidthHeight;
+
+		QPointF eventOffsetFromCenter_m = (event->position() - 0.5*QPointF(width(), height())) * scaleViewToWorld;
+		eventOffsetFromCenter_m.setY(-eventOffsetFromCenter_m.y());
+		m_CursorMarkerPos = eventOffsetFromCenter_m + m_ViewCenter_m;
+		m_CursorMarkerEnabled = true;
+
+		update();
+	}
 }
 
 void MapWidget::leaveEvent(QEvent *event)

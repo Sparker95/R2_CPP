@@ -1,5 +1,4 @@
 #include "Config.h"
-#include "../Common/Common.h"
 
 #include <fstream>
 #include <string.h>
@@ -117,6 +116,18 @@ bool Config::Get(const char* pKeyName, uint& outValue, bool reportError /*= true
 		return false;
 
 	outValue = static_cast<uint>(std::atol(pValueStr));
+
+	return true;
+}
+
+bool Config::Get(const char* pKeyName, bool& outValue, bool reportError /*= true*/) const
+{
+	const char* pValueStr = FindValue(pKeyName, reportError);
+
+	if (!pValueStr)
+		return false;
+
+	outValue = *pValueStr == '1';
 
 	return true;
 }

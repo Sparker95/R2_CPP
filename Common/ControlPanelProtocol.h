@@ -33,12 +33,15 @@ namespace ControlPanelProtocol
         MSG_ENABLE_STREAM_SENSOR_DATA, // Enables sensor data streaming. Data is byte: 0 - disable, 1 - enable
 		MSG_ENABLE_LOCALIZER,          // Enables localizer updates
 		MSG_ENABLE_SENSOR_MOTOR,       // Enables sensor motor
+		MSG_SWITCH_LOCALIZER_MODE,     // Switches mode of localizer
 
-		// Requests for data
+		// Requests for data, single commands without payload
 		MSG_REQUEST_MAP,               // Requests Map to be sent back
 		MSG_REQUEST_LOC,               // Requests localization data to be sent back
 		MSG_RESET_LOCALIZER,           // Resets localizer state
 		MSG_REQUEST_OPTIONS,           // Requests current options to be sent back
+		MSG_REQUEST_PATH,              // Requests (previously built) path
+		MSG_PLAN_PATH,                 // Requests computation of path
 
 		//---------------------------------------------------
 		// Server to Client
@@ -46,7 +49,8 @@ namespace ControlPanelProtocol
 		MSG_SENSOR_DATA, // Scan and odometer data from one cycle
 		MSG_MAP,         // Whole Map
 		MSG_LOC,         // Localization data
-		MSG_OPTIONS      // Options
+		MSG_OPTIONS,     // Options
+		MSG_PATH         // Path
 	};
 
 	struct MessageHeader
@@ -213,6 +217,15 @@ namespace ControlPanelProtocol
 		constexpr static uint8_t OPT_UPDATE_LOCALIZER   = 1 << 2;
 
 		uint8_t m_Options = 0;
+		uint8_t m_LocalizerMode = 0; // Localizer::Mode
+	};
+
+	// MSG_PLAN_PATH
+	struct PlanPathHeader
+	{
+		float m_X;
+		float m_Y;
+		float m_Radius;
 	};
 }
 

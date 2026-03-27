@@ -3,7 +3,8 @@
 #include <memory>
 #include <vector>
 
-#include "../Common/Common.h"
+#include "../Common/Vector2.h"
+#include "../Common/Pose.h"
 #include "../Common/ControlPanelProtocol.h"
 #include "../Common/Sensor.h"
 #include "../Common/Chassis.h"
@@ -38,6 +39,7 @@ public:
 	void SendMap_mt(const Map& map);
 	void SendLocaction_mt(const std::vector<Pose>& poses);
 	void SendOptions_mt(); // Sends all options back to client
+	void SendPath_mt(const std::vector<Vector2> path);
 
 private:
 	constexpr static const char PIPE_CMD_TERMINATE = 0x78; // Sent into pipe to termiante the thread
@@ -69,6 +71,10 @@ private:
 	struct PipeMsgLoc : PipeMsgBase
 	{
 		std::vector<Pose> m_Poses;
+	};
+	struct PipeMsgPath : PipeMsgBase
+	{
+		std::vector<Vector2> m_PathPoints;
 	};
 	struct PipeMsgSendOptions : PipeMsgBase {}; // Notifies server to gather options values and send them to client
 

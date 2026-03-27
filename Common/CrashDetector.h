@@ -11,6 +11,8 @@ class CrashDetector
 public:
 	struct Settings
 	{
+		bool m_Enabled = true;
+
 		// Brake deceleration, measured in odometer frequency per s^2, like in ChassisInterface
 		float m_BrakeAccel_freq_s2 = 1.0f;
 
