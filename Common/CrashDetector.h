@@ -9,7 +9,7 @@ struct ControlSensorFrame;
 class CrashDetector
 {
 public:
-	struct Settings
+	struct Config
 	{
 		bool m_Enabled = true;
 
@@ -20,7 +20,7 @@ public:
 		float m_ExtraTimeToCrash_s = 0.2f;
 	};
 
-	CrashDetector(const Settings& settings, const Chassis::ChassisModel& chassisModel);
+	CrashDetector(const Config& config, const Chassis::ChassisModel& chassisModel);
 	void Update(const ControlSensorFrame& frame, const ControlSensorFrame& prevFrame);
 
 	// Return true if impeding crash was detected and we must brake now.
@@ -28,7 +28,7 @@ public:
 	bool GetBrakeOverride_mt() const;
 
 private:
-	Settings m_Settings;
+	Config m_Config;
 	const Chassis::ChassisModel* m_pChassisModel = nullptr;
 	std::atomic_bool m_BrakeOverride = false;
 };

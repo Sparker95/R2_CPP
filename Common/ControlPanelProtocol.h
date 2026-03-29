@@ -34,6 +34,7 @@ namespace ControlPanelProtocol
 		MSG_ENABLE_LOCALIZER,          // Enables localizer updates
 		MSG_ENABLE_SENSOR_MOTOR,       // Enables sensor motor
 		MSG_SWITCH_LOCALIZER_MODE,     // Switches mode of localizer
+		MSG_ENABLE_AUTO_CONTROLS_MODE, // Enables AutoControlsMode in RobotCore.
 
 		// Requests for data, single commands without payload
 		MSG_REQUEST_MAP,               // Requests Map to be sent back
@@ -50,7 +51,8 @@ namespace ControlPanelProtocol
 		MSG_MAP,         // Whole Map
 		MSG_LOC,         // Localization data
 		MSG_OPTIONS,     // Options
-		MSG_PATH         // Path
+		MSG_PATH,        // Path
+		MSG_DIAG_DATA    // Diagnostics data
 	};
 
 	struct MessageHeader
@@ -215,6 +217,7 @@ namespace ControlPanelProtocol
 		constexpr static uint8_t OPT_STREAM_SENSOR_DATA = 1 << 0;
 		constexpr static uint8_t OPT_SENSOR_MOTOR       = 1 << 1;
 		constexpr static uint8_t OPT_UPDATE_LOCALIZER   = 1 << 2;
+		constexpr static uint8_t OPT_AUTO_CONTROLS      = 1 << 3;
 
 		uint8_t m_Options = 0;
 		uint8_t m_LocalizerMode = 0; // Localizer::Mode
@@ -226,6 +229,20 @@ namespace ControlPanelProtocol
 		float m_X;
 		float m_Y;
 		float m_Radius;
+	};
+
+	// MSG_DIAG_DATA
+	struct DiagDataHeader
+	{
+		// Localizer
+		Pose m_MeanPose;
+
+		// PathFollower
+		uint32_t m_PathPointId = -1; // -1 means it's disabled
+		uint32_t m_PathEndPointId = -1;
+		Vector2 m_PathPointPos;
+		Vector2 m_PathEndPointPos;
+		Vector2 m_PathLookaheadPos;
 	};
 }
 

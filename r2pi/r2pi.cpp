@@ -15,6 +15,7 @@
 #include "../Common/CrashDetector.h"
 #include "../Common/PathFinding.h"
 #include "../Common/PathPlanner.h"
+#include "../Common/PathFollower.h"
 
 #include "PlatformConfigUtils.h"
 
@@ -99,15 +100,16 @@ int main(int argc, char** argv)
 	// Read config files
 	ChassisInterface::AllSettings    chassisIfSettings;
 	ChassisSettings::ControlSettings chassisControlSettings;
-	CrashDetector::Settings crashDetectorSettings;
+	CrashDetector::Config crashDetectorConfig;
 	SensorInterface::Settings        sensorIfSettings;
 	Localizer::Config                localizerConfig;
 	Chassis::ChassisStatsConfig      chassisStatsConfig;
 	PathFinding::Config              pathFindingConfig;
+	PathFollowerConfig               pathFollowerConfig;
 	initDone = initDone && PlatformConfigUtils::ReadChassisInterfaceSettingsConfig(Config(pInChassisIfConfig), chassisIfSettings);
 	initDone = initDone && PlatformConfigUtils::ReadChassisControlSettingsConfig(Config(pInChassisControlConfig), chassisControlSettings);
 	initDone = initDone && PlatformConfigUtils::ReadSensorInterfaceSettingsConfig(Config(pInSensorIfConfig), sensorIfSettings);
-	initDone = initDone && ConfigUtils::ReadCrashDetectorConfig(Config(pInCrashDetectorConfig), crashDetectorSettings);
+	initDone = initDone && ConfigUtils::ReadCrashDetectorConfig(Config(pInCrashDetectorConfig), crashDetectorConfig);
 	initDone = initDone && ConfigUtils::ReadLocalizerConfig(Config(pInLocalizerConfig), localizerConfig);
 	initDone = initDone && ConfigUtils::ReadChassisStatsConfig(Config(pInChassisStatsConfig), chassisStatsConfig);
 	initDone = initDone && ConfigUtils::ReadPathFindingConfig(Config(pInPathFindingConfig), pathFindingConfig);
@@ -128,13 +130,16 @@ int main(int argc, char** argv)
 	Localizer localizer(localizerConfig, chassisModel);
 
 	// Crash detector
-	CrashDetector crashDetector(crashDetectorSettings, chassisModel);
+	CrashDetector crashDetector(crashDetectorConfig, chassisModel);
+
+	// Path follower
+	PathFollower pathFollower(pathFollowerConfig);
 
 	// Path planner
-	PathPlanner pathPlanner(pathFindingConfig);
+	PathPlanner pathPlanner(pathFindingConfig, pathFollowerConfig);
 
 	// Core
-	RobotCore robotCore(localizer, crashDetector, pathPlanner);
+	RobotCore robotCore(chassisModel, localizer, crashDetector, pathPlanner, pathFollower);
 
 	// Sensor interface
 	SensorInterface sensor(sensorIfSettings);
@@ -147,7 +152,7 @@ int main(int argc, char** argv)
 		initDone = false;
 
 	// Main message loop
-	MainMessageLoop msgLoop(sensor, chassis, robotCore);
+	MainMessageLoop msgLoop(sensor, chassis, chassisControlSettings, robotCore);
 	g_pMsgLoop = &msgLoop;
 
 	// Control panel server
@@ -155,7 +160,7 @@ int main(int argc, char** argv)
 	ctrlPanelServer.Start();
 
 	// Control inputs
-	ControlInputsSocket inputsSocket(chassis, chassisControlSettings, crashDetector);
+	ControlInputsSocket inputsSocket(chassis, chassisControlSettings, robotCore);
 	inputsSocket.Start();
 
 	// Finish message loop init

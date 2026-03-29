@@ -79,13 +79,30 @@ void MapWidget::SetPathData(QList<Vector2>& newPath)
 	update();
 }
 
+void MapWidget::SetMeanPose(const Pose& pose)
+{
+	m_MeanPose = pose;
+	update();
+}
+
+void MapWidget::SetPathFollowerData(const Vector2& pathPointPos, const Vector2& pathEndPointPos, const Vector2& lookaheadPos)
+{
+	m_PathPointPos = QPointF(pathPointPos.x, pathPointPos.y);
+	m_PathEndPointPos = QPointF(pathEndPointPos.x, pathEndPointPos.y);
+	m_PathLookaheadPos = QPointF(lookaheadPos.x, lookaheadPos.y);
+	update();
+}
+
 void MapWidget::paintEvent(QPaintEvent *event)
 {
 	QPainter painter(this);
 
 	const QColor bgColor(0, 0, 105);
-	const QColor poseColor(255, 0, 128);
+	const QColor meanPoseColor(232, 54, 23);
+	const QColor poseColor(150, 0, 75);
 	const QColor pathColor(0, 0, 255);
+	const QColor currentPathPointColor(255, 0, 0);
+	const QColor pathLookaheadPosColor(255, 0, 0);
 
 	QPainterStateGuard Johny(&painter);
 
@@ -153,6 +170,7 @@ void MapWidget::paintEvent(QPaintEvent *event)
 	}
 
 	// Draw poses
+	if (!m_Poses.empty())
 	{
 		QPen pen;
 		pen.setCosmetic(true);
@@ -163,6 +181,71 @@ void MapWidget::paintEvent(QPaintEvent *event)
 		for (const auto& p : static_cast<const QList<Pose>>(m_Poses))
 		{
 			painter.drawLine(QPointF(p.x, p.y), QPointF(p.x, p.y));
+		}
+	}
+
+	// Draw mean pose
+	if (m_MeanPose != Pose(0,0,0))
+	{
+		QPointF vMeanDir(std::cos(m_MeanPose.dir), std::sin(m_MeanPose.dir));
+		QPointF meanPos(m_MeanPose.x, m_MeanPose.y);
+		QPen pen;
+		pen.setCosmetic(true);
+		pen.setColor(meanPoseColor);
+		pen.setWidth(7);
+		painter.setPen(pen);
+		painter.drawLine(meanPos, meanPos);
+
+		pen.setWidth(4);
+		painter.setPen(pen);
+		float dirArrowLength = 20.0f / scaleWorldToView;
+		painter.drawLine(meanPos, meanPos + vMeanDir * dirArrowLength);
+	}
+
+	// Draw path follower markers
+	{
+		if (m_PathPointPos != QPointF(0,0))
+		{
+			QPen pen;
+			pen.setCosmetic(true);
+			pen.setColor(currentPathPointColor);
+			pen.setWidth(2);
+			painter.setPen(pen);
+
+			// Diamond
+			double mrkSize = 7.0 / scaleWorldToView;
+			QPointF mrkCenter = m_PathPointPos;
+			QPointF points[8] = {
+				mrkCenter + QPointF(mrkSize, 0), // 0
+				mrkCenter + QPointF(0, -mrkSize),
+				mrkCenter + QPointF(0, -mrkSize), // 1
+				mrkCenter + QPointF(-mrkSize, 0),
+				mrkCenter + QPointF(-mrkSize, 0), // 2
+				mrkCenter + QPointF(0, mrkSize),
+				mrkCenter + QPointF(0, mrkSize), // 3
+				mrkCenter + QPointF(mrkSize, 0)
+			};
+			painter.drawLines(points, 4);
+		}
+
+		if (m_PathLookaheadPos != QPointF(0,0))
+		{
+			QPen pen;
+			pen.setCosmetic(true);
+			pen.setColor(pathLookaheadPosColor);
+			pen.setWidth(2);
+			painter.setPen(pen);
+
+			// Vertical cross
+			double mrkSize = 7.0 / scaleWorldToView;
+			QPointF mrkCenter = m_PathLookaheadPos;
+			QPointF points[4] = {
+				mrkCenter + QPointF(-mrkSize, 0), // 0
+				mrkCenter + QPointF(mrkSize, 0),
+				mrkCenter + QPointF(0, -mrkSize), // 1
+				mrkCenter + QPointF(0, mrkSize)
+			};
+			painter.drawLines(points, 2);
 		}
 	}
 

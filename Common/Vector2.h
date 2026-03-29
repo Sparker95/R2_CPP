@@ -15,18 +15,19 @@ struct Vector2Base
 
 	Vector2Base() = default;
 
-	Vector2Base operator+(const Vector2Base& r) { return Vector2Base(x + r.x, y + r.y); }
+	Vector2Base operator+(const Vector2Base& r) const { return Vector2Base(x + r.x, y + r.y); }
 	Vector2Base& operator+=(const Vector2Base& r) { x += r.x; y += r.y; return *this; }
-	Vector2Base operator-(const Vector2Base& r) { return Vector2Base(x - r.x, y - r.y); }
+	Vector2Base operator-(const Vector2Base& r) const { return Vector2Base(x - r.x, y - r.y); }
 	Vector2Base& operator-=(const Vector2Base& r) { x -= r.x; y -= r.y; return *this; }
-	Vector2Base operator*(T r) { return Vector2Base(x * r, y * r); }
+	Vector2Base operator*(T r) const { return Vector2Base(x * r, y * r); }
 	Vector2Base& operator*=(T r) { x *= r; y *= r; return *this; }
-	Vector2Base operator/(T r) { return Vector2Base(x / r, y / r); }
+	Vector2Base operator/(T r) const { return Vector2Base(x / r, y / r); }
 	Vector2Base& operator/=(T r) { x /= r; y /= r; return *this; }
 	bool operator==(const Vector2Base<T>& r) const { return x == r.x && y == r.y; }
 
 	static T Distance(Vector2Base<T> v0, Vector2Base<T> v1);
 	static T DistanceSq(Vector2Base<T> v0, Vector2Base<T> v1);
+	static T DotProduct(Vector2Base<T> v0, Vector2Base<T> v1);
 	
 	T Length() const
 	{

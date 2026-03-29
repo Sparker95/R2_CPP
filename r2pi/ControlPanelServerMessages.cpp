@@ -85,14 +85,8 @@ void ControlPanelServer::OnProtocolNewMessage(uint8_t msgType, char* msgPayload,
 			break;
 		}
 				
-		// Trivial messages for Main Message Loop are redirected to it, it decodes them itself
-		case (MessageType::MSG_REQUEST_MAP):
-		case (MessageType::MSG_REQUEST_LOC):
-		case (MessageType::MSG_REQUEST_PATH):
-		case (MessageType::MSG_PLAN_PATH):
-		case (MessageType::MSG_ENABLE_LOCALIZER):
-		case (MessageType::MSG_RESET_LOCALIZER):
-		case (MessageType::MSG_SWITCH_LOCALIZER_MODE):
+		// Many trivial messages for Main Message Loop are redirected to it, it decodes them itself.
+		default:
 		{
 			// Notitify main msg loop, it will send back map
 			MainMessageLoop::MessageControlPanel* pMsgCtrl = new MainMessageLoop::MessageControlPanel();
@@ -115,8 +109,6 @@ void ControlPanelServer::OnProtocolNewMessage(uint8_t msgType, char* msgPayload,
 
 			break;
 		}
-		default:
-			break;
 	}
 }
 
@@ -182,6 +174,7 @@ void ControlPanelServer::ProcessPipeMessage(PipeMsgBase* pMsg, bool& outTerminat
 		if (!GetConnected())
 			return;
 
+		writer.Write(pMsgLoc->m_MeanPose);
 		writer.Write<uint>(static_cast<uint>(pMsgLoc->m_Poses.size()));
 
 		for (Pose& p : pMsgLoc->m_Poses)
@@ -206,6 +199,14 @@ void ControlPanelServer::ProcessPipeMessage(PipeMsgBase* pMsg, bool& outTerminat
 
 		SendMessage(MessageType::MSG_PATH, writer.GetNumBytesWritten(), g_SendBuffer);
 	}
+	else if (PipeMsgDiagData* pMsgDiagData = dynamic_cast<PipeMsgDiagData*>(pMsg))
+	{
+		if (!GetConnected())
+			return;
+
+		writer.Write(pMsgDiagData->m_DiagData);
+		SendMessage(MessageType::MSG_DIAG_DATA, writer.GetNumBytesWritten(), g_SendBuffer);
+	}
 }
 
 void ControlPanelServer::FillOptionsValues(ControlPanelProtocol::OptionsHeader& optsHeader)
@@ -220,6 +221,9 @@ void ControlPanelServer::FillOptionsValues(ControlPanelProtocol::OptionsHeader& 
 
 	if (m_pRobotCore->GetUpdateLocalizer_mt())
 		optsHeader.m_Options |= THeader::OPT_UPDATE_LOCALIZER;
+
+	if (m_pRobotCore->GetAutoControlsMode_mt())
+		optsHeader.m_Options |= THeader::OPT_AUTO_CONTROLS;
 
 	optsHeader.m_LocalizerMode = static_cast<uint8_t>(m_pRobotCore->GetLocalizerMode_mt());
 }

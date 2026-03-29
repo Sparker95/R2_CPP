@@ -474,6 +474,22 @@
      </property>
     </widget>
    </widget>
+   <widget class="QPushButton" name="EnableAutoControlsButton">
+    <property name="geometry">
+     <rect>
+      <x>1210</x>
+      <y>470</y>
+      <width>121</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Enable Auto Control</string>
+    </property>
+    <property name="checkable">
+     <bool>true</bool>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">

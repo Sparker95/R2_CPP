@@ -97,6 +97,8 @@ namespace Chassis
 
 		// Converts pose difference from Sensor Space to Local Space
 		Pose PoseDiff_LSToSS(const Pose& poseDiff_SS) const;
+
+		float CalculateSteeringInput(float curvature) const;
 	};
 
 	//------------------------------------------------------------------------------------------------------------------------

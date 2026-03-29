@@ -1,8 +1,7 @@
 #pragma once
 
 #include "Pose.h"
-#include "Sensor.h"
-#include "Scan.h"
+#include "Vector2.h"
 
 #include <Eigen/Core>
 
@@ -17,10 +16,10 @@ namespace Utils
 
 	// Rotation matrix
 	Eigen::Matrix2f MRot(float angle);
-	
-	// Converts scan from sensor's format to matrix format
-	void ScanSensorToMatrix(const Sensor::ScanSample* pSamples, uint scanSize, Scan::TScanPolar& outScanPolar);
 
 	// Adds a LS pose diff to WS pose
 	Pose AddPoseDiff(const Pose& pose_WS, const Pose& poseDiff_LS);
+
+	// Converts point position from WS to LS of the pose
+	Vector2 PosWorldToLocal(const Pose& pose, const Vector2& pos_WS);
 }

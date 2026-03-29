@@ -14,17 +14,21 @@
 #include "../Common/ControlSensorFrame.h"
 #include "../Common/Localizer.h"
 #include "../Common/PathPlanner.h"
+#include "../Common/PathFollower.h"
 
 #include <stdio.h>
+#include <cmath>
 
 //------------------------------------------------------------------------------------------------------------------------
 // Constructor, destructor
 
 MainMessageLoop::MainMessageLoop(SensorInterface& sensorInterface, ChassisInterface& chassisInterface,
+	const ChassisSettings::ControlSettings& chassisCtrlSettings,
 	RobotCore& robotCore)
 {
 	m_pSensorInterface = &sensorInterface;
 	m_pChassisInterface = &chassisInterface;
+	m_ChassisCtrlSettings = chassisCtrlSettings;
 	m_pRobotCore = &robotCore;
 
 	m_pSensorInterface->BindOnReceivedScan(
@@ -138,13 +142,58 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 
 		// Send brake command, if crash detector was triggered
 		// WIP it's not nice that the command is delayed by duration of Localizer update in RobotCore
-		if (m_pRobotCore->GetBrakeOverride())
+		if (m_pRobotCore->GetBrakeOverride_mt())
 		{
 			{
 				std::unique_lock chassisLock(m_pChassisInterface->GetMutex());
 				m_pChassisInterface->SendCommand_MotorBrake();
 			}
 			printf("%u ms, ! Warning ! Incoming collision detected!\n", frame.m_TimeScanEnd_ms);
+		}
+		else if (m_pRobotCore->GetAutoControlsMode_mt())
+		{
+			const RobotCore::OutChassisControls& ctrl = m_pRobotCore->GetOutControls();
+			{
+				std::unique_lock chassisLock(m_pChassisInterface->GetMutex());
+
+				float steerLimited = std::clamp(ctrl.m_Steer, -m_ChassisCtrlSettings.m_SteerOutputMax, m_ChassisCtrlSettings.m_SteerOutputMax);
+
+				//m_pChassisInterface->SendCommand_SetSteerSpeed(32.0f); // WIP set instant steering speed
+				m_pChassisInterface->SendCommand_Steer(steerLimited);
+
+				if (ctrl.m_Brake)
+				{
+					m_pChassisInterface->SendCommand_MotorBrake();
+				}
+				else
+				{
+					float motorSpeed_Hz = std::copysign(m_ChassisCtrlSettings.m_SpeedSlow_Hz, ctrl.m_MotorMoveDir);
+					m_pChassisInterface->SendCommand_MotorMove(motorSpeed_Hz);
+				}
+			}
+		}
+
+		// Send diagnostics data
+		if (m_pCtrlPanelServer->GetConnected())
+		{
+			ControlPanelProtocol::DiagDataHeader diagData;
+
+			diagData.m_MeanPose = m_pRobotCore->GetLocalizer()->GetMeanPose();
+
+			const auto* pathFollower = m_pRobotCore->GetPathFollower();
+			diagData.m_PathPointId = pathFollower->GetCurrentPointId();
+			diagData.m_PathEndPointId = pathFollower->GetCurrentPointId();
+			const auto& path = pathFollower->GetPath();
+
+			if (diagData.m_PathPointId != (uint)-1)
+				diagData.m_PathPointPos = path[diagData.m_PathPointId].m_Pos;
+
+			if (diagData.m_PathEndPointId != (uint)-1)
+				diagData.m_PathEndPointPos = path[diagData.m_PathEndPointId].m_Pos;
+
+			diagData.m_PathLookaheadPos = pathFollower->GetLookaheadPos();
+
+			m_pCtrlPanelServer->SendDiagData_mt(diagData);
 		}
 
 		// Print debug text
@@ -235,7 +284,9 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 				}
 				*/
 
-				m_pCtrlPanelServer->SendLocaction_mt(poses);
+				const Pose& meanPose = m_pRobotCore->GetLocalizer()->GetMeanPose();
+
+				m_pCtrlPanelServer->SendLocaction_mt(meanPose, poses);
 
 				break;
 			}
@@ -255,10 +306,20 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 				m_pRobotCore->SwitchLocalizerMode(newMode);
 				break;
 			}
+			case TCtrlPanelMsgType::MSG_ENABLE_AUTO_CONTROLS_MODE:
+			{
+				m_pRobotCore->SetAutoControlsMode(pMsg->m_Payload[0] != 0);
+				break;
+			}
 			case TCtrlPanelMsgType::MSG_REQUEST_PATH:
 			{
 				PathPlanner* pPathPlanner = m_pRobotCore->GetPathPlanner();
-				const std::vector<Vector2>& pathPoints = pPathPlanner->GetPath();
+				std::vector<Vector2> pathPoints;
+				for (const auto& p : pPathPlanner->GetPath())
+				{
+					if (p.m_Type != PathFollower::PathPoint::Type::EXTENSION)
+						pathPoints.push_back(p.m_Pos);
+				}
 
 				m_pCtrlPanelServer->SendPath_mt(pathPoints);
 				break;
@@ -274,6 +335,11 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 				const Localizer::Particle& locParticle = pLocalizer->GetMostLikelyParticle();
 
 				pPathPlanner->PlanPath(locParticle.m_Map, locParticle.m_Pose, { header->m_X, header->m_Y }, header->m_Radius);
+
+				if (pPathPlanner->PathValid())
+				{
+					m_pRobotCore->GetPathFollower()->FollowPath(pPathPlanner->GetPath());
+				}
 
 				break;
 			}

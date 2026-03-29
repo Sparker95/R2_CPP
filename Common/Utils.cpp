@@ -42,13 +42,13 @@ Pose Utils::AddPoseDiff(const Pose& pose_WS, const Pose& poseDiff_LS)
 	return newPose_WS;
 }
 
-void Utils::ScanSensorToMatrix(const Sensor::ScanSample* pSamples, uint scanSize, Scan::TScanPolar& outScanPolar)
+Vector2 Utils::PosWorldToLocal(const Pose& pose, const Vector2& pos_WS)
 {
-	outScanPolar.resize(Eigen::NoChange, scanSize);
-	for (uint i = 0; i < scanSize; i++)
-	{
-		outScanPolar(0, i) = pSamples[i].m_Angle_rad;
-		outScanPolar(1, i) = pSamples[i].m_Dist_m;
-	}
+	Vector2 pos_centered(pos_WS.x - pose.x, pos_WS.y - pose.y);
+
+	Eigen::Matrix2f mRot = MRot(-pose.dir);
+	Eigen::Vector2f pos_LS = mRot * Eigen::Vector2f(pos_centered.x, pos_centered.y);
+
+	return Vector2(pos_LS(0), pos_LS(1));
 }
 

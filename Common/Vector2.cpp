@@ -18,4 +18,10 @@ T Vector2Base<T>::DistanceSq(Vector2Base<T> v0, Vector2Base<T> v1)
 	return dx * dx + dy * dy;
 }
 
+template<class T>
+T Vector2Base<T>::DotProduct(Vector2Base<T> v0, Vector2Base<T> v1)
+{
+	return v0.x * v1.x + v0.y * v1.y;
+}
+
 template struct Vector2Base<float>;

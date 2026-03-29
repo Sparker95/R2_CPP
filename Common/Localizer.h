@@ -81,6 +81,7 @@ private:
 	Map m_LocalizationCommonMap; // Map used in mode COMMON_LOC
 	const Config m_Config;
 	std::minstd_rand m_RngResample;
+	Pose m_MeanPose; // Recalculated from Update
 
 	// Arrays reused during Update()
 	std::vector<Particle> m_NewParticles;
@@ -105,11 +106,13 @@ public:
 private:
 	void NormalizeWeights();
 	void ResampleParticles();
+	void UpdateMeanPose();
 
 public:
 	const std::vector<Particle>& GetParticles() const { return m_Particles; }
 	std::vector<Particle>& GetParticles() { return m_Particles; }
 	const Particle& GetMostLikelyParticle() const;
+	const Pose& GetMeanPose() const { return m_MeanPose; }
 
 	const Map& GetLocalizationCommonMap() const { return m_LocalizationCommonMap; }
 

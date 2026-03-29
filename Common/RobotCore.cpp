@@ -5,9 +5,17 @@
 #include "Chassis.h"
 #include "Localizer.h"
 #include "CrashDetector.h"
+#include "PathFollower.h"
 
-RobotCore::RobotCore(Localizer& localizer, CrashDetector& crashDetector, PathPlanner& pathPlanner)
-	: m_pLocalizer(&localizer), m_pCrashDetector(&crashDetector), m_pPathPlanner(&pathPlanner)
+#include <cstdio>
+
+RobotCore::RobotCore(const Chassis::ChassisModel& chassisModel, Localizer& localizer, CrashDetector& crashDetector,
+	PathPlanner& pathPlanner, PathFollower& pathFollower)
+	: m_pChassisModel(&chassisModel),
+	m_pLocalizer(&localizer),
+	m_pCrashDetector(&crashDetector),
+	m_pPathPlanner(&pathPlanner),
+	m_pPathFollower(&pathFollower)
 {
 }
 
@@ -38,6 +46,37 @@ void RobotCore::Update(const ControlSensorFrame& frame)
 		m_pLocalizer->Update(inputs, frame.m_ScanSamples, localizerMode);
 	}
 
+	// Path follower and output controls values
+	const Pose& meanPose = m_pLocalizer->GetMeanPose();
+	if (m_pPathFollower->GetStateRunning())
+	{
+		m_pPathFollower->Update(meanPose);
+
+		if (m_pPathFollower->GetStateRunning())
+		{
+			float ctrlCurvature, ctrlSpeed;
+			bool ctrlBrake;
+			m_pPathFollower->GetOutputControls(ctrlCurvature, ctrlSpeed, ctrlBrake);
+
+			m_OutControls.m_Steer = m_pChassisModel->CalculateSteeringInput(ctrlCurvature);
+			m_OutControls.m_Brake = false;
+			if (ctrlSpeed > 0)
+				m_OutControls.m_MotorMoveDir = 1.0f;
+			else if (ctrlSpeed < 0)
+				m_OutControls.m_MotorMoveDir = -1.0f;
+			else
+				m_OutControls.m_MotorMoveDir = 0;
+
+			printf("RobotCore::Update: Output controls: steer: %.3f speed: %.2f\n", m_OutControls.m_Steer, m_OutControls.m_MotorMoveDir);
+		}
+	}
+	else
+	{
+		m_OutControls.m_Steer = 0;
+		m_OutControls.m_MotorMoveDir = 0;
+		m_OutControls.m_Brake = true;
+	}
+
 	m_PrevFrame = frame;
 }
 
@@ -52,7 +91,7 @@ void RobotCore::SwitchLocalizerMode(Localizer::Mode newMode)
 	m_LocalizerMode.store(static_cast<char>(newMode));
 }
 
-bool RobotCore::GetBrakeOverride() const
+bool RobotCore::GetBrakeOverride_mt() const
 {
 	return m_pCrashDetector->GetBrakeOverride_mt();
 }

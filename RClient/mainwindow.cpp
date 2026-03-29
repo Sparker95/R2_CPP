@@ -41,6 +41,7 @@ MainWindow::MainWindow(QWidget *parent)
 	QObject::connect(ui->LocMode1Button, &QRadioButton::clicked, this, &MainWindow::SlotOnLocalizerModeButton);
 	QObject::connect(ui->SaveMapButton, &QPushButton::clicked, this, &MainWindow::SlotOnSaveMapButton);
 	QObject::connect(ui->PlanPathButton, &QPushButton::clicked, this, &MainWindow::SlotOnPlanPathButton);
+	QObject::connect(ui->EnableAutoControlsButton, &QPushButton::clicked, this, &MainWindow::SlotOnEnableAutoControlsButton);
 
 	// Socket signals
     QObject::connect(&m_ControlPanelSocket, &QTcpSocket::connected, this, &MainWindow::SlotOnSocketConnected);
@@ -333,6 +334,8 @@ void MainWindow::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigne
 
 		case ControlPanelProtocol::MessageType::MSG_LOC:
 		{
+			Pose meanPose = reader.Read<Pose>();
+
 			uint nPoses = reader.Read<uint>();
 
 			QList<Pose> poses;
@@ -346,6 +349,16 @@ void MainWindow::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigne
 			break;
 		}
 
+		case ControlPanelProtocol::MessageType::MSG_DIAG_DATA:
+		{
+			ControlPanelProtocol::DiagDataHeader header = reader.Read<ControlPanelProtocol::DiagDataHeader>();
+
+			m_pMapWidget->SetMeanPose(header.m_MeanPose);
+			m_pMapWidget->SetPathFollowerData(header.m_PathPointPos, header.m_PathEndPointPos, header.m_PathLookaheadPos);
+
+			break;
+		}
+
 		case ControlPanelProtocol::MessageType::MSG_OPTIONS:
 		{
 			using TOptions = ControlPanelProtocol::OptionsHeader;
@@ -355,6 +368,7 @@ void MainWindow::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigne
 			ui->EnableSensorStreamButton->setChecked(opts.m_Options & TOptions::OPT_STREAM_SENSOR_DATA);
 			ui->EnableSensorMotorButton->setChecked(opts.m_Options & TOptions::OPT_SENSOR_MOTOR);
 			ui->EnableLocalizerButton->setChecked(opts.m_Options & TOptions::OPT_UPDATE_LOCALIZER);
+			ui->EnableAutoControlsButton->setChecked(opts.m_Options & TOptions::OPT_AUTO_CONTROLS);
 
 			if (opts.m_LocalizerMode == 0)
 				ui->LocMode0Button->setChecked(true);

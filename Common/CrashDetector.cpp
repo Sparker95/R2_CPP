@@ -8,15 +8,15 @@
 #include "Chassis.h"
 #include "Utils.h"
 
-CrashDetector::CrashDetector(const Settings& settings, const Chassis::ChassisModel& chassisModel) :
-	m_Settings(settings),
+CrashDetector::CrashDetector(const Config& config, const Chassis::ChassisModel& chassisModel) :
+	m_Config(config),
 	m_pChassisModel(&chassisModel)
 {
 }
 
 void CrashDetector::Update(const ControlSensorFrame& frame, const ControlSensorFrame& prevFrame)
 {
-	if (!m_Settings.m_Enabled)
+	if (!m_Config.m_Enabled)
 		return;
 
 	ZoneScopedN("CrashDetector::Update");
@@ -35,8 +35,8 @@ void CrashDetector::Update(const ControlSensorFrame& frame, const ControlSensorF
 
 	float odoFreq_Hz = static_cast<float>(odoDiff) / dt_s;
 
-	float timeToBrake_s = odoFreq_Hz / m_Settings.m_BrakeAccel_freq_s2;
-	float extrapolateTime_s = timeToBrake_s + dt_s + m_Settings.m_ExtraTimeToCrash_s;
+	float timeToBrake_s = odoFreq_Hz / m_Config.m_BrakeAccel_freq_s2;
+	float extrapolateTime_s = timeToBrake_s + dt_s + m_Config.m_ExtraTimeToCrash_s;
 
 	// How many pulses we are going to extrapolate in future. This is equivalent to calculating distance of extrapolated movement.
 	Chassis::TOdometerCounter odoExtrapolatePulses = static_cast<Chassis::TOdometerCounter>(extrapolateTime_s * odoFreq_Hz);

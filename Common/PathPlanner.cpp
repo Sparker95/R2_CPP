@@ -1,10 +1,14 @@
 #include "PathPlanner.h"
+#include "PathFollower.h"
+
+#include <cstdio>
 
 using uint = unsigned int;
 
-PathPlanner::PathPlanner(const PathFinding::Config& pfConfig)
+PathPlanner::PathPlanner(const PathFinding::Config& pfConfig, const PathFollowerConfig& followerConfig)
 {
 	m_PFConfig = pfConfig;
+	m_FollowerConfig = followerConfig;
 }
 
 void PathPlanner::PlanPath(const Map& map, const Pose& startPose, Vector2 destPos, float destRadius)
@@ -15,36 +19,100 @@ void PathPlanner::PlanPath(const Map& map, const Pose& startPose, Vector2 destPo
 	PathFinding::Node::Pose startNodePose = PathFinding::CalculateNodePose(m_PFConfig,
 		startPose.x, startPose.y, startPose.dir);
 
+	printf("PathPlanner::PlanPath: %.3f %.3f %.3f -> %.3f %.3f r%.3f\n",
+		startPose.x, startPose.y, startPose.dir,
+		destPos.x, destPos.y, destRadius);
+
 	PathFinding::PathFindingResult pfResult;
 	PathFinding::FindPath(m_PFConfig, map, startNodePose, destPos, destRadius, pfResult);
 
 	if (pfResult.m_Nodes.empty())
 	{
+		printf("PathPlanner::PlanPath: Failed to find path\n");
 		return;
 	}
 
-	// WIP test
-	//m_SmoothPath.clear();
-	//for (const auto& node : pfResult.m_Nodes)
-	//	m_SmoothPath.push_back({node.m_Pose.x, node.m_Pose.y});
+	printf("PathPlanner::PlanPath: Found path: %u nodes, %u explored\n", (uint)pfResult.m_Nodes.size(), pfResult.m_NodesExplored);
 
-	// Process the resulting node points: calculate intermediate points to achieve smother arcs
-	m_SmoothPath.clear();
-	std::vector<Vector2> tempTransitionPoints;
+	// Post processing of path
+	// - Smoothing of arcs
+	// - Extension points for path planner when direction changes
+	const float extensionDistance = 3.0f * m_FollowerConfig.m_LookaheadDistance; // Must be several times larger
+	std::vector<Vector2> tempSmoothPoints;
 	for (uint i = 0; i < (uint)pfResult.m_Nodes.size()-1; i++)
 	{
 		const PathFinding::Node& node = pfResult.m_Nodes[i];
 		const PathFinding::Node& nextNode = pfResult.m_Nodes[i + 1];
 
-		bool addLastPoint = i == (uint)pfResult.m_Nodes.size() - 2; // Last point
+		bool nodeFwd = PathFinding::IsTransitionForward(node.m_InTransId);
+		bool nextNodeFwd = PathFinding::IsTransitionForward(nextNode.m_InTransId);
+
+		bool addExtension = nodeFwd != nextNodeFwd; // Change of direciton
+
+		if (addExtension)
+		{
+			// Last added point must be marked as end point
+			if (!m_Path.empty())
+				m_Path.rbegin()->m_Type = PathFollower::PathPoint::Type::END;
+
+			const Vector2& nodeDirVector = m_PFConfig.m_DirVectors[node.m_Pose.dir];
+			float extensionDirSign = nodeFwd ? 1.0f : -1.0f;
+
+			Vector2 extensionPointPos = Vector2(node.m_Pose.x, node.m_Pose.y) + nodeDirVector * (extensionDistance * extensionDirSign);
+			PathFollower::PathPoint fpp;
+			fpp.m_Pos = extensionPointPos;
+			fpp.m_Speed = 0; // WIP
+			fpp.m_OutMoveFwd = nextNodeFwd; // Same as main node
+			fpp.m_Type = PathFollower::PathPoint::Type::EXTENSION;
+			m_Path.push_back(fpp);
+		}
+
 		PathFinding::CalculateSmoothTransition(m_PFConfig, node, nextNode,
-			tempTransitionPoints, 3, addLastPoint);
-		for (const auto& p : tempTransitionPoints)
-			m_SmoothPath.push_back(p);
+			tempSmoothPoints, 3, true);
+
+		for (uint smoothPtId = 0; smoothPtId < (uint)tempSmoothPoints.size(); smoothPtId++)
+		{
+			const auto& smoothPoint = tempSmoothPoints[smoothPtId];
+
+			// Skip same points
+			if (smoothPtId == 0 && !m_Path.empty())
+			{
+				auto lastAddedPoint = m_Path.rbegin();
+				if (lastAddedPoint->m_Pos == smoothPoint)
+					continue;
+			}
+
+			PathFollower::PathPoint fpp;
+			fpp.m_Pos = smoothPoint;
+			fpp.m_Speed = 0; // WIP
+			fpp.m_OutMoveFwd = nextNodeFwd; // ! We use fwd value TO next node
+			fpp.m_Type = PathFollower::PathPoint::Type::MAIN;
+			m_Path.push_back(fpp);
+		}
+	}
+
+	// Special handling for last node. Extend it too.
+	{
+		const PathFinding::Node& lastNode = *pfResult.m_Nodes.rbegin();
+		bool lastNodeFwd = PathFinding::IsTransitionForward(lastNode.m_InTransId);
+
+		if (!m_Path.empty())
+			m_Path.rbegin()->m_Type = PathFollower::PathPoint::Type::END;
+
+		const Vector2& nodeDirVector = m_PFConfig.m_DirVectors[lastNode.m_Pose.dir];
+		float extensionDirSign = lastNodeFwd ? 1.0f : -1.0f;
+
+		Vector2 extensionPointPos = Vector2(lastNode.m_Pose.x, lastNode.m_Pose.y) + nodeDirVector * (extensionDistance * extensionDirSign);
+		PathFollower::PathPoint fpp;
+		fpp.m_Pos = extensionPointPos;
+		fpp.m_Speed = 0; // WIP
+		fpp.m_OutMoveFwd = lastNodeFwd; // Same direction as we came here
+		fpp.m_Type = PathFollower::PathPoint::Type::EXTENSION;
+		m_Path.push_back(fpp);
 	}
 }
 
 void PathPlanner::ResetPath()
 {
-	m_SmoothPath.clear();
+	m_Path.clear();
 }

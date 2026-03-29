@@ -18,8 +18,12 @@ public:
 protected:
 	// Data to display
 	const Map* m_pMap = nullptr;
+	Pose m_MeanPose;
 	QList<Pose> m_Poses;
 	QList<Vector2> m_Path;
+	QPointF m_PathPointPos;
+	QPointF m_PathEndPointPos;
+	QPointF m_PathLookaheadPos;
 	QPointF m_CursorMarkerPos;
 	bool m_CursorMarkerEnabled = false;
 
@@ -45,7 +49,9 @@ protected:
 public:
 	void SetMapData(const Map* pMap);
 	void SetLocationData(QList<Pose>& newPoses);
+	void SetMeanPose(const Pose& pose);
 	void SetPathData(QList<Vector2>& newPath);
+	void SetPathFollowerData(const Vector2& pathPointPos, const Vector2& pathEndPointPos, const Vector2& lookaheadPos);
 
 	bool GetCursorMarkerPos(QPointF& outPos) { outPos = m_CursorMarkerPos; return m_CursorMarkerEnabled; };
 

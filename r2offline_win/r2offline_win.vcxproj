@@ -144,7 +144,9 @@
     <ClCompile Include="..\Common\LocalizerUtils.cpp" />
     <ClCompile Include="..\Common\Map.cpp" />
     <ClCompile Include="..\Common\MapUtils.cpp" />
+    <ClCompile Include="..\Common\MathUtils.cpp" />
     <ClCompile Include="..\Common\PathFinding.cpp" />
+    <ClCompile Include="..\Common\PathFollower.cpp" />
     <ClCompile Include="..\Common\PathPlanner.cpp" />
     <ClCompile Include="..\Common\ProbUtils.cpp" />
     <ClCompile Include="..\Common\r2offline.cpp" />
@@ -172,6 +174,7 @@
     <ClInclude Include="..\Common\Map.h" />
     <ClInclude Include="..\Common\MapUtils.h" />
     <ClInclude Include="..\Common\PathFinding.h" />
+    <ClInclude Include="..\Common\PathFollower.h" />
     <ClInclude Include="..\Common\PathPlanner.h" />
     <ClInclude Include="..\Common\ProbUtils.h" />
     <ClInclude Include="..\Common\RobotCore.h" />

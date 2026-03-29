@@ -63,7 +63,7 @@ void FindNeighborNodes(const Config& config, const Node& node, std::vector<Node>
 	uint dir_id = node.m_Pose.dir;
 
 	const Vector2& vDir = config.m_DirVectors[dir_id]; //  Vector of current direction
-	uint transId = node.m_TransId;
+	uint transId = node.m_InTransId;
 
 	// First trivial cases - move straight fwd or backward
 	float stepDist = config.m_StepDist;
@@ -340,10 +340,18 @@ void RestorePath(const Node& endNode, const std::vector<Node>& allNodes, std::ve
 //------------------------------------------------------------------------------------------------------------------------------
 // Public functions
 
+bool PathFinding::IsTransitionForward(uint transId)
+{
+	return transId == Transition::NONE ||
+		transId == Transition::FWD ||
+		transId == Transition::FWD_L ||
+		transId == Transition::FWD_R;
+}
+
 void PathFinding::CalculateSmoothTransition(const Config& config, const Node& nodeFrom, const Node& nodeTo,
 	std::vector<Vector2>& outPositions, uint nIntervals, bool addLastPoint)
 {
-	uint transId = nodeTo.m_TransId;
+	uint transId = nodeTo.m_InTransId;
 
 	// Trivial case, fwd or bwd, return just pair of points without smoothing
 	if (transId == Transition::FWD || transId == Transition::BWD)
@@ -369,14 +377,24 @@ void PathFinding::CalculateSmoothTransition(const Config& config, const Node& no
 	uint nOutPoints = nIntervals;
 	if (addLastPoint)
 		nOutPoints++;
-
 	outPositions.resize(nOutPoints);
-	for (uint i = 0; i < nOutPoints; i++)
+
+	// !!! First and last point must be exactly same as node positions. Path Planner relies on that.
+
+	// First point
+	outPositions[0] = turnFromPos;
+
+	// Intermetidate points
+	for (uint i = 1; i < nIntervals; i++)
 	{
 		float turnAngle_rad = static_cast<float>(i) * turnAngleSign * config.m_StepDir / static_cast<float>(nIntervals);
 		Vector2 smoothPos = RotatePoint(turnPoint, turnAngle_rad, turnFromPos);
 		outPositions[i] = smoothPos;
 	}
+
+	// Last point
+	if (addLastPoint)
+		outPositions[nOutPoints - 1] = Vector2(nodeTo.m_Pose.x, nodeTo.m_Pose.y);
 }
 
 Node::Pose PathFinding::CalculateNodePose(const Config& config, float x, float y, float dir_rad)
@@ -506,7 +524,7 @@ void PathFinding::FindPath(const Config& config, const Map& map, const Node::Pos
 			// However don't do full collision test yet
 
 			float edgeWeight = 1.0f;
-			edgeWeight *= config.m_TransIdMult[neighborNode.m_TransId];
+			edgeWeight *= config.m_TransIdMult[neighborNode.m_InTransId];
 			edgeWeight *= config.m_StepDist;
 			if (structureMap.GetDataAtPos(neighborNodeMapPos) != 1) // If we step out of structure
 				edgeWeight *= config.m_OffStructureMult;
@@ -531,7 +549,7 @@ void PathFinding::FindPath(const Config& config, const Map& map, const Node::Pos
 					nodeFromDict.m_G = neighborNodeG;
 					nodeFromDict.m_F = neighborNodeG + Heuristic(config, neighborNode.m_Pose, destPose);
 					nodeFromDict.m_NodeFrom = currentNodeId;
-					nodeFromDict.m_TransId = neighborNode.m_TransId;
+					nodeFromDict.m_InTransId = neighborNode.m_InTransId;
 					// Do NOT add to allNode and openSet
 				}
 			}

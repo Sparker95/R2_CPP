@@ -10,9 +10,4 @@ namespace ChassisSettings
 		float m_SpeedCruise_Hz = 400.0f;
 		float m_SpeedFast_Hz = 600.0f;
 	};
-
-	struct SizeSettings
-	{
-		// wheel base, track, etc
-	};
 };

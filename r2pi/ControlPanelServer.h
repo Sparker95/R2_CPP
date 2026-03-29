@@ -37,9 +37,10 @@ public:
 		Chassis::MoveState moveState, float steer);
 
 	void SendMap_mt(const Map& map);
-	void SendLocaction_mt(const std::vector<Pose>& poses);
+	void SendLocaction_mt(const Pose& meanPose, const std::vector<Pose>& poses);
 	void SendOptions_mt(); // Sends all options back to client
 	void SendPath_mt(const std::vector<Vector2> path);
+	void SendDiagData_mt(const ControlPanelProtocol::DiagDataHeader& diagData);
 
 private:
 	constexpr static const char PIPE_CMD_TERMINATE = 0x78; // Sent into pipe to termiante the thread
@@ -70,11 +71,16 @@ private:
 	};
 	struct PipeMsgLoc : PipeMsgBase
 	{
+		Pose m_MeanPose;
 		std::vector<Pose> m_Poses;
 	};
 	struct PipeMsgPath : PipeMsgBase
 	{
 		std::vector<Vector2> m_PathPoints;
+	};
+	struct PipeMsgDiagData : PipeMsgBase
+	{
+		ControlPanelProtocol::DiagDataHeader m_DiagData;
 	};
 	struct PipeMsgSendOptions : PipeMsgBase {}; // Notifies server to gather options values and send them to client
 

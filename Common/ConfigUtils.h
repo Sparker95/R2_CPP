@@ -24,5 +24,5 @@ namespace ConfigUtils
 	bool ReadLocalizerConfig(const Config& config, Localizer::Config& outConfig);
 	bool ReadChassisStatsConfig(const Config& config, Chassis::ChassisStatsConfig& outConfig);
 	bool ReadPathFindingConfig(const Config& config, PathFinding::Config& outConfig);
-	bool ReadCrashDetectorConfig(const Config& cfg, CrashDetector::Settings& outCrashDetectorSettings);
+	bool ReadCrashDetectorConfig(const Config& cfg, CrashDetector::Config& outCrashDetectorSettings);
 }

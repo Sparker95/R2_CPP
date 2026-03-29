@@ -5,6 +5,7 @@
 
 #include <cmath>
 
+#include "Vector2.h"
 #include "Utils.h"
 #include "MathUtils.h"
 #include "Scan.h"
@@ -142,35 +143,20 @@ void Localizer::Update(const Chassis::ChassisInputs& inputs, const std::vector<S
 
 	if (nEff < 0.5f * static_cast<float>(nParticles))
 	{
-		std::printf("N effective particles: %.2f, resampling\n", nEff);
+		//std::printf("N effective particles: %.2f, resampling\n", nEff);
 		ResampleParticles();
 	}
 	else
-		std::printf("N effective particles: %.2f, NO resampling\n", nEff);
+	{
+		//std::printf("N effective particles: %.2f, NO resampling\n", nEff);
+	}
 
 	// Store history
 #ifdef LOCALIZER_STORE_HISTORY
 	StoreParticlesHistory(true);
 #endif
 
-	// Test
-	/*
-	const Particle& mostLikelyP = GetMostLikelyParticle();
-	for (uint i = 0; i < (uint)realScanPolar.size(); i++)
-	{
-		Map map(m_Config.m_MapRes_w);
-		map.EnsureWorldBounds_Circle(Vector2(0, 0), 25.0f);
-		ApplyScan(mostLikelyP.m_Pose, map, m_ScanDirections, realScanPolar);
-		std::vector<float> testScan;
-		GetScan(mostLikelyP.m_Pose, map, m_ScanDirections, testScan);
-
-		for (uint itest = 0; itest < (uint)testScan.size(); itest++)
-		{
-			float errorRel = (testScan[itest] - realScanPolar[itest].m_Dist_m) / m_Config.m_MapRes_w;
-			m_TestErrors.push_back(errorRel);
-		}
-	}
-	*/
+	UpdateMeanPose();
 }
 
 void Localizer::NormalizeWeights()
@@ -257,6 +243,22 @@ void Localizer::ResampleParticles()
 	}
 }
 
+void Localizer::UpdateMeanPose()
+{
+	NormalizeWeights();
+
+	Vector2 meanPos;
+	Vector2 meanDirVector;
+
+	for (const Particle& p : m_Particles)
+	{
+		meanPos = meanPos + Vector2(p.m_Pose.x, p.m_Pose.y) * p.m_Weight;
+		meanDirVector = meanDirVector + Vector2(std::cos(p.m_Pose.dir), std::sin(p.m_Pose.dir)) * p.m_Weight;
+	}
+
+	float meanDir = Utils::WrapAngleFull(std::atan2(meanDirVector.y, meanDirVector.x));
+	m_MeanPose = Pose(meanPos.x, meanPos.y, meanDir);
+}
 
 void Localizer::GetScan(const Pose& sensorPose, const Map& map, const std::vector<Vector2>& scanDirections, std::vector<float>& outScanDistances)
 {

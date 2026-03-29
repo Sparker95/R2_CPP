@@ -69,6 +69,8 @@ private slots:
 
 	void SlotOnPlanPathButton();
 
+	void SlotOnEnableAutoControlsButton(bool checked = false);
+
     void SlotOnSensorScaleValueChanged0(int value);
     void SlotOnSensorScaleValueChanged1(int value);
 

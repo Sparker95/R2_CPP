@@ -79,7 +79,7 @@ namespace PathFinding
 		Node::Pose m_Pose;
 		float m_F = 0;
 		float m_G = 0;
-		uint m_TransId = Transition::NONE; // Transition TO this node
+		uint m_InTransId = Transition::NONE; // Transition TO this node
 
 		Node() = default;
 
@@ -87,7 +87,7 @@ namespace PathFinding
 		{
 			m_NodeFrom = from.m_Id;
 			m_Pose = pose;
-			m_TransId = trans;
+			m_InTransId = trans;
 		}
 	};
 
@@ -99,6 +99,9 @@ namespace PathFinding
 
 	// Public functions
 
+	// Utils
+	bool IsTransitionForward(uint transId); // True for forward transitions
+
 	// Map calculations
 	Map CalculateStructureMap(const Map& distMap, float structureWidth_w, float minDistToObstacle_w);
 	Map CalculateDistanceMap(const Map& map, int threshold = 0);
@@ -109,5 +112,6 @@ namespace PathFinding
 	// Can be used for calculation of start node pose
 	Node::Pose CalculateNodePose(const Config& config, float x, float y, float dir_rad);
 
+	// The main path finding function
 	void FindPath(const Config& config, const Map& map, const Node::Pose& startPose, const Vector2& destPos, float destRadius, PathFindingResult& outResult);
 }

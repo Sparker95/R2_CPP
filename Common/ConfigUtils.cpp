@@ -90,9 +90,9 @@ bool ConfigUtils::ReadPathFindingConfig(const Config& config, PathFinding::Confi
 	return true;
 }
 
-bool ConfigUtils::ReadCrashDetectorConfig(const Config& cfg, CrashDetector::Settings& outCrashDetectorSettings)
+bool ConfigUtils::ReadCrashDetectorConfig(const Config& cfg, CrashDetector::Config& outCrashDetectorSettings)
 {
-	CrashDetector::Settings s;
+	CrashDetector::Config s;
 
 	bool cfgSuccess =
 		cfg.Get("Enabled", s.m_Enabled) &&

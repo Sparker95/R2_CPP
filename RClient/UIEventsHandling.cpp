@@ -182,3 +182,12 @@ void MainWindow::SlotOnLocalizerModeButton()
 	uint8_t payload = static_cast<uint8_t>(newMode);
 	SendMessage(ControlPanelProtocol::MessageType::MSG_SWITCH_LOCALIZER_MODE, 1, (const char*)&payload);
 }
+
+void MainWindow::SlotOnEnableAutoControlsButton(bool checked)
+{
+	if (!IsConnected())
+		return;
+
+	char payload = checked ? 1 : 0;
+	SendMessage(ControlPanelProtocol::MessageType::MSG_ENABLE_AUTO_CONTROLS_MODE, 1, &payload);
+}

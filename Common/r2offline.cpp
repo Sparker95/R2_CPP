@@ -35,6 +35,7 @@
 #include "CrashDetector.h"
 #include "PathFinding.h"
 #include "PathPlanner.h"
+#include "PathFollower.h"
 
 void TestReadStreamFile(const char* pFilePath)
 {
@@ -64,11 +65,12 @@ void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapF
 	Chassis::ChassisConfig chassisConfig;
 	Chassis::ChassisModel chassisModel(chassisConfig, chassisStatsConfig);
 
-	CrashDetector::Settings crashDetectorSettings;
+	CrashDetector::Config crashDetectorSettings;
 	CrashDetector crashDetector(crashDetectorSettings, chassisModel);
 
+	PathFollowerConfig followerConfig;
 	PathFinding::Config pfConfig;
-	PathPlanner pathPlanner(pfConfig);
+	PathPlanner pathPlanner(pfConfig, followerConfig);
 
 	Localizer localizer(localizerConfig, chassisModel);
 
@@ -106,8 +108,8 @@ void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapF
 
 void TestPathFinding()
 {
-	//const char* mapPath = "D:\\Projects\\Robot2\\Records\\Legacy Encoder\\Office 26 Jan 2026\\Office1.rmap";
-	const char* mapPath = "/home/pi/projects/r2offline_pi/Office1.rmap";
+	const char* mapPath = "D:\\Projects\\Robot2\\Records\\Legacy Encoder\\Office 26 Jan 2026\\Office1.rmap";
+	//const char* mapPath = "/home/pi/projects/r2offline_pi/Office1.rmap";
 	Map map;
 	uint quantization;
 	MapUtils::ReadMapFromFile_L2Int(mapPath, map, quantization);
@@ -134,49 +136,38 @@ void TestPathFinding()
 
 	// Test path finding
 	PathFinding::Config pfConfig;
-	//const char* configPath = "D:\\Projects\\Robot2\\CPP\\Config\\PathFinding.cfg";
-	const char* configPath = "/home/pi/projects/r2pi/PathFinding.cfg"; // Linux
+	const char* configPath = "D:\\Projects\\Robot2\\CPP\\Config\\PathFinding.cfg";
+	//const char* configPath = "/home/pi/projects/r2pi/PathFinding.cfg"; // Linux
 	if (!ConfigUtils::ReadPathFindingConfig(Config(configPath), pfConfig))
 	{
 		printf("Failed to read Path Finding config! We can't find path without config!\n");
 		return;
 	}
+	PathFollowerConfig followerConfig;
+	PathPlanner pathPlanner(pfConfig, followerConfig);
 
-	/*
-	{
-		pfConfig.m_TurnRadius = 0.6f;
-		pfConfig.m_NumDirs = 12;   // Number of directions.Direction index is 0..NumDirs - 1.
-
-		// Car dimensions
-		pfConfig.m_CarWidth = 0.22f;
-		pfConfig.m_CarLengthFwd = 0.33f;
-		pfConfig.m_CarLengthBwd = 0.04f;
-
-		// Properties and costs and  of search
-		pfConfig.m_HeuristicMult = 5.0f;
-		pfConfig.m_OffStructureMult = 7.0f;  // Penalty of moving off structure map
-		pfConfig.m_StructureMapWidth = 0.2f; // Width of skeleton
-		pfConfig.m_MaxNodes = 50000;
-
-		// Multipliers of cost for each transition ID
-		pfConfig.m_MultFwd = 1.0f;
-		pfConfig.m_MultTurnFwd = 1.2f;
-		pfConfig.m_MultBwd = 10.0f;
-		pfConfig.m_MultTurnBwd = 12.0f;
-	}
-	*/
-	pfConfig.Init(); // Remember to call this!
-	PathFinding::Node::Pose startNodePose = { 0, 0, 1 };
-	Vector2 destPos(-1.0f, -10.0f); // Reception desk
+	Pose startPose = { 4.4f, -1.0f, 0 };
+	Vector2 destPos(-1, -4.5f); // The next room
 	float destRadius = 0.3f;
-	PathFinding::PathFindingResult pfResult;
-	PathFinding::FindPath(pfConfig, map, startNodePose, destPos, destRadius, pfResult);
 
-	std::vector<Vector2> pfResultPoints;
-	for (const auto& node : pfResult.m_Nodes)
-		pfResultPoints.push_back({ node.m_Pose.x, node.m_Pose.y });
+	//PathFinding::PathFindingResult pfResult;
+	//PathFinding::FindPath(pfConfig, map, startNodePose, destPos, destRadius, pfResult);
 
-	Vector2 firstPathPoint = pfResultPoints[0];
+	pathPlanner.PlanPath(map, startPose, destPos, destRadius);
+
+	std::vector<Vector2> pathPositions;
+	std::vector<Vector2> endPositions;
+	std::vector<Vector2> extPositions;
+	for (const auto& p : pathPlanner.GetPath())
+	{
+		pathPositions.push_back(p.m_Pos);
+		if (p.m_Type == PathFollower::PathPoint::Type::EXTENSION)
+			extPositions.push_back(p.m_Pos);
+		else if (p.m_Type == PathFollower::PathPoint::Type::END)
+			endPositions.push_back(p.m_Pos);
+	}
+
+
 
 	printf("Path finding has ended!\n");
 
@@ -190,6 +181,28 @@ void TestPathFinding()
 	*/
 }
 
+void TestLineX()
+{
+	Vector2 intersections[2];
+	uint nIntersections = MathUtils::CircleXLine({ -5, 5 }, 5.0f,
+		{ -10,0 }, { 10,7 },
+		intersections);
+
+	printf("Circle X Line intersection test\n");
+}
+
+void TestChassisCurvatureCalculation()
+{
+	Chassis::ChassisConfig chassisConfig;
+	Chassis::ChassisStatsConfig statsConfig;
+	Chassis::ChassisModel chassisModel(chassisConfig, statsConfig);
+
+	float curvature = -0.05;
+
+	float steeringInput = chassisModel.CalculateSteeringInput(curvature);
+	printf("Calculated steering input. %.3f -> %.3f\n", curvature, steeringInput);
+}
+
 int main(int argc, char* argv[])
 {
 #if TRACY_ENABLE
@@ -201,10 +214,8 @@ int main(int argc, char* argv[])
 	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
 	// WIP path finding tests
-	int8_t __a = -3;
-	uint __b = 255; // static_cast<uint8_t>(__a);
-	int8_t __c = static_cast<int8_t>(__b);
 	TestPathFinding();
+	//TestChassisCurvatureCalculation();
 	return 0;
 	///////////////////////////
 

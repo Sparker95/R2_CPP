@@ -6,6 +6,7 @@
 #include "../Common/ControlSensorFrame.h"
 
 #include "SensorInterface.h"
+#include "ChassisSettings.h"
 
 #include <mutex>
 #include <queue>
@@ -52,7 +53,8 @@ public:
 		T& CastPayload() { return *reinterpret_cast<T*>(*m_Payload); }
 	};
 
-	MainMessageLoop(SensorInterface& sensorInterface, ChassisInterface& cHassisInterface,
+	MainMessageLoop(SensorInterface& sensorInterface, ChassisInterface& chassisInterface,
+		const ChassisSettings::ControlSettings& chassisCtrlSettings,
 		RobotCore& robotCore);
 	~MainMessageLoop();
 	void Init(ControlPanelServer* pCtrlPanelServer);
@@ -66,6 +68,8 @@ private:
 	ChassisInterface* m_pChassisInterface = nullptr;
 	ControlPanelServer* m_pCtrlPanelServer = nullptr;
 	RobotCore* m_pRobotCore = nullptr;
+
+	ChassisSettings::ControlSettings m_ChassisCtrlSettings;
 
 	// Timestamp
 	// This should serve as start timestamp for everything else in program

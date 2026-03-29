@@ -139,6 +139,23 @@ Pose Chassis::ChassisModel::PoseDiff_LSToSS(const Pose& poseDiff_SS) const
 	return Pose(poseDiffXY_LS(0), poseDiffXY_LS(1), poseDiff_SS.dir);
 }
 
+float Chassis::ChassisModel::CalculateSteeringInput(float curvature) const
+{
+	// Go straight
+	if (curvature == 0)
+		return 0;
+
+	const auto& c = m_ChassisConfig;
+
+	float rearAxleCenterTurnRadius = 1.0f / std::abs(curvature);
+
+	float innerWheelTurnRadius = rearAxleCenterTurnRadius - 0.5f * c.m_trackWidth;
+	float innerWheelAngle_rad = std::atan(c.m_wheelBase / innerWheelTurnRadius);
+	float steerInput = innerWheelAngle_rad / c.m_steerSensitivity_rad;
+	
+	return std::copysign(steerInput, curvature);
+}
+
 Chassis::TOdometerCounter Chassis::CalculateOdometerDifference(TOdometerCounter odoNew, TOdometerCounter odoPrev)
 {
 	TOdometerCounter diff = odoNew - odoPrev;

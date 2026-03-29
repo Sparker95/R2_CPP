@@ -380,12 +380,13 @@ void ControlPanelServer::SendMap_mt(const Map& map)
 }
 
 
-void ControlPanelServer::SendLocaction_mt(const std::vector<Pose>& poses)
+void ControlPanelServer::SendLocaction_mt(const Pose& meanPose, const std::vector<Pose>& poses)
 {
 	if (!GetConnected())
 		return;
 
 	PipeMsgLoc* pMsg = new PipeMsgLoc();
+	pMsg->m_MeanPose = meanPose;
 	pMsg->m_Poses = poses;
 
 	PostPipeMessage(pMsg);
@@ -408,5 +409,15 @@ void ControlPanelServer::SendPath_mt(const std::vector<Vector2> path)
 
 	PipeMsgPath* pMsg = new PipeMsgPath();
 	pMsg->m_PathPoints = path;
+	PostPipeMessage(pMsg);
+}
+
+void ControlPanelServer::SendDiagData_mt(const ControlPanelProtocol::DiagDataHeader& diagData)
+{
+	if (!GetConnected())
+		return;
+
+	PipeMsgDiagData * pMsg = new PipeMsgDiagData();
+	pMsg->m_DiagData = diagData;
 	PostPipeMessage(pMsg);
 }
