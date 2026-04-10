@@ -167,7 +167,7 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 				}
 				else
 				{
-					float motorSpeed_Hz = std::copysign(m_ChassisCtrlSettings.m_SpeedSlow_Hz, ctrl.m_MotorMoveDir);
+					float motorSpeed_Hz = m_ChassisCtrlSettings.m_SpeedSlow_Hz * ctrl.m_MotorSpeedNorm;
 					m_pChassisInterface->SendCommand_MotorMove(motorSpeed_Hz);
 				}
 			}

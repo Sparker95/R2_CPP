@@ -15,4 +15,7 @@ namespace MathUtils
 	// Returns count of intersections.
 	uint CircleXLine(const Vector2& circleCenter, float r, const Vector2& l0, const Vector2& l1,
 		Vector2* outIntersections);
+
+	void ProjectPointOnLine(const Vector2& pt, const Vector2& l0, const Vector2& l1,
+		float* outLineLen = nullptr, float* outProjDistFrom_l0 = nullptr, Vector2* outProjPoint = nullptr);
 }

@@ -71,10 +71,11 @@ void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapF
 	PathFollowerConfig followerConfig;
 	PathFinding::Config pfConfig;
 	PathPlanner pathPlanner(pfConfig, followerConfig);
+	PathFollower pathFollower(followerConfig);
 
 	Localizer localizer(localizerConfig, chassisModel);
 
-	RobotCore core(localizer, crashDetector, pathPlanner);
+	RobotCore core(chassisModel, localizer, crashDetector, pathPlanner, pathFollower);
 	core.SetUpdateLocalizer(true);
 
 	// Read all blocks

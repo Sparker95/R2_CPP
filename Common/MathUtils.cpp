@@ -52,3 +52,26 @@ uint MathUtils::CircleXLine(const Vector2& circleCenter, float r, const Vector2&
 	}
 	return nSolOut;
 }
+
+void MathUtils::ProjectPointOnLine(const Vector2& pt, const Vector2& l0, const Vector2& l1,
+	float* outLineLen, float* outProjDistFrom_l0, Vector2* outProjPoint)
+{
+	// https://www.sunshine2k.de/coding/java/PointOnLine/PointOnLine.html
+	Vector2 e1 = l1 - l0;
+	Vector2 e2 = pt - l0;
+	float dp = Vector2::DotProduct(e1, e2);
+	float len_e1 = e1.Length();
+	float len_e2 = e2.Length();
+	float cos_angle = dp / (len_e1 * len_e2);
+
+	if (outLineLen)
+		*outLineLen = len_e1;
+
+	float proj_dist_from_l0 = cos_angle * len_e2;
+	if (outProjDistFrom_l0)
+		*outProjDistFrom_l0 = proj_dist_from_l0;
+
+	Vector2 projPoint = e1 * (proj_dist_from_l0 / len_e1);
+	if (outProjPoint)
+		*outProjPoint = projPoint;
+}

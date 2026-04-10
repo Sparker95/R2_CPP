@@ -49,31 +49,24 @@ void RobotCore::Update(const ControlSensorFrame& frame)
 	// Path follower and output controls values
 	const Pose& meanPose = m_pLocalizer->GetMeanPose();
 	if (m_pPathFollower->GetStateRunning())
-	{
 		m_pPathFollower->Update(meanPose);
 
-		if (m_pPathFollower->GetStateRunning())
-		{
-			float ctrlCurvature, ctrlSpeed;
-			bool ctrlBrake;
-			m_pPathFollower->GetOutputControls(ctrlCurvature, ctrlSpeed, ctrlBrake);
+	if (m_pPathFollower->GetStateRunning())
+	{
+		float ctrlCurvature, ctrlSpeedNorm;
+		bool ctrlBrake;
+		m_pPathFollower->GetOutputControls(ctrlCurvature, ctrlSpeedNorm, ctrlBrake);
 
-			m_OutControls.m_Steer = m_pChassisModel->CalculateSteeringInput(ctrlCurvature);
-			m_OutControls.m_Brake = false;
-			if (ctrlSpeed > 0)
-				m_OutControls.m_MotorMoveDir = 1.0f;
-			else if (ctrlSpeed < 0)
-				m_OutControls.m_MotorMoveDir = -1.0f;
-			else
-				m_OutControls.m_MotorMoveDir = 0;
+		m_OutControls.m_Steer = m_pChassisModel->CalculateSteeringInput(ctrlCurvature);
+		m_OutControls.m_Brake = false;
+		m_OutControls.m_MotorSpeedNorm = ctrlSpeedNorm;
 
-			printf("RobotCore::Update: Output controls: steer: %.3f speed: %.2f\n", m_OutControls.m_Steer, m_OutControls.m_MotorMoveDir);
-		}
+		printf("RobotCore::Update: Output controls: steer: %.3f speed: %.2f\n", m_OutControls.m_Steer, m_OutControls.m_MotorSpeedNorm);
 	}
 	else
 	{
 		m_OutControls.m_Steer = 0;
-		m_OutControls.m_MotorMoveDir = 0;
+		m_OutControls.m_MotorSpeedNorm = 0;
 		m_OutControls.m_Brake = true;
 	}
 

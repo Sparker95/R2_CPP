@@ -63,7 +63,7 @@ void PathFollower::Reset()
 	m_State = State::IDLE;
 
 	m_CtrlCurvature = 0;
-	m_CtrlSpeed = 0;
+	m_CtrlSpeedNorm = 0;
 	m_CtrlBrake = true; // For safety
 }
 
@@ -73,16 +73,26 @@ void PathFollower::Update(const Pose& pose)
 		return;
 
 	Vector2 vPoseDir(std::cos(pose.dir), std::sin(pose.dir));
-	Vector2 currentPos(pose.x, pose.y);
 
-	//------------------------------------------------------------------------------------
-	// Step 1: Find the new current path point
+	UpdateCurrentPathPoint(pose, vPoseDir); // Here state might switch to error
+
+	if (m_State == State::RUNNING)
+		UpdateSteeringSolution(pose, vPoseDir);
+	
+	if (m_State == State::RUNNING)
+		UpdateSpeedSolution(pose, vPoseDir);
+}
+
+void PathFollower::UpdateCurrentPathPoint(const Pose& pose, const Vector2& dir)
+{
+	Vector2 pos(pose.x, pose.y);
+
 	uint lastPtBehind = m_CurrentPointId;
 	for (uint i = m_CurrentPointId; i < (uint)m_Path.size(); i++)
 	{
-		Vector2 vToPoint = m_Path[i].m_Pos - currentPos;
+		Vector2 vToPoint = m_Path[i].m_Pos - pos;
 		float currentPtMoveDirSign = m_Path[m_CurrentPointId].m_OutMoveFwd ? 1.0f : -1.0f;
-		if (currentPtMoveDirSign * Vector2::DotProduct(vToPoint, vPoseDir) < 0) // Point is behind current pose
+		if (currentPtMoveDirSign * Vector2::DotProduct(vToPoint, dir) < 0) // Point is behind current pose
 		{
 			lastPtBehind = i;
 			if (i == m_CurrentEndPointId) // Don't seek beyond the current end point
@@ -100,10 +110,10 @@ void PathFollower::Update(const Pose& pose)
 
 	const float compRadiusSq = m_Config.m_CompletionRadius * m_Config.m_CompletionRadius;
 	if (m_CurrentPointId >= m_CurrentEndPointId ||
-		Vector2::DistanceSq(currentPos, m_Path[m_CurrentEndPointId].m_Pos) < compRadiusSq)
+		Vector2::DistanceSq(pos, m_Path[m_CurrentEndPointId].m_Pos) < compRadiusSq)
 	{
 		printf("PathFollower::Update: Reached current end point: %u\n", m_CurrentEndPointId);
-		
+
 		// New current point - the extension point, should be next after end pt.
 		// New end point - search starting from the new current point
 
@@ -151,9 +161,11 @@ void PathFollower::Update(const Pose& pose)
 		m_CurrentEndPointId = newEndPtId;
 		printf("PathFollower:Update: Switched to current point: %u, end point: %u\n", m_CurrentPointId, m_CurrentEndPointId);
 	}
+}
 
-	//------------------------------------------------------------------------------------
-	// Step 2: Steering solution
+void PathFollower::UpdateSteeringSolution(const Pose& pose, const Vector2& dir)
+{
+	Vector2 pos(pose.x, pose.y);
 
 	// Find lookahead position
 	bool lookaheadPosFound = false;
@@ -165,7 +177,7 @@ void PathFollower::Update(const Pose& pose)
 
 		// Find first intersection which is ahead
 		Vector2 intersections[2] = {};
-		uint nIntersections = MathUtils::CircleXLine(currentPos, m_Config.m_LookaheadDistance,
+		uint nIntersections = MathUtils::CircleXLine(pos, m_Config.m_LookaheadDistance,
 			point.m_Pos, nextPoint.m_Pos, intersections);
 		if (nIntersections != 0)
 		{
@@ -173,7 +185,7 @@ void PathFollower::Update(const Pose& pose)
 			{
 				Vector2& intPos = intersections[intersection];
 				float currentPtMoveDirSign = m_Path[m_CurrentPointId].m_OutMoveFwd ? 1.0f : -1.0f;
-				float dotProduct = Vector2::DotProduct(intPos - currentPos, vPoseDir);
+				float dotProduct = Vector2::DotProduct(intPos - pos, dir);
 				if (currentPtMoveDirSign * dotProduct >= 0.0f)
 				{
 					lookaheadPos = intPos;
@@ -206,7 +218,33 @@ void PathFollower::Update(const Pose& pose)
 	curvature = -curvature; // Positive - turn right;
 
 	m_CtrlCurvature = curvature;
+}
 
-	// Calculate speed
-	m_CtrlSpeed = m_Path[m_CurrentPointId].m_OutMoveFwd ? 1.0f : -1.0f;
+void PathFollower::UpdateSpeedSolution(const Pose& pose, const Vector2& dir)
+{
+	float speedSign = m_Path[m_CurrentPointId].m_OutMoveFwd ? 1.0f : -1.0f;
+	
+	Vector2 pos(pose.x, pose.y);
+
+	const Vector2& curPtPos = m_Path[m_CurrentPointId].m_Pos;
+	const Vector2& nextPtPos = m_Path[m_CurrentEndPointId].m_Pos;
+	float projDistFromStart;
+	MathUtils::ProjectPointOnLine(pos, curPtPos, nextPtPos,
+		nullptr, &projDistFromStart, nullptr);
+
+	// ! projDistFromStart can be also negative or bigger than segment length, because
+	// we switch to next pt not through projection, but through orthogonal to pose direction
+
+	float distFromStart = m_Path[m_CurrentPointId].m_DistFromStart + projDistFromStart;
+	float distToEnd = m_Path[m_CurrentEndPointId].m_DistFromStart - distFromStart;
+	if (distToEnd < 0) // If we are past end pt
+		distToEnd = 0;
+
+	if (distToEnd > m_Config.m_BrakeDist)
+		m_CtrlSpeedNorm = speedSign; // Full speed
+	else
+	{
+		// Linearly reduce speed as we approach the end point
+		m_CtrlSpeedNorm = speedSign * (distToEnd / m_Config.m_BrakeDist);
+	}
 }

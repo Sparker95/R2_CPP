@@ -61,7 +61,6 @@ void PathPlanner::PlanPath(const Map& map, const Pose& startPose, Vector2 destPo
 			Vector2 extensionPointPos = Vector2(node.m_Pose.x, node.m_Pose.y) + nodeDirVector * (extensionDistance * extensionDirSign);
 			PathFollower::PathPoint fpp;
 			fpp.m_Pos = extensionPointPos;
-			fpp.m_Speed = 0; // WIP
 			fpp.m_OutMoveFwd = nextNodeFwd; // Same as main node
 			fpp.m_Type = PathFollower::PathPoint::Type::EXTENSION;
 			m_Path.push_back(fpp);
@@ -84,7 +83,6 @@ void PathPlanner::PlanPath(const Map& map, const Pose& startPose, Vector2 destPo
 
 			PathFollower::PathPoint fpp;
 			fpp.m_Pos = smoothPoint;
-			fpp.m_Speed = 0; // WIP
 			fpp.m_OutMoveFwd = nextNodeFwd; // ! We use fwd value TO next node
 			fpp.m_Type = PathFollower::PathPoint::Type::MAIN;
 			m_Path.push_back(fpp);
@@ -105,10 +103,18 @@ void PathPlanner::PlanPath(const Map& map, const Pose& startPose, Vector2 destPo
 		Vector2 extensionPointPos = Vector2(lastNode.m_Pose.x, lastNode.m_Pose.y) + nodeDirVector * (extensionDistance * extensionDirSign);
 		PathFollower::PathPoint fpp;
 		fpp.m_Pos = extensionPointPos;
-		fpp.m_Speed = 0; // WIP
 		fpp.m_OutMoveFwd = lastNodeFwd; // Same direction as we came here
 		fpp.m_Type = PathFollower::PathPoint::Type::EXTENSION;
 		m_Path.push_back(fpp);
+	}
+
+	// Calculate m_DistFromStart for each point
+	m_Path[0].m_DistFromStart = 0;
+	for (uint i = 1; i < (uint)m_Path.size(); i++)
+	{
+		auto& prevPt = m_Path[i - 1];
+		auto& thisPt = m_Path[i];
+		thisPt.m_DistFromStart = prevPt.m_DistFromStart + Vector2::Distance(prevPt.m_Pos, thisPt.m_Pos);
 	}
 }
 
