@@ -182,14 +182,10 @@ void TestPathFinding()
 	*/
 }
 
-void TestLineX()
+void TestConfigSections()
 {
-	Vector2 intersections[2];
-	uint nIntersections = MathUtils::CircleXLine({ -5, 5 }, 5.0f,
-		{ -10,0 }, { 10,7 },
-		intersections);
-
-	printf("Circle X Line intersection test\n");
+	Config config("D:\\Projects\\Robot2\\CPP\\Config\\TestSections.cfg");
+	printf("Finished reading config\n");
 }
 
 void TestChassisCurvatureCalculation()
@@ -215,8 +211,9 @@ int main(int argc, char* argv[])
 	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
 	// WIP path finding tests
-	TestPathFinding();
+	//TestPathFinding();
 	//TestChassisCurvatureCalculation();
+	TestConfigSections();
 	return 0;
 	///////////////////////////
 

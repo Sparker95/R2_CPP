@@ -53,43 +53,22 @@ int main(int argc, char** argv)
 	}
 
 	// Extract command line arguments
-	const char* pInLocalizerConfig = nullptr;
-	const char* pInChassisStatsConfig = nullptr;
-	const char* pInChassisIfConfig = nullptr;
-	const char* pInSensorIfConfig = nullptr;
-	const char* pInChassisControlConfig = nullptr;
-	const char* pInCrashDetectorConfig = nullptr;
-	const char* pInPathFindingConfig = nullptr;
+	const char* pInCfgMain = nullptr;
+	const char* pInCfgPlatform = nullptr;
 	for (int i = 1; i < argc - 1; i++)
 	{
 		std::string arg(argv[i]);
-		if (arg == "-inChassisIfConfig")
-			pInChassisIfConfig = argv[i + 1];
-		else if (arg == "-inChassisStatsConfig")
-			pInChassisStatsConfig = argv[i + 1];
-		else if (arg == "-inLocalizerConfig")
-			pInLocalizerConfig = argv[i + 1];
-		else if (arg == "-inSensorIfConfig")
-			pInSensorIfConfig = argv[i + 1];
-		else if (arg == "-inChassisControlConfig")
-			pInChassisControlConfig = argv[i + 1];
-		else if (arg == "-inCrashDetectorConfig")
-			pInCrashDetectorConfig = argv[i + 1];
-		else if (arg == "-inPathFindingConfig")
-			pInPathFindingConfig = argv[i + 1];
+		if (arg == "-cfg_main")
+			pInCfgMain = argv[i + 1];
+		else if (arg == "-cfg_platform")
+			pInCfgPlatform = argv[i + 1];
 	}
 
 	printf("Command Line Arguments:\n");
-	printf("-inChassisIfConfig      : %s\n", pInChassisIfConfig);
-	printf("-inChassisStatsConfig   : %s\n", pInChassisStatsConfig);
-	printf("-inLocalizerConfig      : %s\n", pInLocalizerConfig);
-	printf("-inSensorIfConfig       : %s\n", pInSensorIfConfig);
-	printf("-inChassisControlConfig : %s\n", pInChassisControlConfig);
-	printf("-inCrashDetectorConfig  : %s\n", pInCrashDetectorConfig);
-	printf("-inPathFindingConfig    : %s\n", pInPathFindingConfig);
+	printf("-cfg_main     : %s\n", pInCfgMain);
+	printf("-cfg_platform : %s\n", pInCfgPlatform);
 
-	if (!pInChassisIfConfig || !pInChassisStatsConfig || !pInLocalizerConfig || !pInSensorIfConfig ||
-		!pInChassisControlConfig || !pInCrashDetectorConfig || !pInPathFindingConfig)
+	if (!pInCfgMain || !pInCfgPlatform)
 	{
 		printf("Not all arguments are provided!\n");
 		return 1;
@@ -98,21 +77,24 @@ int main(int argc, char** argv)
 	bool initDone = true;
 
 	// Read config files
+	Config mainConfig(pInCfgMain);
+	Config platformConfig(pInCfgPlatform);
+
 	ChassisInterface::AllSettings    chassisIfSettings;
 	ChassisSettings::ControlSettings chassisControlSettings;
-	CrashDetector::Config crashDetectorConfig;
+	CrashDetector::Config            crashDetectorConfig;
 	SensorInterface::Settings        sensorIfSettings;
 	Localizer::Config                localizerConfig;
 	Chassis::ChassisStatsConfig      chassisStatsConfig;
 	PathFinding::Config              pathFindingConfig;
 	PathFollowerConfig               pathFollowerConfig;
-	initDone = initDone && PlatformConfigUtils::ReadChassisInterfaceSettingsConfig(Config(pInChassisIfConfig), chassisIfSettings);
-	initDone = initDone && PlatformConfigUtils::ReadChassisControlSettingsConfig(Config(pInChassisControlConfig), chassisControlSettings);
-	initDone = initDone && PlatformConfigUtils::ReadSensorInterfaceSettingsConfig(Config(pInSensorIfConfig), sensorIfSettings);
-	initDone = initDone && ConfigUtils::ReadCrashDetectorConfig(Config(pInCrashDetectorConfig), crashDetectorConfig);
-	initDone = initDone && ConfigUtils::ReadLocalizerConfig(Config(pInLocalizerConfig), localizerConfig);
-	initDone = initDone && ConfigUtils::ReadChassisStatsConfig(Config(pInChassisStatsConfig), chassisStatsConfig);
-	initDone = initDone && ConfigUtils::ReadPathFindingConfig(Config(pInPathFindingConfig), pathFindingConfig);
+	initDone = initDone && PlatformConfigUtils::ReadChassisInterfaceSettingsConfig(platformConfig, chassisIfSettings);
+	initDone = initDone && PlatformConfigUtils::ReadChassisControlSettingsConfig(platformConfig, chassisControlSettings);
+	initDone = initDone && PlatformConfigUtils::ReadSensorInterfaceSettingsConfig(platformConfig, sensorIfSettings);
+	initDone = initDone && ConfigUtils::ReadCrashDetectorConfig(mainConfig, crashDetectorConfig);
+	initDone = initDone && ConfigUtils::ReadLocalizerConfig(mainConfig, localizerConfig);
+	initDone = initDone && ConfigUtils::ReadChassisStatsConfig(mainConfig, chassisStatsConfig);
+	initDone = initDone && ConfigUtils::ReadPathFindingConfig(mainConfig, pathFindingConfig);
 
 	if (!initDone)
 	{

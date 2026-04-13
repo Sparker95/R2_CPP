@@ -20,16 +20,17 @@ Config::~Config()
 		delete[] m_pConfigData;
 }
 
-const char* Config::FindValue(const char* pKeyName, bool printError /*= true*/) const
+const char* Config::FindValue(const char* pSectionName, const char* pKeyName, bool printError /*= true*/) const
 {
 	for (auto& kv : m_KeyValueTable)
 	{
-		if (strcmp(kv.m_pKey, pKeyName) == 0)
+		if (strcmp(kv.m_pSection, pSectionName) == 0 &&
+			strcmp(kv.m_pKey, pKeyName) == 0)
 			return kv.m_pValue;
 	}
 
 	if (printError)
-		fprintf(stderr, "Config: Error: key not found: %s\n", pKeyName);
+		fprintf(stderr, "Config: Error: key not found: %s.%s\n", pSectionName, pKeyName);
 
 	return nullptr;
 }
@@ -59,22 +60,48 @@ bool Config::ReadConfig(const char* configPath)
 
 	// Split data into key-value pairs
 	char* pLineStart = m_pConfigData;
+	char* pSection = nullptr; // Current section
 	while (m_KeyValueTable.size() < 64) // Sanity check
 	{
 		char* pSpace = strchr(pLineStart, ' ');
 		char* pNewLine = strchr(pLineStart, '\n');
-		if (pSpace == nullptr) // Either error, or end (empty string with one newline)
-			break;
-		if (pSpace > pNewLine && pNewLine != nullptr) // Line without space
+
+		if (*pLineStart == '#')          // Comment line -> ignore
+		{ /* do nothing */ }
+		else if (pNewLine == pLineStart) // Empty line -> ignore
+		{ /* do nothing */ }
+		else if (*pLineStart == '-')     // Section declaration
 		{
-			fprintf(stderr, "Config: File data error\n");
-			return false;
+			pSection = pLineStart + 1;
 		}
+		else                             // Probably key-value pair
+		{
+			if (!pSpace || (pSpace && pNewLine && (pSpace > pNewLine))) // Line without space
+			{
+				fprintf(stderr, "Config: File data error: key-value line without space\n");
+				return false;
+			}
 
-		m_KeyValueTable.push_back({pLineStart, pSpace+1});
+			if (pSection)
+			{
+				KeyValuePair pair;
+				pair.m_pSection = pSection;
+				pair.m_pKey = pLineStart;
+				pair.m_pValue = pSpace + 1;
 
-		// Split strings with 0, to help future parsing
-		*pSpace = 0;
+				if (pSpace)
+					*pSpace = 0;
+
+				m_KeyValueTable.push_back(pair);
+			}
+			else
+			{
+				fprintf(stderr, "Config: Section-less key-value pairs are not supported!\n");
+				return false;
+			}
+		}	
+
+		// Split strings with 0, to help future processing (strcmp and other functions)
 		if (pNewLine)
 			*pNewLine = 0;
 		
@@ -83,6 +110,8 @@ bool Config::ReadConfig(const char* configPath)
 			break;
 
 		pLineStart = pNewLine + 1;
+		if (pLineStart >= m_pConfigData + cfgFileSize)
+			break;
 	}
 
 	// Print the found data
@@ -90,15 +119,25 @@ bool Config::ReadConfig(const char* configPath)
 	for (uint i = 0; i < m_KeyValueTable.size(); i++)
 	{
 		const auto& kv = m_KeyValueTable[i];
-		printf("  %i: %s : %s\n", i, kv.m_pKey, kv.m_pValue);
+
+		if (!kv.m_pSection)
+			printf("  %i: %s : %s\n", i, kv.m_pKey, kv.m_pValue);
+		else
+			printf("  %i: %s.%s : %s\n", i, kv.m_pSection, kv.m_pKey, kv.m_pValue);
 	}
 
 	return true;
 }
 
+void Config::SetSection(const char* pSectionName) const
+{
+	// This is fine, this way we can use SetSection on const objects.
+	const_cast<Config*>(this)->m_pCurrentSection = pSectionName;
+}
+
 bool Config::Get(const char* pKeyName, float& outValue, bool reportError /*= true*/) const
 {
-	const char* pValueStr = FindValue(pKeyName, reportError);
+	const char* pValueStr = FindValue(m_pCurrentSection, pKeyName, reportError);
 
 	if (!pValueStr)
 		return false;
@@ -110,7 +149,7 @@ bool Config::Get(const char* pKeyName, float& outValue, bool reportError /*= tru
 
 bool Config::Get(const char* pKeyName, uint& outValue, bool reportError /*= true*/) const
 {
-	const char* pValueStr = FindValue(pKeyName, reportError);
+	const char* pValueStr = FindValue(m_pCurrentSection, pKeyName, reportError);
 
 	if (!pValueStr)
 		return false;
@@ -122,7 +161,7 @@ bool Config::Get(const char* pKeyName, uint& outValue, bool reportError /*= true
 
 bool Config::Get(const char* pKeyName, bool& outValue, bool reportError /*= true*/) const
 {
-	const char* pValueStr = FindValue(pKeyName, reportError);
+	const char* pValueStr = FindValue(m_pCurrentSection, pKeyName, reportError);
 
 	if (!pValueStr)
 		return false;
@@ -134,7 +173,7 @@ bool Config::Get(const char* pKeyName, bool& outValue, bool reportError /*= true
 
 bool Config::Get(const char* pKeyName, std::string& outValue, bool reportError /*= true*/) const
 {
-	const char* pValueStr = FindValue(pKeyName, reportError);
+	const char* pValueStr = FindValue(m_pCurrentSection, pKeyName, reportError);
 
 	if (!pValueStr)
 		return false;

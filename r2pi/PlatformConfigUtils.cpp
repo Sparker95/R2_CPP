@@ -13,6 +13,8 @@ bool PlatformConfigUtils::ReadChassisInterfaceSettingsConfig(const Config& cfg, 
 {
 	ChassisInterface::AllSettings s;
 
+	cfg.SetSection("ChassisInterface");
+
 	bool cfgSuccess =
 		// Connection settings
 		cfg.Get("SerialDevPath", s.m_ConnSettings.m_SerialDevPath) &&
@@ -42,6 +44,8 @@ bool PlatformConfigUtils::ReadChassisControlSettingsConfig(const Config& cfg, Ch
 {
 	ChassisSettings::ControlSettings s;
 
+	cfg.SetSection("ChassisControl");
+
 	bool cfgSuccess =
 		cfg.Get("SteerOutputMax", s.m_SteerOutputMax) &&
 		cfg.Get("SpeedSlow_Hz", s.m_SpeedSlow_Hz) &&
@@ -61,6 +65,8 @@ bool PlatformConfigUtils::ReadChassisControlSettingsConfig(const Config& cfg, Ch
 bool PlatformConfigUtils::ReadSensorInterfaceSettingsConfig(const Config& cfg, SensorInterface::Settings& outSettings)
 {
 	SensorInterface::Settings s;
+
+	cfg.SetSection("SensorInterface");
 
 	bool cfgSuccess = cfg.Get("SerialDevPath", s.m_SerialDevPath) &&
 		cfg.Get("MotorSpeed_Hz", s.m_MotorSpeed_Hz) &&

@@ -21,6 +21,8 @@ bool ConfigUtils::ReadChassisStatsConfig(const Config& config, Chassis::ChassisS
 
 	*/
 
+	config.SetSection("ChassisStats");
+
 	float wheelFreeplay_deg;
 	bool allValuesFound = config.Get("WheelRadiusTol_abs", tempConfig.m_WheelRadiusTol_abs) &&
 		config.Get("OdoFreeplay_abs", tempConfig.m_OdoFreeplay_abs) &&
@@ -41,8 +43,9 @@ bool ConfigUtils::ReadLocalizerConfig(const Config& config, Localizer::Config& o
 {
 	Localizer::Config tempConfig;
 
-	float l2Occupied, l2Free;
+	config.SetSection("Localizer");
 
+	float l2Occupied, l2Free;
 	bool allValuesFound = config.Get("SensorPdfWidth", tempConfig.m_SensorPdfWidth) &&
 		config.Get("SensorPdfFloor", tempConfig.m_SensorPdfFloor) &&
 		config.Get("SensorScanRange", tempConfig.m_SensorScanRange) &&
@@ -66,6 +69,8 @@ bool ConfigUtils::ReadLocalizerConfig(const Config& config, Localizer::Config& o
 bool ConfigUtils::ReadPathFindingConfig(const Config& config, PathFinding::Config& outConfig)
 {
 	PathFinding::Config tempConfig;
+
+	config.SetSection("PathFinding");
 
 	bool allValuesFound =
 		config.Get("TurnRadius",        tempConfig.m_TurnRadius) &&
@@ -93,6 +98,8 @@ bool ConfigUtils::ReadPathFindingConfig(const Config& config, PathFinding::Confi
 bool ConfigUtils::ReadCrashDetectorConfig(const Config& cfg, CrashDetector::Config& outCrashDetectorSettings)
 {
 	CrashDetector::Config s;
+
+	cfg.SetSection("CrashDetector");
 
 	bool cfgSuccess =
 		cfg.Get("Enabled", s.m_Enabled) &&

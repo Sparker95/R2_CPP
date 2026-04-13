@@ -4,11 +4,11 @@
     <ShowAllFiles>false</ShowAllFiles>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-    <RemoteDebuggerCommandArguments>-inChassisIfConfig ../../../ChassisInterface.cfg -inChassisStatsConfig ../../../ChassisStats.cfg -inLocalizerConfig ../../../Localizer.cfg -inSensorIfConfig ../../../SensorInterface.cfg -inChassisControlConfig ../../../ChassisControl.cfg  -inCrashDetectorConfig ../../../CrashDetector.cfg -inPathFindingConfig ../../../PathFinding.cfg</RemoteDebuggerCommandArguments>
+    <RemoteDebuggerCommandArguments>-cfg_main /home/pi/projects/r2pi/MainConfig.cfg -cfg_platform /home/pi/projects/r2pi/PlatformConfig.cfg</RemoteDebuggerCommandArguments>
     <DebuggerFlavor>LinuxDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <RemoteDebuggerCommandArguments>-inChassisIfConfig ../../../ChassisInterface.cfg -inChassisStatsConfig ../../../ChassisStats.cfg -inLocalizerConfig ../../../Localizer.cfg -inSensorIfConfig ../../../SensorInterface.cfg -inChassisControlConfig ../../../ChassisControl.cfg  -inCrashDetectorConfig ../../../CrashDetector.cfg -inPathFindingConfig ../../../PathFinding.cfg</RemoteDebuggerCommandArguments>
+    <RemoteDebuggerCommandArguments>-cfg_main /home/pi/projects/r2pi/MainConfig.cfg -cfg_platform /home/pi/projects/r2pi/PlatformConfig.cfg</RemoteDebuggerCommandArguments>
     <DebuggerFlavor>LinuxDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>
