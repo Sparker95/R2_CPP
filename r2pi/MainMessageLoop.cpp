@@ -162,14 +162,9 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 				m_pChassisInterface->SendCommand_Steer(steerLimited);
 
 				if (ctrl.m_Brake)
-				{
 					m_pChassisInterface->SendCommand_MotorBrake();
-				}
 				else
-				{
-					float motorSpeed_Hz = m_ChassisCtrlSettings.m_SpeedSlow_Hz * ctrl.m_MotorSpeedNorm;
-					m_pChassisInterface->SendCommand_MotorMove(motorSpeed_Hz);
-				}
+					m_pChassisInterface->SendCommand_MotorMove(ctrl.m_MotorSpeed_Hz);
 			}
 		}
 

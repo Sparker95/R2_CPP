@@ -7,15 +7,9 @@
 Contains functions for reading config files of many classes.
 */
 
-namespace Chassis
-{
-	struct ChassisStatsConfig;
-}
-
-namespace PathFinding
-{
-	struct Config;
-}
+namespace Chassis { struct ChassisStatsConfig; }
+namespace PathFinding { struct Config; }
+class PathFollowerConfig;
 
 class Config;
 
@@ -25,4 +19,5 @@ namespace ConfigUtils
 	bool ReadChassisStatsConfig(const Config& config, Chassis::ChassisStatsConfig& outConfig);
 	bool ReadPathFindingConfig(const Config& config, PathFinding::Config& outConfig);
 	bool ReadCrashDetectorConfig(const Config& cfg, CrashDetector::Config& outCrashDetectorSettings);
+	bool ReadPathFollowerConfig(const Config& cfg, PathFollowerConfig& outConfig);
 }

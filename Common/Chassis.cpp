@@ -156,6 +156,16 @@ float Chassis::ChassisModel::CalculateSteeringInput(float curvature) const
 	return std::copysign(steerInput, curvature);
 }
 
+float Chassis::ChassisModel::CalculateMotorFreqInput(float speed_mps) const
+{
+	const ChassisConfig& c = m_ChassisConfig;
+	float distPerOdoPulse = ((1.0f / static_cast<float>(c.m_encoderPulses)) *
+		(static_cast<float>(c.m_gearDiffIn) / static_cast<float>(c.m_gearDiffOut)) * PI_2X * c.m_wheelRadius);
+
+	float freq_Hz = speed_mps / distPerOdoPulse;
+	return freq_Hz;
+}
+
 Chassis::TOdometerCounter Chassis::CalculateOdometerDifference(TOdometerCounter odoNew, TOdometerCounter odoPrev)
 {
 	TOdometerCounter diff = odoNew - odoPrev;

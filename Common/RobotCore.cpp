@@ -53,20 +53,20 @@ void RobotCore::Update(const ControlSensorFrame& frame)
 
 	if (m_pPathFollower->GetStateRunning())
 	{
-		float ctrlCurvature, ctrlSpeedNorm;
+		float ctrlCurvature, ctrlSpeed_mps;
 		bool ctrlBrake;
-		m_pPathFollower->GetOutputControls(ctrlCurvature, ctrlSpeedNorm, ctrlBrake);
+		m_pPathFollower->GetOutputControls(ctrlCurvature, ctrlSpeed_mps, ctrlBrake);
 
 		m_OutControls.m_Steer = m_pChassisModel->CalculateSteeringInput(ctrlCurvature);
 		m_OutControls.m_Brake = false;
-		m_OutControls.m_MotorSpeedNorm = ctrlSpeedNorm;
+		m_OutControls.m_MotorSpeed_Hz = m_pChassisModel->CalculateMotorFreqInput(ctrlSpeed_mps);
 
-		printf("RobotCore::Update: Output controls: steer: %.3f speed: %.2f\n", m_OutControls.m_Steer, m_OutControls.m_MotorSpeedNorm);
+		printf("RobotCore::Update: Output controls: steer: %.3f speed: %.2f Hz\n", m_OutControls.m_Steer, m_OutControls.m_MotorSpeed_Hz);
 	}
 	else
 	{
 		m_OutControls.m_Steer = 0;
-		m_OutControls.m_MotorSpeedNorm = 0;
+		m_OutControls.m_MotorSpeed_Hz = 0;
 		m_OutControls.m_Brake = true;
 	}
 

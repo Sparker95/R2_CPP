@@ -7,6 +7,7 @@
 #include "ProbUtils.h"
 #include "PathFinding.h"
 #include "CrashDetector.h"
+#include "PathFollower.h"
 
 bool ConfigUtils::ReadChassisStatsConfig(const Config& config, Chassis::ChassisStatsConfig& outConfig)
 {
@@ -110,5 +111,23 @@ bool ConfigUtils::ReadCrashDetectorConfig(const Config& cfg, CrashDetector::Conf
 		return false;
 
 	outCrashDetectorSettings = s;
+	return true;
+}
+
+bool ConfigUtils::ReadPathFollowerConfig(const Config& cfg, PathFollowerConfig& outConfig)
+{
+	PathFollowerConfig tempConfig;
+
+	cfg.SetSection("PathFollower");
+
+	bool cfgSuccess = cfg.Get("CompletionRadius", tempConfig.m_CompletionRadius) &&
+		cfg.Get("LookaheadDistance", tempConfig.m_LookaheadDistance) &&
+		cfg.Get("BrakeDistance", tempConfig.m_BrakeDist) &&
+		cfg.Get("Speed_m/s", tempConfig.m_Speed_mps);
+
+	if (!cfgSuccess)
+		return false;
+
+	outConfig = tempConfig;
 	return true;
 }

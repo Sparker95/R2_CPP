@@ -99,6 +99,7 @@ namespace Chassis
 		Pose PoseDiff_LSToSS(const Pose& poseDiff_SS) const;
 
 		float CalculateSteeringInput(float curvature) const;
+		float CalculateMotorFreqInput(float speed_mps) const;
 	};
 
 	//------------------------------------------------------------------------------------------------------------------------

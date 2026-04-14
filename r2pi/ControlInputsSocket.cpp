@@ -3,6 +3,7 @@
 #include "ChassisInterface.h"
 #include "../Common/ControlInputsProtocol.h"
 #include "../Common/RobotCore.h"
+#include "../Common/Chassis.h"
 
 #include <thread>
 #include <algorithm>
@@ -20,9 +21,11 @@
 
 
 ControlInputsSocket::ControlInputsSocket(ChassisInterface& chassisInterface,
+	const Chassis::ChassisModel& chassisModel,
 	const ChassisSettings::ControlSettings& chassisCtrlSettings,
 	const RobotCore& robotCore)
 	: m_pChassisInterface(&chassisInterface),
+	m_pChassisModel(&chassisModel),
 	m_pChassisCtrlSettings(&chassisCtrlSettings),
 	m_pRobotCore(&robotCore)
 {
@@ -167,14 +170,15 @@ bool ControlInputsSocket::ProcessMessage(const char* pMsg, uint msgSize)
 		else if (enableCmdMotor && (pControlInputsMsg->m_CmdFlags & ControlInputsProtocol::Message::CMD_FLAG_MOVE))
 		{
 			using TMoveSpeed = ControlInputsProtocol::Message::MoveSpeed;
-			float moveCmdValue = 0;
+			float moveSpeed_mps = 0;
 			switch (pControlInputsMsg->m_MoveSpeed)
 			{
-				case TMoveSpeed::SLOW:   moveCmdValue = m_pChassisCtrlSettings->m_SpeedSlow_Hz; break;
-				case TMoveSpeed::CRUISE: moveCmdValue = m_pChassisCtrlSettings->m_SpeedCruise_Hz; break;
-				case TMoveSpeed::FAST:   moveCmdValue = m_pChassisCtrlSettings->m_SpeedFast_Hz; break;
+				case TMoveSpeed::SLOW:   moveSpeed_mps = m_pChassisCtrlSettings->m_SpeedSlow_mps; break;
+				case TMoveSpeed::CRUISE: moveSpeed_mps = m_pChassisCtrlSettings->m_SpeedCruise_mps; break;
+				case TMoveSpeed::FAST:   moveSpeed_mps = m_pChassisCtrlSettings->m_SpeedFast_mps; break;
 			}
 
+			float moveCmdValue = m_pChassisModel->CalculateMotorFreqInput(moveSpeed_mps);
 			if (!(pControlInputsMsg->m_CmdFlags & ControlInputsProtocol::Message::CMD_FLAG_MOVE_DIR_FWD))
 				moveCmdValue = -moveCmdValue;
 

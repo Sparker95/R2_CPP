@@ -63,7 +63,7 @@ void PathFollower::Reset()
 	m_State = State::IDLE;
 
 	m_CtrlCurvature = 0;
-	m_CtrlSpeedNorm = 0;
+	m_CtrlSpeed_mps = 0;
 	m_CtrlBrake = true; // For safety
 }
 
@@ -241,10 +241,10 @@ void PathFollower::UpdateSpeedSolution(const Pose& pose, const Vector2& dir)
 		distToEnd = 0;
 
 	if (distToEnd > m_Config.m_BrakeDist)
-		m_CtrlSpeedNorm = speedSign; // Full speed
+		m_CtrlSpeed_mps = speedSign * m_Config.m_Speed_mps; // Full speed
 	else
 	{
 		// Linearly reduce speed as we approach the end point
-		m_CtrlSpeedNorm = speedSign * (distToEnd / m_Config.m_BrakeDist);
+		m_CtrlSpeed_mps = speedSign * m_Config.m_Speed_mps * (distToEnd / m_Config.m_BrakeDist);
 	}
 }

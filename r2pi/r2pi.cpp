@@ -95,6 +95,7 @@ int main(int argc, char** argv)
 	initDone = initDone && ConfigUtils::ReadLocalizerConfig(mainConfig, localizerConfig);
 	initDone = initDone && ConfigUtils::ReadChassisStatsConfig(mainConfig, chassisStatsConfig);
 	initDone = initDone && ConfigUtils::ReadPathFindingConfig(mainConfig, pathFindingConfig);
+	initDone = initDone && ConfigUtils::ReadPathFollowerConfig(mainConfig, pathFollowerConfig);
 
 	if (!initDone)
 	{
@@ -142,7 +143,7 @@ int main(int argc, char** argv)
 	ctrlPanelServer.Start();
 
 	// Control inputs
-	ControlInputsSocket inputsSocket(chassis, chassisControlSettings, robotCore);
+	ControlInputsSocket inputsSocket(chassis, chassisModel, chassisControlSettings, robotCore);
 	inputsSocket.Start();
 
 	// Finish message loop init

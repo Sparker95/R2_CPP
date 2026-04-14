@@ -22,8 +22,8 @@ public:
 	// Control values to the outside
 	struct OutChassisControls
 	{
-		float m_Steer = 0; // Positive - turn right
-		float m_MotorSpeedNorm = 0;
+		float m_Steer = 0; // Positive - turn right.
+		float m_MotorSpeed_Hz = 0;
 		bool m_Brake = false;
 	};
 

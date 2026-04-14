@@ -10,6 +10,7 @@ struct PathFollowerConfig
 	float m_CompletionRadius = 0.06f;
 	float m_LookaheadDistance = 0.4f; // !!! Must be smaller than 2*TurnRadius
 	float m_BrakeDist = 0.2f;
+	float m_Speed_mps = 0.1f;
 };
 
 class PathFollower
@@ -48,10 +49,10 @@ public:
 	void Reset();
 
 	// Getters
-	void GetOutputControls(float& outCurvature, float& outSpeedNorm, bool& outBrake) const
+	void GetOutputControls(float& outCurvature, float& outSpeed_mps, bool& outBrake) const
 	{
 		outCurvature = m_CtrlCurvature;
-		outSpeedNorm = m_CtrlSpeedNorm;
+		outSpeed_mps = m_CtrlSpeed_mps;
 		outBrake = m_CtrlBrake;
 	}
 
@@ -74,7 +75,7 @@ private:
 
 	// Outputs for car control
 	float m_CtrlCurvature = 0;
-	float m_CtrlSpeedNorm = 0;
+	float m_CtrlSpeed_mps = 0;
 	bool m_CtrlBrake = false;
 
 	void UpdateCurrentPathPoint(const Pose& pose, const Vector2& dir);

@@ -48,9 +48,9 @@ bool PlatformConfigUtils::ReadChassisControlSettingsConfig(const Config& cfg, Ch
 
 	bool cfgSuccess =
 		cfg.Get("SteerOutputMax", s.m_SteerOutputMax) &&
-		cfg.Get("SpeedSlow_Hz", s.m_SpeedSlow_Hz) &&
-		cfg.Get("SpeedCruise_Hz", s.m_SpeedCruise_Hz) &&
-		cfg.Get("SpeedFast_Hz", s.m_SpeedFast_Hz);
+		cfg.Get("SpeedSlow_m/s", s.m_SpeedSlow_mps) &&
+		cfg.Get("SpeedCruise_m/s", s.m_SpeedCruise_mps) &&
+		cfg.Get("SpeedFast_m/s", s.m_SpeedFast_mps);
 
 	if (!cfgSuccess)
 	{
