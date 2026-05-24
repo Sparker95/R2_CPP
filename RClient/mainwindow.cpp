@@ -40,7 +40,7 @@ MainWindow::MainWindow(QWidget *parent)
 	QObject::connect(ui->LocMode0Button, &QRadioButton::clicked, this, &MainWindow::SlotOnLocalizerModeButton); // Both radio buttons connected to same slot
 	QObject::connect(ui->LocMode1Button, &QRadioButton::clicked, this, &MainWindow::SlotOnLocalizerModeButton);
 	QObject::connect(ui->SaveMapButton, &QPushButton::clicked, this, &MainWindow::SlotOnSaveMapButton);
-	QObject::connect(ui->PlanPathButton, &QPushButton::clicked, this, &MainWindow::SlotOnPlanPathButton);
+	QObject::connect(ui->MoveButton, &QPushButton::clicked, this, &MainWindow::SlotOnMoveButton);
 	QObject::connect(ui->EnableAutoControlsButton, &QPushButton::clicked, this, &MainWindow::SlotOnEnableAutoControlsButton);
 
 	// Socket signals

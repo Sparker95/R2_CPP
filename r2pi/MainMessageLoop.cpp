@@ -15,6 +15,7 @@
 #include "../Common/Localizer.h"
 #include "../Common/PathPlanner.h"
 #include "../Common/PathFollower.h"
+#include "../Common/PathCoordinator.h"
 
 #include <stdio.h>
 #include <cmath>
@@ -35,6 +36,12 @@ MainMessageLoop::MainMessageLoop(SensorInterface& sensorInterface, ChassisInterf
 		[this](const std::vector<Sensor::ScanSample>& scanSamples, const std::vector<Sensor::ScanSampleInt>& scanSamplesInt,
 			SensorInterface::TTimestamp timeEnd, float scanPeriod_s)
 		{ OnReceivedScan_mt(scanSamples, scanSamplesInt, timeEnd, scanPeriod_s); } );
+
+	m_pRobotCore->GetPathCoordinator()->BindOnPathPlanned(
+		[this](const std::vector<PathFollower::PathPoint>& path) {
+			this->OnPathPlanned(path);
+		}
+	);
 
 	m_TimeStart = std::chrono::high_resolution_clock::now();
 }
@@ -319,22 +326,12 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 				m_pCtrlPanelServer->SendPath_mt(pathPoints);
 				break;
 			}
-			case TCtrlPanelMsgType::MSG_PLAN_PATH:
+			case TCtrlPanelMsgType::MSG_MOVE:
 			{
-				using THeader = ControlPanelProtocol::PlanPathHeader;
+				using THeader = ControlPanelProtocol::MoveHeader;
 				THeader* header = reinterpret_cast<THeader*>(pMsg->m_Payload);
 
-				PathPlanner* pPathPlanner = m_pRobotCore->GetPathPlanner();
-				Localizer* pLocalizer = m_pRobotCore->GetLocalizer();
-
-				const Localizer::Particle& locParticle = pLocalizer->GetMostLikelyParticle();
-
-				pPathPlanner->PlanPath(locParticle.m_Map, locParticle.m_Pose, { header->m_X, header->m_Y }, header->m_Radius);
-
-				if (pPathPlanner->PathValid())
-				{
-					m_pRobotCore->GetPathFollower()->FollowPath(pPathPlanner->GetPath());
-				}
+				m_pRobotCore->GetPathCoordinator()->MoveTo({ header->m_X, header->m_Y }, header->m_Radius);
 
 				break;
 			}
@@ -367,4 +364,17 @@ void MainMessageLoop::OnReceivedScan_mt(const std::vector<Sensor::ScanSample>& s
 	pMsg->m_ScanPeriod_s = scanPeriod_s;
 
 	PostMessage(std::unique_ptr<MessageBase>(pMsg));
+}
+
+void MainMessageLoop::OnPathPlanned(const std::vector<PathFollower::PathPoint>& path)
+{
+	PathPlanner* pPathPlanner = m_pRobotCore->GetPathPlanner();
+	std::vector<Vector2> pathPoints;
+	for (const auto& p : pPathPlanner->GetPath())
+	{
+		if (p.m_Type != PathFollower::PathPoint::Type::EXTENSION)
+			pathPoints.push_back(p.m_Pos);
+	}
+
+	m_pCtrlPanelServer->SendPath_mt(pathPoints);
 }

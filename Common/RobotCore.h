@@ -11,6 +11,7 @@ class Localizer;
 class CrashDetector;
 class PathPlanner;
 class PathFollower;
+class PathCoordinator;
 namespace Chassis
 {
 	class ChassisModel;
@@ -33,6 +34,7 @@ private:
 	CrashDetector* m_pCrashDetector;
 	PathPlanner* m_pPathPlanner;
 	PathFollower* m_pPathFollower;
+	PathCoordinator* m_pPathCoordinator;
 
 	ControlSensorFrame m_PrevFrame;
 	bool m_PrevFrameValid = false;
@@ -46,7 +48,7 @@ private:
 	
 public:
 	RobotCore(const Chassis::ChassisModel& chassisModel, Localizer& localizer, CrashDetector& crashDetector,
-		PathPlanner& pathPlanner, PathFollower& pathFollower);
+		PathPlanner& pathPlanner, PathFollower& pathFollower, PathCoordinator& pathCoordinator);
 
 	void Update(const ControlSensorFrame& frame);
 
@@ -69,6 +71,7 @@ public:
 	Localizer* GetLocalizer() { return m_pLocalizer; }
 	PathPlanner* GetPathPlanner() { return m_pPathPlanner; }
 	PathFollower* GetPathFollower() { return m_pPathFollower; }
+	PathCoordinator* GetPathCoordinator() { return m_pPathCoordinator; }
 
 	bool GetBrakeOverride_mt() const;
 };

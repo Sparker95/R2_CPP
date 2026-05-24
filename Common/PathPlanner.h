@@ -11,6 +11,8 @@ struct PathFollowerConfig;
 // Plans path and stores the result in itself.
 class PathPlanner
 {
+	using uint = unsigned int;
+
 private:
 	PathFinding::Config m_PFConfig;
 	PathFollowerConfig m_FollowerConfig;
@@ -21,6 +23,10 @@ public:
 
 	void PlanPath(const Map& map, const Pose& startPose, Vector2 destPos, float destRadius);
 	void ResetPath();
+
+	// Checks that path points are not obstructed, starting from currentPathPointId. Returns true if path is clear.
+	bool CheckPathObstruction(const Map& map, const std::vector<PathFollower::PathPoint>& path, uint currentPathPointId,
+		uint* pOutObstrPointId);
 
 	bool PathValid() const { return !m_Path.empty(); }
 	const std::vector<PathFollower::PathPoint>& GetPath() const { return m_Path; }

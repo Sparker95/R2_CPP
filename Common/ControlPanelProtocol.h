@@ -42,7 +42,9 @@ namespace ControlPanelProtocol
 		MSG_RESET_LOCALIZER,           // Resets localizer state
 		MSG_REQUEST_OPTIONS,           // Requests current options to be sent back
 		MSG_REQUEST_PATH,              // Requests (previously built) path
-		MSG_PLAN_PATH,                 // Requests computation of path
+
+		// Commands
+		MSG_MOVE,                      // Requests movement to position
 
 		//---------------------------------------------------
 		// Server to Client
@@ -223,8 +225,8 @@ namespace ControlPanelProtocol
 		uint8_t m_LocalizerMode = 0; // Localizer::Mode
 	};
 
-	// MSG_PLAN_PATH
-	struct PlanPathHeader
+	// MSG_MOVE
+	struct MoveHeader
 	{
 		float m_X;
 		float m_Y;

@@ -19,5 +19,7 @@ struct ControlSensorFrame // Control And Sensor Frame
 	Chassis::MoveState m_MoveState;
 	float m_Steer;
 	std::vector<Sensor::ScanSample> m_ScanSamples;
+
+	bool IsMoving() const { return m_MoveState != Chassis::MoveState::STOP; }
 };
 

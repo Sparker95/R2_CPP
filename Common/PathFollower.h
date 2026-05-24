@@ -22,15 +22,34 @@ public:
 	{
 		enum class Type : unsigned char
 		{
-			MAIN = 0, // Normal path points
-			END,      // End of a section or whole path
-			EXTENSION // Extensions beyond end point, to aid steering
+			MAIN = 0,    // Point from pathfinding result
+			MAIN_END,    // Main point, also end of a section or whole path
+			MAIN_SMOOTH, // Smoothed points between MAIN(_END) points
+			EXTENSION    // Extensions beyond end point, to aid steering
 		};
 
 		Vector2 m_Pos = {};
+		Vector2 m_Dir = {}; // !!! Only set for MAIN and MAIN_END points, not needed for others.
 		float m_DistFromStart;
 		Type m_Type = Type::MAIN;
 		bool m_OutMoveFwd = false; // True - move forward from this to next node
+
+		/*
+		Point types:
+		  Name       | Can be end of section?
+		- Original     Yes
+		- Smooth       No
+		- Extension    No
+
+		Flags
+		- End of section
+
+		Point types:
+		- MAIN
+		- MAIN_END
+		- SMOOTH
+		- EXTENSION
+		*/
 	};
 
 	enum class State : unsigned char
@@ -56,12 +75,12 @@ public:
 		outBrake = m_CtrlBrake;
 	}
 
-	State GetState() const                       { return m_State; }
-	bool GetStateRunning() const                 { return m_State == State::RUNNING; }
-	const Vector2& GetLookaheadPos() const       { return m_LookaheadPos; }
-	const std::vector<PathPoint> GetPath() const { return m_Path; }
-	uint GetCurrentPointId() const               { return m_CurrentPointId; }
-	uint GetCurrentEndPointId() const            { return m_CurrentEndPointId; }
+	State GetState() const                        { return m_State; }
+	bool GetStateRunning() const                  { return m_State == State::RUNNING; }
+	const Vector2& GetLookaheadPos() const        { return m_LookaheadPos; }
+	const std::vector<PathPoint>& GetPath() const { return m_Path; }
+	uint GetCurrentPointId() const                { return m_CurrentPointId; }
+	uint GetCurrentEndPointId() const             { return m_CurrentEndPointId; }
 
 private:
 	std::vector<PathPoint> m_Path;

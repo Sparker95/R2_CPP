@@ -141,7 +141,7 @@ void MainWindow::SlotOnSaveMapButton()
 	}
 }
 
-void MainWindow::SlotOnPlanPathButton()
+void MainWindow::SlotOnMoveButton()
 {
 	if (!IsConnected())
 		return;
@@ -152,15 +152,16 @@ void MainWindow::SlotOnPlanPathButton()
 	if (!m_pMapWidget->GetCursorMarkerPos(mapCursorPos_m))
 		return;
 
-	ControlPanelProtocol::PlanPathHeader header;
+	ControlPanelProtocol::MoveHeader header;
 	header.m_X = (float)mapCursorPos_m.x();
 	header.m_Y = (float)mapCursorPos_m.y();
 	header.m_Radius = 0.3f;
 
-	SendMessage(ControlPanelProtocol::MessageType::MSG_PLAN_PATH, sizeof(header), (const char*)&header);
+	SendMessage(ControlPanelProtocol::MessageType::MSG_MOVE, sizeof(header), (const char*)&header);
 
 	// Request path as well
-	SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_PATH, 0, nullptr);
+	// Not needed any more, it will send new path back itself
+	//SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_PATH, 0, nullptr);
 }
 
 void MainWindow::SlotOnLocalizerModeButton()

@@ -145,6 +145,7 @@
     <ClCompile Include="..\Common\Map.cpp" />
     <ClCompile Include="..\Common\MapUtils.cpp" />
     <ClCompile Include="..\Common\MathUtils.cpp" />
+    <ClCompile Include="..\Common\PathCoordinator.cpp" />
     <ClCompile Include="..\Common\PathFinding.cpp" />
     <ClCompile Include="..\Common\PathFollower.cpp" />
     <ClCompile Include="..\Common\PathPlanner.cpp" />
@@ -173,6 +174,7 @@
     <ClInclude Include="..\Common\Localizer.h" />
     <ClInclude Include="..\Common\Map.h" />
     <ClInclude Include="..\Common\MapUtils.h" />
+    <ClInclude Include="..\Common\PathCoordinator.h" />
     <ClInclude Include="..\Common\PathFinding.h" />
     <ClInclude Include="..\Common\PathFollower.h" />
     <ClInclude Include="..\Common\PathPlanner.h" />

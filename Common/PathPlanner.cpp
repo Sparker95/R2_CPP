@@ -1,5 +1,6 @@
 #include "PathPlanner.h"
 #include "PathFollower.h"
+#include "TracyPlug.h"
 
 #include <cstdio>
 
@@ -13,6 +14,8 @@ PathPlanner::PathPlanner(const PathFinding::Config& pfConfig, const PathFollower
 
 void PathPlanner::PlanPath(const Map& map, const Pose& startPose, Vector2 destPos, float destRadius)
 {
+	ZoneScopedN("PathPlanner::CheckPathObstruction");
+
 	// Reset the stored path either way
 	ResetPath();
 
@@ -53,7 +56,7 @@ void PathPlanner::PlanPath(const Map& map, const Pose& startPose, Vector2 destPo
 		{
 			// Last added point must be marked as end point
 			if (!m_Path.empty())
-				m_Path.rbegin()->m_Type = PathFollower::PathPoint::Type::END;
+				m_Path.rbegin()->m_Type = PathFollower::PathPoint::Type::MAIN_END;
 
 			const Vector2& nodeDirVector = m_PFConfig.m_DirVectors[node.m_Pose.dir];
 			float extensionDirSign = nodeFwd ? 1.0f : -1.0f;
@@ -84,7 +87,21 @@ void PathPlanner::PlanPath(const Map& map, const Pose& startPose, Vector2 destPo
 			PathFollower::PathPoint fpp;
 			fpp.m_Pos = smoothPoint;
 			fpp.m_OutMoveFwd = nextNodeFwd; // ! We use fwd value TO next node
-			fpp.m_Type = PathFollower::PathPoint::Type::MAIN;
+
+			// 'Patch' the first and last inserted PathPoint: set type, copy direction
+			if (smoothPtId == 0)
+			{
+				fpp.m_Type = PathFollower::PathPoint::Type::MAIN;
+				fpp.m_Dir = m_PFConfig.GetDirVector(node.m_Pose.dir);
+			}
+			else if (smoothPtId == (uint)tempSmoothPoints.size() - 1)
+			{
+				fpp.m_Type = PathFollower::PathPoint::Type::MAIN;
+				fpp.m_Dir = m_PFConfig.GetDirVector(nextNode.m_Pose.dir);
+			}
+			else
+				fpp.m_Type = PathFollower::PathPoint::Type::MAIN_SMOOTH;
+
 			m_Path.push_back(fpp);
 		}
 	}
@@ -95,7 +112,7 @@ void PathPlanner::PlanPath(const Map& map, const Pose& startPose, Vector2 destPo
 		bool lastNodeFwd = PathFinding::IsTransitionForward(lastNode.m_InTransId);
 
 		if (!m_Path.empty())
-			m_Path.rbegin()->m_Type = PathFollower::PathPoint::Type::END;
+			m_Path.rbegin()->m_Type = PathFollower::PathPoint::Type::MAIN_END;
 
 		const Vector2& nodeDirVector = m_PFConfig.m_DirVectors[lastNode.m_Pose.dir];
 		float extensionDirSign = lastNodeFwd ? 1.0f : -1.0f;
@@ -116,6 +133,30 @@ void PathPlanner::PlanPath(const Map& map, const Pose& startPose, Vector2 destPo
 		auto& thisPt = m_Path[i];
 		thisPt.m_DistFromStart = prevPt.m_DistFromStart + Vector2::Distance(prevPt.m_Pos, thisPt.m_Pos);
 	}
+}
+
+bool PathPlanner::CheckPathObstruction(const Map& map, const std::vector<PathFollower::PathPoint>& path, uint currentPathPointId, uint* pOutObstrPointId)
+{
+	ZoneScopedN("PathPlanner::CheckPathObstruction");
+
+	for (uint pointId = currentPathPointId; pointId < (uint)path.size(); pointId++)
+	{
+		const PathFollower::PathPoint& point = path[pointId];
+		using TPathPointType = PathFollower::PathPoint::Type;
+
+		// Obstruction can only be checked at MAIN and MAIN_END points,
+		// because path obstruction was checked only at those points.
+		if (point.m_Dir != Vector2::ZERO && (point.m_Type == TPathPointType::MAIN || point.m_Type == TPathPointType::MAIN_END))
+		{
+			if (!PathFinding::CheckObstruction(m_PFConfig, point.m_Pos, point.m_Dir, map))
+			{
+				if (pOutObstrPointId)
+					*pOutObstrPointId = pointId;
+				return false;
+			}
+		}
+	}
+	return true;
 }
 
 void PathPlanner::ResetPath()

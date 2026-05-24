@@ -8,7 +8,7 @@ struct Vector2Base
 	T x = 0;
 	T y = 0;
 
-	Vector2Base(T x, T y)
+	constexpr Vector2Base(T x, T y)
 		: x(x), y(y)
 	{
 	}
@@ -24,6 +24,7 @@ struct Vector2Base
 	Vector2Base operator/(T r) const { return Vector2Base(x / r, y / r); }
 	Vector2Base& operator/=(T r) { x /= r; y /= r; return *this; }
 	bool operator==(const Vector2Base<T>& r) const { return x == r.x && y == r.y; }
+	bool operator!=(const Vector2Base<T>& r) const { return x != r.x || y != r.y; }
 
 	static T Distance(Vector2Base<T> v0, Vector2Base<T> v1);
 	static T DistanceSq(Vector2Base<T> v0, Vector2Base<T> v1);
@@ -33,6 +34,11 @@ struct Vector2Base
 	{
 		return std::sqrt(x * x + y * y);
 	}
+
+	static const Vector2Base ZERO;
 };
+
+template <class T>
+const Vector2Base<T> Vector2Base<T>::ZERO(0, 0);
 
 using Vector2 = Vector2Base<float>;

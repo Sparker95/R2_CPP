@@ -16,6 +16,7 @@
 #include "../Common/PathFinding.h"
 #include "../Common/PathPlanner.h"
 #include "../Common/PathFollower.h"
+#include "../Common/PathCoordinator.h"
 
 #include "PlatformConfigUtils.h"
 
@@ -121,8 +122,11 @@ int main(int argc, char** argv)
 	// Path planner
 	PathPlanner pathPlanner(pathFindingConfig, pathFollowerConfig);
 
+	// Path coordinator
+	PathCoordinator pathCoordinator(localizer, pathPlanner, pathFollower);
+
 	// Core
-	RobotCore robotCore(chassisModel, localizer, crashDetector, pathPlanner, pathFollower);
+	RobotCore robotCore(chassisModel, localizer, crashDetector, pathPlanner, pathFollower, pathCoordinator);
 
 	// Sensor interface
 	SensorInterface sensor(sensorIfSettings);

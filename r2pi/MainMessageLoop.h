@@ -2,6 +2,7 @@
 
 #include "../Common/Pose.h"
 #include "../Common/Sensor.h"
+#include "../Common/PathPlanner.h"
 #include "../Common/ControlPanelProtocol.h"
 #include "../Common/ControlSensorFrame.h"
 
@@ -96,4 +97,7 @@ private:
 	void OnReceivedScan_mt(const std::vector<Sensor::ScanSample>& scanSamples,
 		const std::vector<Sensor::ScanSampleInt>& scanSamplesInt,
 		SensorInterface::TTimestamp timeEnd, float scanPeriod_s);
+
+	// Called from PathCoordinator, this thread
+	void OnPathPlanned(const std::vector<PathFollower::PathPoint>& path);
 };

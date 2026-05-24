@@ -422,7 +422,7 @@
      </property>
     </widget>
    </widget>
-   <widget class="QPushButton" name="PlanPathButton">
+   <widget class="QPushButton" name="MoveButton">
     <property name="geometry">
      <rect>
       <x>1210</x>
@@ -432,7 +432,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Plan Path</string>
+     <string>Move</string>
     </property>
    </widget>
    <widget class="QGroupBox" name="LocalizerModeGroup">

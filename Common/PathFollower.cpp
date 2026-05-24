@@ -20,7 +20,7 @@ void PathFollower::FollowPath(const std::vector<PathPoint>& path)
 	uint nExtPoints = 0;
 	for (const auto& p : path)
 	{
-		if (p.m_Type == PathPoint::Type::END)
+		if (p.m_Type == PathPoint::Type::MAIN_END)
 			nEndPoints++;
 		else if (p.m_Type == PathPoint::Type::EXTENSION)
 			nExtPoints++;
@@ -42,7 +42,7 @@ void PathFollower::FollowPath(const std::vector<PathPoint>& path)
 	m_CurrentEndPointId = -1;
 	for (uint i = 0; i < (uint)m_Path.size(); i++)
 	{
-		if (m_Path[i].m_Type == PathPoint::Type::END)
+		if (m_Path[i].m_Type == PathPoint::Type::MAIN_END)
 		{
 			m_CurrentEndPointId = i;
 			break;
@@ -143,7 +143,7 @@ void PathFollower::UpdateCurrentPathPoint(const Pose& pose, const Vector2& dir)
 		uint newEndPtId = -1;
 		for (uint i = newCurrentPtId; i < (uint)m_Path.size(); i++)
 		{
-			if (m_Path[i].m_Type == PathPoint::Type::END)
+			if (m_Path[i].m_Type == PathPoint::Type::MAIN_END)
 			{
 				newEndPtId = i;
 				break;

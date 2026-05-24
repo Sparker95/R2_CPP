@@ -59,6 +59,8 @@ namespace PathFinding
 
 		// Calculates and fills remaining values
 		void Init();
+
+		const Vector2& GetDirVector(uint dir_id) { return m_DirVectors[dir_id]; }
 	};
 
 	struct Node
@@ -111,6 +113,9 @@ namespace PathFinding
 
 	// Can be used for calculation of start node pose
 	Node::Pose CalculateNodePose(const Config& config, float x, float y, float dir_rad);
+
+	// Checks if vehicle fits at position, returns true if fits
+	bool CheckObstruction(const Config& config, const Vector2& pos, const Vector2& dir, const Map& map);
 
 	// The main path finding function
 	void FindPath(const Config& config, const Map& map, const Node::Pose& startPose, const Vector2& destPos, float destRadius, PathFindingResult& outResult);

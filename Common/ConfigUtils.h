@@ -9,7 +9,7 @@ Contains functions for reading config files of many classes.
 
 namespace Chassis { struct ChassisStatsConfig; }
 namespace PathFinding { struct Config; }
-class PathFollowerConfig;
+struct PathFollowerConfig;
 
 class Config;
 

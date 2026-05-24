@@ -62,6 +62,7 @@ void TestWriteMap(const char* pFilePath)
 void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapFilePath, const char* pOutLocHistoryPath,
 	const Localizer::Config& localizerConfig, const Chassis::ChassisStatsConfig& chassisStatsConfig)
 {
+	/*
 	Chassis::ChassisConfig chassisConfig;
 	Chassis::ChassisModel chassisModel(chassisConfig, chassisStatsConfig);
 
@@ -105,6 +106,7 @@ void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapF
 
 	// Write particles history
 	LocalizerUtils::WriteLocalizerHistoryToFile(localizer, pOutLocHistoryPath, 32);
+	*/
 }
 
 void TestPathFinding()
@@ -137,7 +139,7 @@ void TestPathFinding()
 
 	// Test path finding
 	PathFinding::Config pfConfig;
-	const char* configPath = "D:\\Projects\\Robot2\\CPP\\Config\\PathFinding.cfg";
+	const char* configPath = "D:\\Projects\\Robot2\\CPP\\Config\\MainConfig.cfg";
 	//const char* configPath = "/home/pi/projects/r2pi/PathFinding.cfg"; // Linux
 	if (!ConfigUtils::ReadPathFindingConfig(Config(configPath), pfConfig))
 	{
@@ -164,7 +166,7 @@ void TestPathFinding()
 		pathPositions.push_back(p.m_Pos);
 		if (p.m_Type == PathFollower::PathPoint::Type::EXTENSION)
 			extPositions.push_back(p.m_Pos);
-		else if (p.m_Type == PathFollower::PathPoint::Type::END)
+		else if (p.m_Type == PathFollower::PathPoint::Type::MAIN_END)
 			endPositions.push_back(p.m_Pos);
 	}
 
@@ -172,6 +174,11 @@ void TestPathFinding()
 
 	printf("Path finding has ended!\n");
 
+	// Check path obstruciton
+	bool checkObstructionResult = pathPlanner.CheckPathObstruction(map, pathPlanner.GetPath(), 0);
+
+	printf("CheckPathObstruction result: %i\n", (int)checkObstructionResult);
+	printf("\n");
 
 	// Test pose calculations
 	/*
@@ -211,9 +218,9 @@ int main(int argc, char* argv[])
 	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
 	// WIP path finding tests
-	//TestPathFinding();
+	TestPathFinding();
 	//TestChassisCurvatureCalculation();
-	TestConfigSections();
+	//TestConfigSections();
 	return 0;
 	///////////////////////////
 

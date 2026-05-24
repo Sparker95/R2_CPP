@@ -6,16 +6,18 @@
 #include "Localizer.h"
 #include "CrashDetector.h"
 #include "PathFollower.h"
+#include "PathCoordinator.h"
 
 #include <cstdio>
 
 RobotCore::RobotCore(const Chassis::ChassisModel& chassisModel, Localizer& localizer, CrashDetector& crashDetector,
-	PathPlanner& pathPlanner, PathFollower& pathFollower)
+	PathPlanner& pathPlanner, PathFollower& pathFollower, PathCoordinator& pathCoordinator)
 	: m_pChassisModel(&chassisModel),
 	m_pLocalizer(&localizer),
 	m_pCrashDetector(&crashDetector),
 	m_pPathPlanner(&pathPlanner),
-	m_pPathFollower(&pathFollower)
+	m_pPathFollower(&pathFollower),
+	m_pPathCoordinator(&pathCoordinator)
 {
 }
 
@@ -46,6 +48,9 @@ void RobotCore::Update(const ControlSensorFrame& frame)
 		m_pLocalizer->Update(inputs, frame.m_ScanSamples, localizerMode);
 	}
 
+	// PathCoordinator before Follower
+	m_pPathCoordinator->Update(frame);
+
 	// Path follower and output controls values
 	const Pose& meanPose = m_pLocalizer->GetMeanPose();
 	if (m_pPathFollower->GetStateRunning())
@@ -61,7 +66,7 @@ void RobotCore::Update(const ControlSensorFrame& frame)
 		m_OutControls.m_Brake = false;
 		m_OutControls.m_MotorSpeed_Hz = m_pChassisModel->CalculateMotorFreqInput(ctrlSpeed_mps);
 
-		printf("RobotCore::Update: Output controls: steer: %.3f speed: %.2f Hz\n", m_OutControls.m_Steer, m_OutControls.m_MotorSpeed_Hz);
+		//printf("RobotCore::Update: Output controls: steer: %.3f speed: %.2f Hz\n", m_OutControls.m_Steer, m_OutControls.m_MotorSpeed_Hz);
 	}
 	else
 	{
