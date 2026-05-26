@@ -151,7 +151,7 @@ Output: float control value for ESC -1.0f .. +1.0f
 class MotorController
 {
   private:
-  constexpr static uint8_t STOPPED_COUNTER_THRESHOLD = 5;
+  constexpr static uint8_t STOPPED_COUNTER_THRESHOLD = 2;
     
   enum Command : uint8_t
   {
@@ -387,10 +387,13 @@ void setup() {
   // Timer 3 - Encoder measurement
   // Normal mode
   TCNT3 = 0;
-  TCCR3A = 0;
-  TIFR3 &= 1 << TOV3; // Clears the interrupt flag
-  TCCR3B = 0 << CS32 | 1 << CS31 | 1 << CS30; // CLKIO / 64 prescaler
-  TIMSK3 = 1 << TOIE3; // Enable overflow interrupt
+  ICR3 = 32768; // In CTC mode this is the TOP value
+  //TIFR3 &= 1 << TOV3; // Clears the interrupt flag
+  TCCR3A = 0 << WGM31 | 0 << WGM30; // CTC mode
+  TCCR3B = 1 << WGM33 | 1 << WGM32 | // CTC mode
+     0 << CS32 | 1 << CS31 | 1 << CS30; // CLKIO / 64 prescaler
+  //TIMSK3 = 1 << TOIE3; // Enable overflow interrupt
+  TIMSK3 = 1 << ICIE3; // Enable Input Capture interrupt
   
   // UART
   // 115200 is probably not reliable, results in 5% clock error
@@ -802,7 +805,8 @@ bool ProcessSerialCommand(char* pCmd, uint8_t* argOffsets, uint8_t nArgs, bool& 
 }
 
 // Encoder overflow
-ISR(TIMER3_OVF_vect)
+//ISR(TIMER3_OVF_vect)
+ISR(TIMER3_CAPT_vect)
 {
   // Blink Green LED when overflow happens, it indicates stopped engine
   DDRC |= (1<<7);
