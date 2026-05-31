@@ -36,6 +36,7 @@ private:
     SensorDataFileWriter m_SensorFileWriter;
 	Map m_Map; // Map data
     int m_iControlInputsTimerId = 0;
+	bool m_WaitingMap = false;
 
     // Other UI elements
     QScatterSeries* m_pScatterSeries = nullptr;

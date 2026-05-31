@@ -175,7 +175,7 @@ void TestPathFinding()
 	printf("Path finding has ended!\n");
 
 	// Check path obstruciton
-	bool checkObstructionResult = pathPlanner.CheckPathObstruction(map, pathPlanner.GetPath(), 0);
+	bool checkObstructionResult = pathPlanner.CheckPathObstruction(map, pathPlanner.GetPath(), 0, nullptr);
 
 	printf("CheckPathObstruction result: %i\n", (int)checkObstructionResult);
 	printf("\n");
@@ -207,6 +207,21 @@ void TestChassisCurvatureCalculation()
 	printf("Calculated steering input. %.3f -> %.3f\n", curvature, steeringInput);
 }
 
+void TestProjectPoint()
+{
+	Vector2 l0(1, 1);
+	Vector2 l1(3, 3);
+	
+	Vector2 p0 = l0; // Should not cause NAN
+
+	float lineLen = -1;
+	float projDistFrom_l0 = -1;
+	Vector2 projPoint;
+	MathUtils::ProjectPointOnLine(p0, l0, l1, &lineLen, &projDistFrom_l0, &projPoint);
+
+	printf("TestProjectPoint finished\n");
+}
+
 int main(int argc, char* argv[])
 {
 #if TRACY_ENABLE
@@ -217,8 +232,10 @@ int main(int argc, char* argv[])
 
 	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
+	TestProjectPoint();
+
 	// WIP path finding tests
-	TestPathFinding();
+	//TestPathFinding();
 	//TestChassisCurvatureCalculation();
 	//TestConfigSections();
 	return 0;

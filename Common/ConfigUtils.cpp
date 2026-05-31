@@ -47,6 +47,7 @@ bool ConfigUtils::ReadLocalizerConfig(const Config& config, Localizer::Config& o
 	config.SetSection("Localizer");
 
 	float l2Occupied, l2Free;
+	float l2Occupied_RT, l2Free_RT; // For the Real Time map
 	bool allValuesFound = config.Get("SensorPdfWidth", tempConfig.m_SensorPdfWidth) &&
 		config.Get("SensorPdfFloor", tempConfig.m_SensorPdfFloor) &&
 		config.Get("SensorScanRange", tempConfig.m_SensorScanRange) &&
@@ -54,6 +55,8 @@ bool ConfigUtils::ReadLocalizerConfig(const Config& config, Localizer::Config& o
 		config.Get("NumParticles", tempConfig.m_nParticles) &&
 		config.Get("L2OccupiedCell", l2Occupied) &&
 		config.Get("L2FreeCell", l2Free) &&
+		config.Get("L2OccupiedCell_RT", l2Occupied_RT) &&
+		config.Get("L2FreeCell_RT", l2Free_RT) &&
 		config.Get("ScanDecimation", tempConfig.m_ScanDecimation);
 
 	if (!allValuesFound)
@@ -61,6 +64,8 @@ bool ConfigUtils::ReadLocalizerConfig(const Config& config, Localizer::Config& o
 
 	tempConfig.m_L2IntOccupiedCell = Utils::L2FloatToL2Int(l2Occupied);
 	tempConfig.m_L2IntFreeCell = Utils::L2FloatToL2Int(l2Free);
+	tempConfig.m_L2IntOccupiedCell_RT = Utils::L2FloatToL2Int(l2Occupied_RT);
+	tempConfig.m_L2IntFreeCell_RT = Utils::L2FloatToL2Int(l2Free_RT);
 
 	outConfig = tempConfig;
 
@@ -79,6 +84,8 @@ bool ConfigUtils::ReadPathFindingConfig(const Config& config, PathFinding::Confi
 		config.Get("CarWidth",          tempConfig.m_CarWidth) &&
 		config.Get("CarLengthFwd",      tempConfig.m_CarLengthFwd) &&
 		config.Get("CarLengthBwd",      tempConfig.m_CarLengthBwd) &&
+		config.Get("CarScaleNormal",    tempConfig.m_CarScaleNormal) &&
+		config.Get("CarScaleExtended",  tempConfig.m_CarScaleExtended) &&
 		config.Get("HeuristicMult",     tempConfig.m_HeuristicMult) &&
 		config.Get("OffStructureMult",  tempConfig.m_OffStructureMult) &&
 		config.Get("StructureMapWidth", tempConfig.m_StructureMapWidth) &&

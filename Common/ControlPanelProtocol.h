@@ -204,6 +204,15 @@ namespace ControlPanelProtocol
 		uint32_t m_nSamples;
 	};
 
+	// MSG_REQUEST_MAP
+	struct RequestMapHeader
+	{
+		constexpr static uint8_t MAP_TYPE_MOST_LIKELY = 0;
+		constexpr static uint8_t MAP_TYPE_REAL_TIME = 1;
+
+		uint8_t m_MapType = 0;
+	};
+
 	// MSG_MAP
 	struct MapDataHeader
 	{

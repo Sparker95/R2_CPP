@@ -209,14 +209,24 @@ void MainWindow::timerEvent(QTimerEvent *event)
 	const uint MAP_UPDATE_INTERVAL = 1 * 1000 / TIMER_INTERVAL_MS;
 	{
 		s_MapUpdateTimer++;
-		if (s_MapUpdateTimer > MAP_UPDATE_INTERVAL)
+		if (s_MapUpdateTimer > MAP_UPDATE_INTERVAL && !m_WaitingMap)
 		{
 			s_MapUpdateTimer = 0;
 
 			if (ui->AutoResfreshMapButton->isChecked() && IsConnected())
 			{
-				SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_MAP, 0, nullptr);
+				ControlPanelProtocol::RequestMapHeader rqMapHeader;
+
+				if (ui->MapType0Button->isChecked())
+					rqMapHeader.m_MapType = ControlPanelProtocol::RequestMapHeader::MAP_TYPE_MOST_LIKELY;
+				else
+					rqMapHeader.m_MapType = ControlPanelProtocol::RequestMapHeader::MAP_TYPE_REAL_TIME;
+
+				SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_MAP, sizeof(rqMapHeader), (const char*)&rqMapHeader);
 				SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_LOC, 0, nullptr);
+
+				// Bandwidth throttling, don't request too many maps if we didn't get previous one
+				m_WaitingMap = true;
 			}
 		}
 	}
@@ -329,6 +339,7 @@ void MainWindow::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigne
 			m_Map = std::move(m);
 			m_pMapWidget->SetMapData(&m_Map);
 
+			m_WaitingMap = false;
 			break;
 		}
 

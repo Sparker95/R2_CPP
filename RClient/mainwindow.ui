@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1820</width>
-    <height>980</height>
+    <width>1460</width>
+    <height>870</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -215,8 +215,8 @@
      <rect>
       <x>520</x>
       <y>10</y>
-      <width>680</width>
-      <height>680</height>
+      <width>800</width>
+      <height>800</height>
      </rect>
     </property>
     <property name="frameShape">
@@ -232,7 +232,7 @@
    <widget class="QPushButton" name="RequestMapButton">
     <property name="geometry">
      <rect>
-      <x>1210</x>
+      <x>1330</x>
       <y>10</y>
       <width>121</width>
       <height>31</height>
@@ -322,8 +322,8 @@
    <widget class="QPushButton" name="ResetLocalizerButton">
     <property name="geometry">
      <rect>
-      <x>1210</x>
-      <y>140</y>
+      <x>1330</x>
+      <y>130</y>
       <width>121</width>
       <height>31</height>
      </rect>
@@ -335,7 +335,7 @@
    <widget class="QPushButton" name="AutoResfreshMapButton">
     <property name="geometry">
      <rect>
-      <x>1210</x>
+      <x>1330</x>
       <y>50</y>
       <width>121</width>
       <height>31</height>
@@ -351,8 +351,8 @@
    <widget class="QPushButton" name="EnableLocalizerButton">
     <property name="geometry">
      <rect>
-      <x>1210</x>
-      <y>100</y>
+      <x>1330</x>
+      <y>90</y>
       <width>121</width>
       <height>31</height>
      </rect>
@@ -364,26 +364,23 @@
      <bool>true</bool>
     </property>
    </widget>
-   <widget class="QFrame" name="SaveMapFrame">
+   <widget class="QGroupBox" name="SaveMapGroupBox">
     <property name="geometry">
      <rect>
-      <x>1210</x>
-      <y>280</y>
+      <x>1330</x>
+      <y>340</y>
       <width>120</width>
       <height>121</height>
      </rect>
     </property>
-    <property name="frameShape">
-     <enum>QFrame::Shape::Box</enum>
-    </property>
-    <property name="frameShadow">
-     <enum>QFrame::Shadow::Sunken</enum>
+    <property name="title">
+     <string>Save Map</string>
     </property>
     <widget class="QLineEdit" name="SaveMapNameEdit">
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>10</y>
+       <y>20</y>
        <width>101</width>
        <height>22</height>
       </rect>
@@ -396,7 +393,7 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>40</y>
+       <y>50</y>
        <width>101</width>
        <height>31</height>
       </rect>
@@ -409,7 +406,7 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>80</y>
+       <y>90</y>
        <width>101</width>
        <height>31</height>
       </rect>
@@ -425,8 +422,8 @@
    <widget class="QPushButton" name="MoveButton">
     <property name="geometry">
      <rect>
-      <x>1210</x>
-      <y>430</y>
+      <x>1330</x>
+      <y>620</y>
       <width>121</width>
       <height>31</height>
      </rect>
@@ -438,10 +435,10 @@
    <widget class="QGroupBox" name="LocalizerModeGroup">
     <property name="geometry">
      <rect>
-      <x>1210</x>
+      <x>1330</x>
       <y>180</y>
       <width>121</width>
-      <height>91</height>
+      <height>71</height>
      </rect>
     </property>
     <property name="title">
@@ -477,8 +474,8 @@
    <widget class="QPushButton" name="EnableAutoControlsButton">
     <property name="geometry">
      <rect>
-      <x>1210</x>
-      <y>470</y>
+      <x>1330</x>
+      <y>660</y>
       <width>121</width>
       <height>31</height>
      </rect>
@@ -490,13 +487,55 @@
      <bool>true</bool>
     </property>
    </widget>
+   <widget class="QGroupBox" name="MapTypeGroup">
+    <property name="geometry">
+     <rect>
+      <x>1330</x>
+      <y>260</y>
+      <width>121</width>
+      <height>71</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>Request Map Type</string>
+    </property>
+    <widget class="QRadioButton" name="MapType0Button">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>20</y>
+       <width>111</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Most Probable</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="MapType1Button">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>40</y>
+       <width>111</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Real Time</string>
+     </property>
+    </widget>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1820</width>
+     <width>1460</width>
      <height>22</height>
     </rect>
    </property>

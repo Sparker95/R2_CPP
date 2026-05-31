@@ -127,9 +127,10 @@ bool PathCoordinator::PlanAndAssignPath()
 {
 	printf("PathCoordinator::PlanAndAssignPath()\n");
 
-	const Localizer::Particle& locParticle = m_pLocalizer->GetMostLikelyParticle();
+	const Map& map = m_pLocalizer->GetRealTimeMap();
+	const Pose& pose = m_pLocalizer->GetMeanPose();
 
-	m_pPathPlanner->PlanPath(locParticle.m_Map, locParticle.m_Pose, m_MoveToPos, m_MoveToPosRadius);
+	m_pPathPlanner->PlanPath(map, pose, m_MoveToPos, m_MoveToPosRadius);
 
 	if (m_pPathPlanner->PathValid())
 	{
@@ -158,13 +159,13 @@ bool PathCoordinator::PlanAndAssignPath()
 
 bool PathCoordinator::CheckPathObstruction()
 {
-	const Localizer::Particle& locParticle = m_pLocalizer->GetMostLikelyParticle();
+	const Map& map = m_pLocalizer->GetRealTimeMap();
 
 	const auto& path = m_pPathFollower->GetPath();
 	uint currentPathPointId = m_pPathFollower->GetCurrentPointId();
 	uint obstrPathPointId = -1;
 	
-	bool result = m_pPathPlanner->CheckPathObstruction(locParticle.m_Map, path, currentPathPointId, &obstrPathPointId);
+	bool result = m_pPathPlanner->CheckPathObstruction(map, path, currentPathPointId, &obstrPathPointId);
 
 	if (!result)
 		printf("PathCoordinator: Path is obstructed, point %u / %u.\n", obstrPathPointId, (uint)path.size());

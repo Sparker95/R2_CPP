@@ -227,24 +227,11 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 			case TCtrlPanelMsgType::MSG_REQUEST_MAP:
 			{
 				// Send back a map
+				using THeader = ControlPanelProtocol::RequestMapHeader;
+				THeader* header = reinterpret_cast<THeader*>(pMsg->m_Payload);
 
 				/*
-				// Fills random map
-				uint xSize = 256; uint ySize = 256;
-				Map m(xSize, ySize, 128, 128, 0.0625);
-				for (uint y = 0; y < ySize; y++)
-				{
-					for (uint x = 0; x < xSize; x++)
-					{
-						m.SetDataAtPos(Map::TCellPos(x, y), static_cast<Map::TCellData>((8 * (x + y + m_SensorScanCounter)) & 0xFF));
-					}
-				}
-				*/
-
-				// Send common map or most likely map, depends on mode
-
 				auto locMode = m_pRobotCore->GetLocalizerMode_mt();
-
 				if (locMode == Localizer::Mode::LOC_AND_MAP)
 				{
 					const Map& mostLikelyMap = m_pRobotCore->GetLocalizer()->GetMostLikelyParticle().m_Map;
@@ -254,6 +241,18 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 				{
 					const Map& commonMap = m_pRobotCore->GetLocalizer()->GetLocalizationCommonMap();
 					m_pCtrlPanelServer->SendMap_mt(commonMap);
+				}
+				*/
+
+				if (header->m_MapType == THeader::MAP_TYPE_MOST_LIKELY)
+				{
+					const Map& mostLikelyMap = m_pRobotCore->GetLocalizer()->GetMostLikelyParticle().m_Map;
+					m_pCtrlPanelServer->SendMap_mt(mostLikelyMap);
+				}
+				else if (header->m_MapType == THeader::MAP_TYPE_REAL_TIME)
+				{
+					const Map& realTimeMap = m_pRobotCore->GetLocalizer()->GetRealTimeMap();
+					m_pCtrlPanelServer->SendMap_mt(realTimeMap);
 				}
 
 				break;

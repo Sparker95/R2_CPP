@@ -87,6 +87,7 @@ void MainWindow::SlotOnRequestMapButton()
 	{
 		SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_MAP, 0, nullptr);
 		SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_LOC, 0, nullptr);
+		m_WaitingMap = true;
 	}
 }
 
@@ -101,6 +102,7 @@ void MainWindow::SlotOnResetLocalizerButton()
 		SendMessage(ControlPanelProtocol::MessageType::MSG_RESET_LOCALIZER, 0, nullptr);
 		SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_MAP, 0, nullptr);
 		SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_LOC, 0, nullptr);
+		m_WaitingMap = true;
 	}
 }
 

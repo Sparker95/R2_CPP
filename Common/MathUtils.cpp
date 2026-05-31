@@ -62,7 +62,11 @@ void MathUtils::ProjectPointOnLine(const Vector2& pt, const Vector2& l0, const V
 	float dp = Vector2::DotProduct(e1, e2);
 	float len_e1 = e1.Length();
 	float len_e2 = e2.Length();
-	float cos_angle = dp / (len_e1 * len_e2);
+
+	float cos_angle_denum = len_e1 * len_e2;
+	float cos_angle = dp == 0 && cos_angle_denum == 0 ?
+		1.0f : // Catching trivial case when pt == l0, otherwise results in nan
+		dp / (len_e1 * len_e2);
 
 	if (outLineLen)
 		*outLineLen = len_e1;
@@ -71,7 +75,7 @@ void MathUtils::ProjectPointOnLine(const Vector2& pt, const Vector2& l0, const V
 	if (outProjDistFrom_l0)
 		*outProjDistFrom_l0 = proj_dist_from_l0;
 
-	Vector2 projPoint = e1 * (proj_dist_from_l0 / len_e1);
+	Vector2 projPoint = l0 + e1 * (proj_dist_from_l0 / len_e1);
 	if (outProjPoint)
 		*outProjPoint = projPoint;
 }

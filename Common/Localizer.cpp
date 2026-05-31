@@ -11,7 +11,6 @@
 #include "Scan.h"
 #include "LineRasterizer.h"
 //#include "CarStatsModel.h"
-#include "Chassis.h"
 
 const unsigned int RNG_DEFAULT_SEED = 123;
 
@@ -81,24 +80,101 @@ void Localizer::Update(const Chassis::ChassisInputs& inputs, const std::vector<S
 {
 	ZoneScopedN("Localizer::Update");
 
-	uint nParticles = static_cast<uint>(m_Particles.size());
-
-	for (uint i = 0; i < nParticles; i++)
+	if (inputs.m_OdoDiff == 0 || inputs.m_MoveState == Chassis::MoveState::STOP)
 	{
-		ZoneScopedN("Localizer::UpdateParticle");
+		// No movement, almost everything remains same
+		for (auto& p : m_Particles)
+			p.m_InputsRnd = {};
+		// Same weights, same mean pose, same maps, ...
+	}
+	else
+	{
+		// Regular update loop, some movement happened
 
-		Particle& p = m_Particles[i];
+		uint nParticles = static_cast<uint>(m_Particles.size());
 
-		// Apply motion model to particle
-		Chassis::ChassisInputs inputs_rnd;
-		Pose randomPoseDiff_LS = m_pChassisModel->CalculateRandomPoseDiff_LS(inputs, inputs_rnd);
-		Pose poseRandomized = Utils::AddPoseDiff(p.m_Pose, randomPoseDiff_LS);
+		for (uint i = 0; i < nParticles; i++)
+		{
+			ZoneScopedN("Localizer::UpdateParticle");
+
+			Particle& p = m_Particles[i];
+
+			// Apply motion model to particle
+			Pose randomPoseDiff_LS = m_pChassisModel->CalculateRandomPoseDiff_LS(inputs, p.m_InputsRnd);
+
+			Pose poseRandomized = Utils::AddPoseDiff(p.m_Pose, randomPoseDiff_LS);
 #ifdef LOCALIZER_STORE_HISTORY
-		p.m_PoseHistory.push_back(p.m_Pose);
+			p.m_PoseHistory.push_back(p.m_Pose);
 #endif
-		p.m_Pose = poseRandomized;
+			p.m_Pose = poseRandomized;
 
-		// Common data reused in futher calls
+			// Common data reused in futher calls
+			uint nRealScanSamples = static_cast<uint>(realScanPolar.size());
+			const Chassis::ChassisConfig& chassisConfig = m_pChassisModel->GetChassisConfig();
+			Pose particleSensorPose = Utils::AddPoseDiff(p.m_Pose, Pose(chassisConfig.m_sensorOffsetFwd, chassisConfig.m_sensorOffsetSide, chassisConfig.m_sensorOffsetDir_rad));
+			m_ScanDirections.resize(realScanPolar.size());
+			for (uint sampleId = 0; sampleId < nRealScanSamples; sampleId++)
+			{
+				float sampleDir = particleSensorPose.dir + realScanPolar[sampleId].m_Angle_rad;
+				m_ScanDirections[sampleId].x = std::cos(sampleDir);
+				m_ScanDirections[sampleId].y = std::sin(sampleDir);
+			}
+
+			// Compensate scan motion
+			Scan::CompensateScanMotion(realScanPolar, *m_pChassisModel, p.m_InputsRnd, m_ScanPolarCompensated);
+
+			// Calculate weight. Which map to use depends on mode.
+			const Map& mapCalcWeight = mode == Mode::LOC_AND_MAP ? p.m_Map : m_LocalizationCommonMap;
+			float weight = CalculateParticleWeight(particleSensorPose, mapCalcWeight, m_ScanDirections, m_ScanPolarCompensated);
+			p.m_Weight = weight;
+
+			// Update map - depends on mode.
+			// Scan is applied at pose where Sensor is in World Space
+			if (mode == Mode::LOC_AND_MAP)
+				ApplyScan(particleSensorPose, p.m_Map, m_ScanDirections, m_ScanPolarCompensated,
+					m_Config.m_L2IntFreeCell, m_Config.m_L2IntOccupiedCell);
+		}
+
+		NormalizeWeights();
+
+		// Store history
+#ifdef LOCALIZER_STORE_HISTORY
+		StoreParticlesHistory(false);
+#endif
+
+		// Resample particles, use value of effective particles
+		float sumWeightSq = 0.0f;
+		for (uint i = 0; i < nParticles; i++)
+			sumWeightSq += m_Particles[i].m_Weight * m_Particles[i].m_Weight;
+
+		float nEff = 1 / sumWeightSq;
+
+		if (nEff < 0.5f * static_cast<float>(nParticles))
+		{
+			//std::printf("N effective particles: %.2f, resampling\n", nEff);
+			ResampleParticles();
+		}
+		else
+		{
+			//std::printf("N effective particles: %.2f, NO resampling\n", nEff);
+		}
+
+		// Store history
+#ifdef LOCALIZER_STORE_HISTORY
+		StoreParticlesHistory(true);
+#endif
+
+		UpdateMeanPose();
+	}
+
+	// Update of real time map
+	{
+		// Take most likely map, apply to it realScanPolar with different weights
+
+		const Particle& p = GetMostLikelyParticle();
+		m_RealTimeMap = p.m_Map;
+
+		// WIP this partically duplicates the main update algorithm
 		uint nRealScanSamples = static_cast<uint>(realScanPolar.size());
 		const Chassis::ChassisConfig& chassisConfig = m_pChassisModel->GetChassisConfig();
 		Pose particleSensorPose = Utils::AddPoseDiff(p.m_Pose, Pose(chassisConfig.m_sensorOffsetFwd, chassisConfig.m_sensorOffsetSide, chassisConfig.m_sensorOffsetDir_rad));
@@ -111,52 +187,12 @@ void Localizer::Update(const Chassis::ChassisInputs& inputs, const std::vector<S
 		}
 
 		// Compensate scan motion
-		Scan::CompensateScanMotion(realScanPolar, *m_pChassisModel, inputs, m_ScanPolarCompensated);
+		Scan::CompensateScanMotion(realScanPolar, *m_pChassisModel, p.m_InputsRnd, m_ScanPolarCompensated);
 
-		// WIP disabled compensation
-		//m_ScanPolarCompensated = realScanPolar;
-
-		// Calculate weight. Which map to use depends on mode.
-		const Map& mapCalcWeight = mode == Mode::LOC_AND_MAP ? p.m_Map : m_LocalizationCommonMap;
-		float weight = CalculateParticleWeight(particleSensorPose, mapCalcWeight, m_ScanDirections, m_ScanPolarCompensated);
-		p.m_Weight = weight;
-
-		// Update map - depends on mode.
-		// Scan is applied at pose where Sensor is in World Space
-		if (mode == Mode::LOC_AND_MAP)
-			ApplyScan(particleSensorPose, p.m_Map, m_ScanDirections, m_ScanPolarCompensated);
+		// Scan is applied to m_RealTimeMap!
+		ApplyScan(particleSensorPose, m_RealTimeMap, m_ScanDirections, m_ScanPolarCompensated,
+			m_Config.m_L2IntFreeCell_RT, m_Config.m_L2IntOccupiedCell_RT);
 	}
-
-	NormalizeWeights();
-
-	// Store history
-#ifdef LOCALIZER_STORE_HISTORY
-	StoreParticlesHistory(false);
-#endif
-
-	// Resample particles, use value of effective particles
-	float sumWeightSq = 0.0f;
-	for (uint i = 0; i < nParticles; i++)
-		sumWeightSq += m_Particles[i].m_Weight * m_Particles[i].m_Weight;
-
-	float nEff = 1 / sumWeightSq;
-
-	if (nEff < 0.5f * static_cast<float>(nParticles))
-	{
-		//std::printf("N effective particles: %.2f, resampling\n", nEff);
-		ResampleParticles();
-	}
-	else
-	{
-		//std::printf("N effective particles: %.2f, NO resampling\n", nEff);
-	}
-
-	// Store history
-#ifdef LOCALIZER_STORE_HISTORY
-	StoreParticlesHistory(true);
-#endif
-
-	UpdateMeanPose();
 }
 
 void Localizer::NormalizeWeights()
@@ -365,7 +401,7 @@ void Localizer::GetScan(const Pose& sensorPose, const Map& map, const std::vecto
 */
 
 
-void Localizer::ApplyScan(const Pose& sensorPose, Map& map, const std::vector<Vector2>& scanDirections, const std::vector<Sensor::ScanSample>& scanPolar)
+void Localizer::ApplyScan(const Pose& sensorPose, Map& map, const std::vector<Vector2>& scanDirections, const std::vector<Sensor::ScanSample>& scanPolar, int l2FreeCell, int l2OccupiedCell)
 {
 	ZoneScopedN("Localizer::ApplyScan");
 
@@ -412,7 +448,7 @@ void Localizer::ApplyScan(const Pose& sensorPose, Map& map, const std::vector<Ve
 			// Update cell as free space
 			// No need to check if mapCellPos is within map bounds, this was ensured outside
 			int cellData = static_cast<int>(map.GetDataAtPos(mapCellPos));
-			cellData -= m_Config.m_L2IntFreeCell;
+			cellData -= l2FreeCell;
 			if (cellData <= -128)
 				cellData = -128;
 			map.SetDataAtPos(mapCellPos, static_cast<Map::TCellData>(cellData));
@@ -427,7 +463,7 @@ void Localizer::ApplyScan(const Pose& sensorPose, Map& map, const std::vector<Ve
 
 		// Handle last cell
 		int cellData = static_cast<int>(map.GetDataAtPos(lastMapCellPos));
-		cellData += m_Config.m_L2IntOccupiedCell;
+		cellData += l2OccupiedCell;
 		if (cellData >= 127)
 			cellData = 127;
 

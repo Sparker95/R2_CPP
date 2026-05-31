@@ -27,7 +27,8 @@ void PathPlanner::PlanPath(const Map& map, const Pose& startPose, Vector2 destPo
 		destPos.x, destPos.y, destRadius);
 
 	PathFinding::PathFindingResult pfResult;
-	PathFinding::FindPath(m_PFConfig, map, startNodePose, destPos, destRadius, pfResult);
+	// extendedCarScale = true - in path finding we use extended, bigger car size, to get path further from everything.
+	PathFinding::FindPath(m_PFConfig, map, startNodePose, destPos, destRadius, pfResult, true);
 
 	if (pfResult.m_Nodes.empty())
 	{
@@ -148,7 +149,8 @@ bool PathPlanner::CheckPathObstruction(const Map& map, const std::vector<PathFol
 		// because path obstruction was checked only at those points.
 		if (point.m_Dir != Vector2::ZERO && (point.m_Type == TPathPointType::MAIN || point.m_Type == TPathPointType::MAIN_END))
 		{
-			if (!PathFinding::CheckObstruction(m_PFConfig, point.m_Pos, point.m_Dir, map))
+			// extendedCarScale = false - in path obstruction checks we use normal car size
+			if (!PathFinding::CheckObstruction(m_PFConfig, point.m_Pos, point.m_Dir, map, false))
 			{
 				if (pOutObstrPointId)
 					*pOutObstrPointId = pointId;

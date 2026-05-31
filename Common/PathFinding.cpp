@@ -275,7 +275,7 @@ float DistanceMapValueToWorld(Map::TCellData distMapValue, float mapRes_w)
 	return static_cast<float>(static_cast<uint>(distMapValue)) / 3.0f * mapRes_w;
 }
 
-bool PathFinding::CheckObstruction(const Config& config, const Vector2& pos, const Vector2& dir, const Map& map)
+bool PathFinding::CheckObstruction(const Config& config, const Vector2& pos, const Vector2& dir, const Map& map, bool extendedCarScale)
 {
 	float mapRes_w = map.GetResolution_w();
 	Vector2 pos_u(pos.x / mapRes_w, pos.y / mapRes_w); // In unscaled coordinates(not world coordinates)
@@ -289,12 +289,14 @@ bool PathFinding::CheckObstruction(const Config& config, const Vector2& pos, con
 	if (map.GetDataAtPos(mapPos) >= 0)
 		return false;
 
-	// Car width fits, now check if given car orientation fits
+	float carScale = extendedCarScale ? config.m_CarScaleExtended : config.m_CarScaleNormal;
+
 	float offsetFwd_u = 0.5f * (config.m_CarLengthFwd - config.m_CarLengthBwd) / mapRes_w;
 	Vector2 rectCenterPos_u(pos_u.x + offsetFwd_u * dir.x, pos_u.y + offsetFwd_u * dir.y);
 
 	std::vector<LineRasterizer::HSpan> rectSpans;
 	Vector2 rectSize(config.m_CarWidth / mapRes_w, (config.m_CarLengthFwd + config.m_CarLengthBwd) / mapRes_w);
+	rectSize *= carScale;
 	LineRasterizer::RasterizeRect(rectCenterPos_u, rectSize, { dir.x, dir.y }, rectSpans);
 
 	// Iterate spans of rectangle
@@ -443,7 +445,7 @@ struct std::hash<PoseHashKey>
 	}
 };
 
-void PathFinding::FindPath(const Config& config, const Map& map, const Node::Pose& startPose, const Vector2& destPos, float destRadius, PathFindingResult& outResult)
+void PathFinding::FindPath(const Config& config, const Map& map, const Node::Pose& startPose, const Vector2& destPos, float destRadius, PathFindingResult& outResult, bool extendedCarScale)
 {
 	ZoneScopedN("PathFinding::FindPath");
 
@@ -492,7 +494,7 @@ void PathFinding::FindPath(const Config& config, const Map& map, const Node::Pos
 		if (!CheckObstruction(config,
 			{ allNodes[currentNodeId].m_Pose.x, allNodes[currentNodeId].m_Pose.y },
 			config.m_DirVectors[allNodes[currentNodeId].m_Pose.dir],
-			map))
+			map, extendedCarScale))
 			continue;
 
 		// We have arrived

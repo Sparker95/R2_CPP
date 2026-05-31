@@ -38,7 +38,7 @@ void RobotCore::Update(const ControlSensorFrame& frame)
 	// CrashDetector must be updated before Localizer. Localizer takes long time.
 	m_pCrashDetector->Update(frame, m_PrevFrame);
 
-	if (m_UpdateLocalizer && odoDiff != 0)
+	if (m_UpdateLocalizer)
 	{
 		Chassis::ChassisInputs inputs;
 		inputs.m_MoveState = frame.m_MoveState;

@@ -38,6 +38,8 @@ namespace PathFinding
 		float m_CarWidth = 0.1f;
 		float m_CarLengthFwd = 0.1f;
 		float m_CarLengthBwd = 0.1f;
+		float m_CarScaleNormal = 1.0f; // Some calls can switching between two size multipliers
+		float m_CarScaleExtended = 1.0f;
 
 		// Properties and costs and  of search
 		float m_HeuristicMult = 1.0f;
@@ -101,6 +103,9 @@ namespace PathFinding
 
 	// Public functions
 
+	// Some methods support parameter:
+	// bool extendedCarScale - switches between multipliers of car size
+
 	// Utils
 	bool IsTransitionForward(uint transId); // True for forward transitions
 
@@ -115,8 +120,8 @@ namespace PathFinding
 	Node::Pose CalculateNodePose(const Config& config, float x, float y, float dir_rad);
 
 	// Checks if vehicle fits at position, returns true if fits
-	bool CheckObstruction(const Config& config, const Vector2& pos, const Vector2& dir, const Map& map);
+	bool CheckObstruction(const Config& config, const Vector2& pos, const Vector2& dir, const Map& map, bool extendedCarScale);
 
 	// The main path finding function
-	void FindPath(const Config& config, const Map& map, const Node::Pose& startPose, const Vector2& destPos, float destRadius, PathFindingResult& outResult);
+	void FindPath(const Config& config, const Map& map, const Node::Pose& startPose, const Vector2& destPos, float destRadius, PathFindingResult& outResult, bool extendedCarScale);
 }
