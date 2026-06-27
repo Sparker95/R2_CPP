@@ -324,6 +324,21 @@ void Steer_SetRawValue(uint16_t value)
   OCR1B = value;
 }
 
+uint16_t Steer_ReadAdcValue()
+{
+  ADCSRA |= 1 << ADSC; // Starts conversion
+  uint16_t safetyCounter = 0;
+  
+  while (ADCSRA & (1 << ADSC))
+  {
+    safetyCounter++;
+    if (safetyCounter > 3200)
+      return 0;
+  }
+  
+  return ADC;
+}
+
 //-----------------------------------------------------------------------------------------------------------
 // Global variables
 
@@ -352,10 +367,10 @@ float g_fSteerTgt = 0.0f;                    // Target rotation from command
 float g_fSteerTgtAnimated;                   // Animated target rotation, sent to servo
 float g_fSteerTgtAnimSpeed_PerUpdate = UPDATE_INTERVAL_S * 0.5f; // Speed of animation of steering command
 
-float g_fSteerRealEst = 0.0f; // Estimation of real value, it is linearly animated to reach m_fSteerTgtAnimated
-constexpr float STEER_SPEED_DEG_PER_S = 60.0f / 0.17f; // https://servodatabase.com/servo/traxxas/2075x
-constexpr float STEER_FULL_RANGE_DEG = 90.0f;      // -1 .. 1.0 input
-constexpr float STEER_SPEED_INPUT_PER_S = STEER_SPEED_DEG_PER_S / (STEER_FULL_RANGE_DEG / 2.0f); // Turn speed converted into input units per second. 
+// Steering value measurement - now this requires manual calibration
+constexpr float STEER_CALIBRATION_TGT = 0.8f;
+constexpr uint16_t STEER_ADC_CALIBRATION_MAX = 922; // ADC value at STEER_CALIBRATION_TGT
+constexpr uint16_t STEER_ADC_CALIBRATION_MIN = 385; // ADC value at -STEER_CALIBRATION_TGT
 
 // Settings, modes of operation
 uint8_t g_iMotorLogCount = 0;
@@ -399,13 +414,21 @@ void setup() {
   // 115200 is probably not reliable, results in 5% clock error
   Serial1.begin(57600);
   
+  // ADC for Steering Servo
+  ADMUX = 1 << REFS1 | 1 << REFS0 | // Internal 2.56V reference
+    1 << MUX1 | 1 << MUX0; // ADC11 (PB4)
+  ADCSRA = 1 << ADEN | // Enable ADC
+    1 << ADPS2 | 1 << ADPS1 | 1 << ADPS0; // CLK / 128
+  ADCSRB = 1 << MUX5; // ADC11 (PB4)
+  DIDR1 = 1 << ADC11D; // Disable digital input for ADC11
+  
   // Unused I/O ports - set up pullup on everything else
   DDRB = 0;
   DDRC = 0;
   DDRD = 0;
   DDRE = 0;
   DDRF = 0;
-  PORTB = 0xFF;
+  PORTB = ~(1 << PORTB4);
   PORTC = 1 << PORTC7 | 1 << PORTC6;
   PORTD = 0xFF;
   PORTE = 1 << PORTE6 | 1 << PORTE2;
@@ -562,10 +585,7 @@ void loop()
     }
     
 		// Steering update
-		{
-			// Steer real value animation
-			AnimateLinear(g_fSteerRealEst, g_fSteerTgtAnimated, UPDATE_INTERVAL_S*STEER_SPEED_INPUT_PER_S);
-			
+		{	
 			// Steer command value animation
 			AnimateLinear(g_fSteerTgtAnimated, g_fSteerTgt, g_fSteerTgtAnimSpeed_PerUpdate);
 			
@@ -677,9 +697,16 @@ bool ProcessSerialCommand(char* pCmd, uint8_t* argOffsets, uint8_t nArgs, bool& 
   }
   else if (strcmp(pCmd, "GET_ST") == 0)
   {
+    uint16_t steerAdcValue = Steer_ReadAdcValue();
+    
+    int16_t diff = steerAdcValue - STEER_ADC_CALIBRATION_MIN; // Must be signed!
+    float slope = (2.0f * STEER_CALIBRATION_TGT) / static_cast<float>(STEER_ADC_CALIBRATION_MAX - STEER_ADC_CALIBRATION_MIN);
+    float steerValue = -STEER_CALIBRATION_TGT + slope * static_cast<float>(diff);
+    
     g_pCurrentSerial->write("ST ");
     char txtBuffer[16];
-    dtostrf(g_fSteerRealEst, 2, 2, txtBuffer);
+    dtostrf(steerValue, 2, 2, txtBuffer);
+    //utoa(steerAdcValue, txtBuffer, 10); // Uncomment for manual calibration of steering ADC values
     g_pCurrentSerial->write(txtBuffer);
     g_pCurrentSerial->write(";\n");
     
