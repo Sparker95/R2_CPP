@@ -49,3 +49,8 @@ obj
 bin
 x64
 build
+
+# Robot record files
+*.rlhist
+*.rstream
+*.rmap
