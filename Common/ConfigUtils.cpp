@@ -48,7 +48,7 @@ bool ConfigUtils::ReadLocalizerConfig(const Config& config, Localizer::Config& o
 
 	float l2Occupied, l2Free;
 	float l2Occupied_RT, l2Free_RT; // For the Real Time map
-	bool allValuesFound = config.Get("SensorPdfWidth", tempConfig.m_SensorPdfWidth) &&
+	bool allValuesFound = config.Get("SensorPdfHalfWidth", tempConfig.m_SensorPdfHalfWidth) &&
 		config.Get("SensorPdfFloor", tempConfig.m_SensorPdfFloor) &&
 		config.Get("SensorScanRange", tempConfig.m_SensorScanRange) &&
 		config.Get("MapResolution_m", tempConfig.m_MapRes_w) &&

@@ -80,6 +80,17 @@ void Localizer::Update(const Chassis::ChassisInputs& inputs, const std::vector<S
 {
 	ZoneScopedN("Localizer::Update");
 
+	// Filter the passed realScanPolar
+	m_RealScanPolarFiltered.reserve(realScanPolar.size());
+	m_RealScanPolarFiltered.clear();
+	for (const auto& sample : realScanPolar)
+	{
+		if (sample.m_Dist_m == Scan::SCAN_RAY_NO_HIT_VALUE ||
+			sample.m_Dist_m > m_Config.m_SensorScanRange)
+			continue;
+		m_RealScanPolarFiltered.push_back(sample);
+	}
+
 	if (inputs.m_OdoDiff == 0 || inputs.m_MoveState == Chassis::MoveState::STOP)
 	{
 		// No movement, almost everything remains same
@@ -109,19 +120,19 @@ void Localizer::Update(const Chassis::ChassisInputs& inputs, const std::vector<S
 			p.m_Pose = poseRandomized;
 
 			// Common data reused in futher calls
-			uint nRealScanSamples = static_cast<uint>(realScanPolar.size());
+			uint nRealScanSamples = static_cast<uint>(m_RealScanPolarFiltered.size());
 			const Chassis::ChassisConfig& chassisConfig = m_pChassisModel->GetChassisConfig();
 			Pose particleSensorPose = Utils::AddPoseDiff(p.m_Pose, Pose(chassisConfig.m_sensorOffsetFwd, chassisConfig.m_sensorOffsetSide, chassisConfig.m_sensorOffsetDir_rad));
-			m_ScanDirections.resize(realScanPolar.size());
+			m_ScanDirections.resize(m_RealScanPolarFiltered.size());
 			for (uint sampleId = 0; sampleId < nRealScanSamples; sampleId++)
 			{
-				float sampleDir = particleSensorPose.dir + realScanPolar[sampleId].m_Angle_rad;
+				float sampleDir = particleSensorPose.dir + m_RealScanPolarFiltered[sampleId].m_Angle_rad;
 				m_ScanDirections[sampleId].x = std::cos(sampleDir);
 				m_ScanDirections[sampleId].y = std::sin(sampleDir);
 			}
 
 			// Compensate scan motion
-			Scan::CompensateScanMotion(realScanPolar, *m_pChassisModel, p.m_InputsRnd, m_ScanPolarCompensated);
+			Scan::CompensateScanMotion(m_RealScanPolarFiltered, *m_pChassisModel, p.m_InputsRnd, m_ScanPolarCompensated);
 
 			// Calculate weight. Which map to use depends on mode.
 			const Map& mapCalcWeight = mode == Mode::LOC_AND_MAP ? p.m_Map : m_LocalizationCommonMap;
@@ -169,25 +180,25 @@ void Localizer::Update(const Chassis::ChassisInputs& inputs, const std::vector<S
 
 	// Update of real time map
 	{
-		// Take most likely map, apply to it realScanPolar with different weights
+		// Take most likely map, apply to it m_RealScanPolarFiltered with different weights
 
 		const Particle& p = GetMostLikelyParticle();
 		m_RealTimeMap = p.m_Map;
 
 		// WIP this partically duplicates the main update algorithm
-		uint nRealScanSamples = static_cast<uint>(realScanPolar.size());
+		uint nRealScanSamples = static_cast<uint>(m_RealScanPolarFiltered.size());
 		const Chassis::ChassisConfig& chassisConfig = m_pChassisModel->GetChassisConfig();
 		Pose particleSensorPose = Utils::AddPoseDiff(p.m_Pose, Pose(chassisConfig.m_sensorOffsetFwd, chassisConfig.m_sensorOffsetSide, chassisConfig.m_sensorOffsetDir_rad));
-		m_ScanDirections.resize(realScanPolar.size());
+		m_ScanDirections.resize(m_RealScanPolarFiltered.size());
 		for (uint sampleId = 0; sampleId < nRealScanSamples; sampleId++)
 		{
-			float sampleDir = particleSensorPose.dir + realScanPolar[sampleId].m_Angle_rad;
+			float sampleDir = particleSensorPose.dir + m_RealScanPolarFiltered[sampleId].m_Angle_rad;
 			m_ScanDirections[sampleId].x = std::cos(sampleDir);
 			m_ScanDirections[sampleId].y = std::sin(sampleDir);
 		}
 
 		// Compensate scan motion
-		Scan::CompensateScanMotion(realScanPolar, *m_pChassisModel, p.m_InputsRnd, m_ScanPolarCompensated);
+		Scan::CompensateScanMotion(m_RealScanPolarFiltered, *m_pChassisModel, p.m_InputsRnd, m_ScanPolarCompensated);
 
 		// Scan is applied to m_RealTimeMap!
 		ApplyScan(particleSensorPose, m_RealTimeMap, m_ScanDirections, m_ScanPolarCompensated,
@@ -555,11 +566,19 @@ float Localizer::SensorRayPdf(float realDist, float expectedDist)
 
 	// https://www.desmos.com/calculator/oa2gg8rzuk
 	float diff = realDist - expectedDist;
-	float diffNorm = diff / m_Config.m_SensorPdfWidth;
+	float diffNorm = diff / m_Config.m_SensorPdfHalfWidth;
+	/*
 	float diffNormPow2 = diffNorm * diffNorm;
 	float diffNormPow4 = diffNormPow2 * diffNormPow2;
 	float diffNormPow8 = diffNormPow4 * diffNormPow4;
 	float pdfNoFloor = 1.0f / (diffNormPow8 + 1.0f);
+	return m_Config.m_SensorPdfFloor + (1.0f - m_Config.m_SensorPdfFloor) * pdfNoFloor;
+	*/
+
+	float diffNormAbs = std::abs(diffNorm);
+	float diffNormAbsPow2 = diffNormAbs * diffNormAbs;
+	float diffNormAbsPow4 = diffNormAbsPow2 * diffNormAbsPow2;
+	float pdfNoFloor = std::exp2(-diffNormAbsPow4);
 	return m_Config.m_SensorPdfFloor + (1.0f - m_Config.m_SensorPdfFloor) * pdfNoFloor;
 }
 

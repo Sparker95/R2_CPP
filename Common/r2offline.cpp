@@ -60,24 +60,13 @@ void TestWriteMap(const char* pFilePath)
 }
 
 void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapFilePath, const char* pOutLocHistoryPath,
-	const Localizer::Config& localizerConfig, const Chassis::ChassisStatsConfig& chassisStatsConfig)
+	const Localizer::Config& localizerConfig,
+	const Chassis::ChassisConfig& chassisConfig,
+	const Chassis::ChassisStatsConfig& chassisStatsConfig)
 {
-	/*
-	Chassis::ChassisConfig chassisConfig;
 	Chassis::ChassisModel chassisModel(chassisConfig, chassisStatsConfig);
 
-	CrashDetector::Config crashDetectorSettings;
-	CrashDetector crashDetector(crashDetectorSettings, chassisModel);
-
-	PathFollowerConfig followerConfig;
-	PathFinding::Config pfConfig;
-	PathPlanner pathPlanner(pfConfig, followerConfig);
-	PathFollower pathFollower(followerConfig);
-
 	Localizer localizer(localizerConfig, chassisModel);
-
-	RobotCore core(chassisModel, localizer, crashDetector, pathPlanner, pathFollower);
-	core.SetUpdateLocalizer(true);
 
 	// Read all blocks
 	std::vector<ControlSensorFrame> sensorStreamBlocks;
@@ -88,12 +77,23 @@ void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapF
 	}
 
 	// Process data
-	for (uint blockId = 0; blockId < static_cast<uint>(sensorStreamBlocks.size()); blockId++)
+	ControlSensorFrame& prevFrame = sensorStreamBlocks[0];
+	for (uint blockId = 1; blockId < static_cast<uint>(sensorStreamBlocks.size()); blockId++)
 	{
 		printf("Processing block %u / %u\n", blockId, static_cast<uint>(sensorStreamBlocks.size()));
 		ControlSensorFrame& frame = sensorStreamBlocks[blockId];
 
-		core.Update(frame);
+		// --- Copy from RobotCore::Update ---
+		Chassis::ChassisInputs inputs;
+		Chassis::TOdometerCounter odoDiff = Chassis::CalculateOdometerDifference(frame.m_Odometer, prevFrame.m_Odometer);
+		inputs.m_MoveState = frame.m_MoveState;
+		inputs.m_OdoDiff = odoDiff;
+		inputs.m_Steer = frame.m_Steer;
+		Localizer::Mode localizerMode = Localizer::Mode::LOC_AND_MAP;
+		localizer.Update(inputs, frame.m_ScanSamples, localizerMode);
+		//------------------------------------
+
+		prevFrame = frame;
 
 		// Tracy
 		FrameMark;
@@ -106,7 +106,6 @@ void ProcessSensorStreamFile(const char* pInStreamFilePath, const char* pOutMapF
 
 	// Write particles history
 	LocalizerUtils::WriteLocalizerHistoryToFile(localizer, pOutLocHistoryPath, 32);
-	*/
 }
 
 void TestPathFinding()
@@ -232,13 +231,13 @@ int main(int argc, char* argv[])
 
 	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
-	TestProjectPoint();
+	//TestProjectPoint();
 
 	// WIP path finding tests
 	//TestPathFinding();
 	//TestChassisCurvatureCalculation();
 	//TestConfigSections();
-	return 0;
+	//return 0;
 	///////////////////////////
 
 	if (argc == 1)
@@ -251,8 +250,7 @@ int main(int argc, char* argv[])
 	const char* pInStreamFilePath = nullptr;
 	const char* pOutMapFilePath = nullptr;
 	const char* pOutLocHistoryPath = nullptr;
-	const char* pInLocalizerConfig = nullptr;
-	const char* pInChassisConfig = nullptr;
+	const char* pInCfgMain = nullptr;
 	for (int i = 1; i < argc - 1; i++)
 	{
 		std::string arg(argv[i]);
@@ -262,43 +260,41 @@ int main(int argc, char* argv[])
 			pOutMapFilePath = argv[i + 1];
 		else if (arg == "-outLocHistoryFile")
 			pOutLocHistoryPath = argv[i + 1];
-		else if (arg == "-inChassisConfig")
-			pInChassisConfig = argv[i + 1];
-		else if (arg == "-inLocalizerConfig")
-			pInLocalizerConfig = argv[i + 1];
+		else if (arg == "-cfg_main")
+			pInCfgMain = argv[i + 1];;
 	}
 
 	printf("Arguments:\n");
 	printf("-inStreamFile      : %s\n", pInStreamFilePath);
 	printf("-outMapFile        : %s\n", pOutMapFilePath);
 	printf("-outLocHistoryFile : %s\n", pOutLocHistoryPath);
-	printf("-inChassisConfig   : %s\n", pInChassisConfig);
-	printf("-inLocalizerConfig : %s\n", pInLocalizerConfig);
+	printf("-cfg_main          : %s\n", pInCfgMain);
 
-	if (!pInStreamFilePath || !pOutMapFilePath || !pOutLocHistoryPath || !pInChassisConfig || !pInLocalizerConfig)
+	if (!pInStreamFilePath || !pOutMapFilePath || !pOutLocHistoryPath || !pInCfgMain)
 	{
 		printf("Not all arguments are provided!\n");
 		return 1;
 	}
 
 	// Read config files
+	Config mainConfig(pInCfgMain);
+
+	bool initDone = true;
+
+	Chassis::ChassisConfig chassisConfig; // Using defaults
 	Chassis::ChassisStatsConfig chassisStatsConfig;
 	Localizer::Config localizerConfig;
 
-	if (!ConfigUtils::ReadChassisStatsConfig(Config(pInChassisConfig), chassisStatsConfig) ||
-		!ConfigUtils::ReadLocalizerConfig(Config(pInLocalizerConfig), localizerConfig))
+	initDone = initDone && ConfigUtils::ReadChassisStatsConfig(mainConfig, chassisStatsConfig);
+	initDone = initDone && ConfigUtils::ReadLocalizerConfig(mainConfig, localizerConfig);
+
+	if (!initDone)
 	{
 		printf("Failed to read config files!\n");
 		return 1;
 	}
 
-	ProcessSensorStreamFile(pInStreamFilePath, pOutMapFilePath, pOutLocHistoryPath, localizerConfig, chassisStatsConfig);
-
-	//TestBresenhamLine();
-	//const char* pFilePath = argv[1];
-	//TestReadStreamFile(pFilePath);
-	//TestWriteMap(pFilePath); // Warning: Don't enable both! File will be overridden.
-	//TestCarStatsModel();
+	ProcessSensorStreamFile(pInStreamFilePath, pOutMapFilePath, pOutLocHistoryPath, localizerConfig, chassisConfig, chassisStatsConfig);
 
 	//_CrtDumpMemoryLeaks();
 

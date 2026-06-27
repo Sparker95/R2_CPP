@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 #include <cmath>
+#include <functional>
 
 //------------------------------------------------------------------------------------------------------------------------
 // Constructor, destructor
@@ -32,13 +33,18 @@ MainMessageLoop::MainMessageLoop(SensorInterface& sensorInterface, ChassisInterf
 	m_ChassisCtrlSettings = chassisCtrlSettings;
 	m_pRobotCore = &robotCore;
 
+	/*
 	m_pSensorInterface->BindOnReceivedScan(
 		[this](const std::vector<Sensor::ScanSample>& scanSamples, const std::vector<Sensor::ScanSampleInt>& scanSamplesInt,
 			SensorInterface::TTimestamp timeEnd, float scanPeriod_s)
 		{ OnReceivedScan_mt(scanSamples, scanSamplesInt, timeEnd, scanPeriod_s); } );
+	*/
+
+	using namespace std::placeholders;
+	m_pSensorInterface->BindOnReceivedScan(std::bind(&MainMessageLoop::OnReceivedScan_mt, this, _1, _2, _3, _4));
 
 	m_pRobotCore->GetPathCoordinator()->BindOnPathPlanned(
-		[this](const std::vector<PathFollower::PathPoint>& path) {
+		[this](auto& path) {
 			this->OnPathPlanned(path);
 		}
 	);

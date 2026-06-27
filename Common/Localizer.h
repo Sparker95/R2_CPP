@@ -66,7 +66,7 @@ public:
 
 	struct Config
 	{
-		float m_SensorPdfWidth = 0.1f;
+		float m_SensorPdfHalfWidth = 0.1f;
 		float m_SensorPdfFloor = 0.5f;
 		float m_SensorScanRange = 10.0f;
 		float m_MapRes_w = 0.1f;
@@ -94,6 +94,7 @@ private:
 	std::vector<uint> m_OldParticlesCopyCount;
 	std::vector<float> m_ExpectedScanDists;
 	std::vector<Vector2> m_ScanDirections; // x, y - cos, sin of scan sample direction
+	std::vector<Sensor::ScanSample> m_RealScanPolarFiltered; // Removed values too big or no-hits
 	std::vector<Sensor::ScanSample> m_ScanPolarCompensated;
 
 	// Diagnostics

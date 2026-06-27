@@ -4,11 +4,11 @@
     <ShowAllFiles>false</ShowAllFiles>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-inStreamFile "D:\Projects\Robot2\Records\Circle.rstream" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist"</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-inStreamFile "D:\Projects\Robot2\Records\Office 17 06 2026\Corridor4.rstream" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist" -cfg_main "MainConfig.cfg"</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>-inStreamFile "D:\Projects\Robot2\Records\Circle.rstream" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist" -inLocalizerConfig "D:\Projects\Robot2\CPP\Config\localizer.cfg" -inChassisConfig "D:\Projects\Robot2\CPP\Config\chassis.cfg"</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-inStreamFile "D:\Projects\Robot2\Records\Office 17 06 2026\Corridor4.rstream" -outMapFile "TestMap.rmap" -outLocHistoryFile "TestLocalizerHistory.rlhist" -cfg_main "MainConfig.cfg"</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
