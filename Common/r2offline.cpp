@@ -54,7 +54,7 @@ void TestReadStreamFile(const char* pFilePath)
 
 void TestWriteMap(const char* pFilePath)
 {
-	Map map(0.25);
+	OccupancyMap map(0.25);
 	MapUtils::FillRect(map, Vector2(-1, -1), Vector2(1, 1), 100);
 	MapUtils::WriteMapToFile_L2Int(map, pFilePath, 8);
 }
@@ -112,17 +112,17 @@ void TestPathFinding()
 {
 	const char* mapPath = "D:\\Projects\\Robot2\\Records\\Legacy Encoder\\Office 26 Jan 2026\\Office1.rmap";
 	//const char* mapPath = "/home/pi/projects/r2offline_pi/Office1.rmap";
-	Map map;
+	OccupancyMap map;
 	uint quantization;
 	MapUtils::ReadMapFromFile_L2Int(mapPath, map, quantization);
 
 	if (map.GetSize().x == 0)
 		return;
 
-	Map distMap = PathFinding::CalculateDistanceMap(map, 0);
+	DistMap distMap = PathFinding::CalculateDistanceMap(map, 0);
 	MapUtils::WriteMapToFile_L2Int(distMap, "TestDistMap.rmap", 8);
 
-	Map structureMap = PathFinding::CalculateStructureMap(distMap, 0.2f, 0.2f);
+	DistMap structureMap = PathFinding::CalculateStructureMap(distMap, 0.2f, 0.2f);
 	MapUtils::WriteMapToFile_L2Int(structureMap, "TestStructureMap.rmap", 8);
 
 	// Test rect rasterizer
@@ -234,7 +234,8 @@ int main(int argc, char* argv[])
 	//TestProjectPoint();
 
 	// WIP path finding tests
-	//TestPathFinding();
+	TestPathFinding();
+	return 0;
 	//TestChassisCurvatureCalculation();
 	//TestConfigSections();
 	//return 0;

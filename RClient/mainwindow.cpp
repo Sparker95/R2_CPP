@@ -329,11 +329,11 @@ void MainWindow::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigne
 			ControlPanelProtocol::MapDataHeader header = reader.Read<ControlPanelProtocol::MapDataHeader>();
 
 			// WIP too many allocations and destructions here
-			Map m(header.m_xSize, header.m_ySize, header.m_xCenter, header.m_yCenter, header.m_Res_w);
+			OccupancyMap m(header.m_xSize, header.m_ySize, header.m_xCenter, header.m_yCenter, header.m_Res_w);
 			for (uint y = 0; y < m.GetSize().y; y++)
 			{
 				for (uint x = 0; x < m.GetSize().x; x++)
-					m.SetDataAtPos(Map::TCellPos(x, y), reader.Read<Map::TCellData>());
+					m.SetDataAtPos(OccupancyMap::TCellPos(x, y), reader.Read<OccupancyMap::TCellData>());
 			}
 
 			m_Map = std::move(m);

@@ -7,12 +7,6 @@
     <ClCompile Include="..\Common\Localizer.cpp">
       <Filter>Common</Filter>
     </ClCompile>
-    <ClCompile Include="..\Common\Map.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Common\MapUtils.cpp">
-      <Filter>Common</Filter>
-    </ClCompile>
     <ClCompile Include="..\Common\Scan.cpp">
       <Filter>Common</Filter>
     </ClCompile>

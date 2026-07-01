@@ -1,11 +1,12 @@
 #pragma once
 
 #include "Vector2.h"
+#include "Map.h"
 
 #include <stdint.h>
 #include <vector>
-
-class Map;
+#include <limits>
+#include <algorithm>
 
 namespace PathFinding
 {
@@ -110,8 +111,77 @@ namespace PathFinding
 	bool IsTransitionForward(uint transId); // True for forward transitions
 
 	// Map calculations
-	Map CalculateStructureMap(const Map& distMap, float structureWidth_w, float minDistToObstacle_w);
-	Map CalculateDistanceMap(const Map& map, int threshold = 0);
+	DistMap CalculateStructureMap(const DistMap& distMap, float structureWidth_w, float minDistToObstacle_w);
+
+	// Calculates distance map from input map. Input map can be of different types.
+	// threshold - input map cell is occupied if cell value is >= threshold value
+	template<typename TInputMap>
+	DistMap CalculateDistanceMap(const TInputMap& map, int threshold = 0)
+	{
+		ZoneScopedN("PathFinding::CalculateDistanceMap");
+
+		const uint VALUE_MAX = std::numeric_limits<DistMap::TCellData>::max();
+
+		auto mapCenter = map.GetCenter();
+		auto mapSize = map.GetSize();
+		DistMap distMap(mapSize.x, mapSize.y, mapCenter.x, mapCenter.y, map.GetResolution_w());
+
+		// Same but signed
+		Vector2Base<int> smapSize(static_cast<int>(mapSize.x), static_cast<int>(mapSize.y));
+
+		for (int y = 0; y < smapSize.y; y++)
+		{
+			for (int x = 0; x < smapSize.x; x++)
+			{
+				if (static_cast<int>(static_cast<int>(map.GetDataAtPos(OccupancyMap::TCellPos(x, y)))) >= threshold)
+					distMap.SetDataAtPos(OccupancyMap::TCellPos(x, y), 0);
+				else
+					distMap.SetDataAtPos(OccupancyMap::TCellPos(x, y), static_cast<DistMap::TCellData>(VALUE_MAX));
+			}
+		}
+
+		// Note that we ignore border row and column completely!
+		for (int j = 1; j < smapSize.y - 1; j++)
+		{
+			for (int i = 1; i < smapSize.x - 1; i++)
+			{
+				uint e[4] = {
+					static_cast<uint>(distMap.GetDataAtPos({i,j - 1})) + 3,
+					static_cast<uint>(distMap.GetDataAtPos({i - 1, j})) + 3,
+					static_cast<uint>(distMap.GetDataAtPos({i - 1, j - 1})) + 4,
+					static_cast<uint>(distMap.GetDataAtPos({i - 1, j + 1})) + 4 };
+
+				for (uint f : e)
+				{
+					uint centerValue = static_cast<uint>(distMap.GetDataAtPos({ i, j }));
+					if (centerValue > f)
+						distMap.SetDataAtPos({ i, j }, std::clamp(f, 0u, VALUE_MAX));
+				}
+			}
+		}
+
+		for (int j = smapSize.y - 2; j > 0; j--)
+		{
+			for (int i = smapSize.x - 2; i > 0; i--)
+			{
+				uint e[4] = {
+					static_cast<uint>(distMap.GetDataAtPos({i, j + 1})) + 3,
+					static_cast<uint>(distMap.GetDataAtPos({i + 1, j})) + 3,
+					static_cast<uint>(distMap.GetDataAtPos({i + 1, j - 1})) + 4,
+					static_cast<uint>(distMap.GetDataAtPos({i + 1, j + 1})) + 4
+				};
+
+				for (uint f : e)
+				{
+					uint centerValue = static_cast<uint>(distMap.GetDataAtPos({ i, j }));
+					if (centerValue > f)
+						distMap.SetDataAtPos({ i, j }, std::clamp(f, 0u, VALUE_MAX));
+				}
+			}
+		}
+
+		return distMap;
+	}
 
 	// Calculates smooth arcs between nodes
 	void CalculateSmoothTransition(const Config& config, const Node& nodeFrom, const Node& nodeTo, std::vector<Vector2>& outPositions, uint nIntervals, bool addLastPoint);
@@ -120,8 +190,8 @@ namespace PathFinding
 	Node::Pose CalculateNodePose(const Config& config, float x, float y, float dir_rad);
 
 	// Checks if vehicle fits at position, returns true if fits
-	bool CheckObstruction(const Config& config, const Vector2& pos, const Vector2& dir, const Map& map, bool extendedCarScale);
+	bool CheckObstruction(const Config& config, const Vector2& pos, const Vector2& dir, const OccupancyMap& map, bool extendedCarScale);
 
 	// The main path finding function
-	void FindPath(const Config& config, const Map& map, const Node::Pose& startPose, const Vector2& destPos, float destRadius, PathFindingResult& outResult, bool extendedCarScale);
+	void FindPath(const Config& config, const OccupancyMap& map, const Node::Pose& startPose, const Vector2& destPos, float destRadius, PathFindingResult& outResult, bool extendedCarScale);
 }

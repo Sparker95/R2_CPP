@@ -34,7 +34,7 @@ private:
     QTcpSocket m_ControlPanelSocket;
     QUdpSocket m_ControlInputsSocket;
     SensorDataFileWriter m_SensorFileWriter;
-	Map m_Map; // Map data
+	OccupancyMap m_Map; // Map data
     int m_iControlInputsTimerId = 0;
 	bool m_WaitingMap = false;
 

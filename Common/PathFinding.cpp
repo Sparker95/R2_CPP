@@ -8,8 +8,8 @@
 
 #include <cmath>
 #include <unordered_map>
-
 #include <cstdio>
+#include <limits>
 
 using namespace PathFinding;
 
@@ -133,82 +133,11 @@ uint CalculateDirectionId(float dir_rad, uint numDirs)
 	return dir_id;
 }
 
-// Map calculations
-Map PathFinding::CalculateDistanceMap(const Map& map, int threshold)
-{
-	ZoneScopedN("PathFinding::CalculateDistanceMap");
-
-	// WIP make Map TCellData a template, one byte is not enough!
-	using TCellData = Map::TCellData;
-	using TUCellData = uint8_t; // Unsigned variant of TCellData
-	uint VALUE_MAX = 127; // Max supported by Map class
-
-	auto mapCenter = map.GetCenter();
-	auto mapSize = map.GetSize();
-	Map distMap(mapSize.x, mapSize.y, mapCenter.x, mapCenter.y, map.GetResolution_w());
-
-	// Same but signed
-	Vector2Base<int> smapSize(static_cast<int>(mapSize.x), static_cast<int>(mapSize.y));
-
-	for (int y = 0; y < smapSize.y; y++)
-	{
-		for (int x = 0; x < smapSize.x; x++)
-		{
-			if (static_cast<int>(map.GetDataAtPos(Map::TCellPos(x, y))) >= threshold)
-				distMap.SetDataAtPos(Map::TCellPos(x, y), 0);
-			else
-				distMap.SetDataAtPos(Map::TCellPos(x, y), static_cast<TCellData>(VALUE_MAX));
-		}
-	}
-
-	// Note that we ignore border row and column completely!
-	for (int j = 1; j < smapSize.y - 1; j++)
-	{
-		for (int i = 1; i < smapSize.x - 1; i++)
-		{
-			TCellData e[4] = {
-				static_cast<TCellData>(distMap.GetDataAtPos({i,j - 1}) + 3),
-				static_cast<TCellData>(distMap.GetDataAtPos({i - 1, j}) + 3),
-				static_cast<TCellData>(distMap.GetDataAtPos({i - 1, j - 1}) + 4),
-				static_cast<TCellData>(distMap.GetDataAtPos({i - 1, j + 1}) + 4) };
-
-			for (TCellData f : e)
-			{
-				TCellData centerValue = distMap.GetDataAtPos({ i, j });
-				if (static_cast<TUCellData>(centerValue) > static_cast<TUCellData>(f))
-					distMap.SetDataAtPos({ i, j }, f);
-			}
-		}
-	}
-
-	for (int j = smapSize.y - 2; j > 0; j--)
-	{
-		for (int i = smapSize.x - 2; i > 0; i--)
-		{
-			TCellData e[4] = {
-				static_cast<TCellData>(distMap.GetDataAtPos({i, j + 1}) + 3),
-				static_cast<TCellData>(distMap.GetDataAtPos({i + 1, j}) + 3),
-				static_cast<TCellData>(distMap.GetDataAtPos({i + 1, j - 1}) + 4),
-				static_cast<TCellData>(distMap.GetDataAtPos({i + 1, j + 1}) + 4)
-			};
-
-			for (TCellData f : e)
-			{
-				TCellData centerValue = distMap.GetDataAtPos({ i, j });
-				if (static_cast<TUCellData>(centerValue) > static_cast<TUCellData>(f))
-					distMap.SetDataAtPos({ i, j }, f);
-			}
-		}
-	}
-
-	return distMap;
-}
-
-Map PathFinding::CalculateStructureMap(const Map& distMap, float structureWidth_w, float minDistToObstacle_w)
+DistMap PathFinding::CalculateStructureMap(const DistMap& distMap, float structureWidth_w, float minDistToObstacle_w)
 {
 	auto mapCenter = distMap.GetCenter();
 	auto mapSize = distMap.GetSize();
-	Map structureMap(mapSize.x, mapSize.y, mapCenter.x, mapCenter.y, distMap.GetResolution_w());
+	DistMap structureMap(mapSize.x, mapSize.y, mapCenter.x, mapCenter.y, distMap.GetResolution_w());
 	Vector2Base<int> smapSize(static_cast<int>(mapSize.x), static_cast<int>(mapSize.y));
 
 	Vector2Base<int> offsetPairs[4][2] = {
@@ -249,7 +178,7 @@ Map PathFinding::CalculateStructureMap(const Map& distMap, float structureWidth_
 	}
 
 	// Make structure wider
-	Map structureDistMap = CalculateDistanceMap(structureMap, 1);
+	DistMap structureDistMap = CalculateDistanceMap(structureMap, 1);
 
 	uint structureDistMapTreshold = static_cast<uint>(std::ceil(0.5f * structureWidth_w / distMap.GetResolution_w())) * 3;
 	uint distToObstacleThreshold = static_cast<uint>(std::floor(minDistToObstacle_w / distMap.GetResolution_w())) * 3;
@@ -270,17 +199,17 @@ Map PathFinding::CalculateStructureMap(const Map& distMap, float structureWidth_
 }
 
 // Converts between distance map distance values and world values
-float DistanceMapValueToWorld(Map::TCellData distMapValue, float mapRes_w)
+float DistanceMapValueToWorld(DistMap::TCellData distMapValue, float mapRes_w)
 {
 	return static_cast<float>(static_cast<uint>(distMapValue)) / 3.0f * mapRes_w;
 }
 
-bool PathFinding::CheckObstruction(const Config& config, const Vector2& pos, const Vector2& dir, const Map& map, bool extendedCarScale)
+bool PathFinding::CheckObstruction(const Config& config, const Vector2& pos, const Vector2& dir, const OccupancyMap& map, bool extendedCarScale)
 {
 	float mapRes_w = map.GetResolution_w();
 	Vector2 pos_u(pos.x / mapRes_w, pos.y / mapRes_w); // In unscaled coordinates(not world coordinates)
 
-	Map::TCellPos mapPos = map.PosWorldUnscaledToMap({ pos_u.x, pos_u.y });
+	OccupancyMap::TCellPos mapPos = map.PosWorldUnscaledToMap({ pos_u.x, pos_u.y });
 
 	if (!map.IsMapPosWithinBounds(mapPos))
 		return false;
@@ -300,7 +229,7 @@ bool PathFinding::CheckObstruction(const Config& config, const Vector2& pos, con
 	LineRasterizer::RasterizeRect(rectCenterPos_u, rectSize, { dir.x, dir.y }, rectSpans);
 
 	// Iterate spans of rectangle
-	Map::TCellSize mapCenter = map.GetCenter();
+	OccupancyMap::TCellSize mapCenter = map.GetCenter();
 	for (const auto& span : rectSpans)
 	{
 		int y_map = span.y + mapCenter.y; // Indices are in map's native form
@@ -423,10 +352,10 @@ struct PoseHashKey
 		return x == other.x && y == other.y && dir == other.dir;
 	}
 
-	static PoseHashKey InitFromNode(const Node& node, const Map& map)
+	static PoseHashKey InitFromNode(const Node& node, const OccupancyMap& map)
 	{
 		PoseHashKey k;
-		Map::TCellPos mapPos = map.PosWorldToMap({ node.m_Pose.x, node.m_Pose.y });
+		OccupancyMap::TCellPos mapPos = map.PosWorldToMap({ node.m_Pose.x, node.m_Pose.y });
 		k.x = mapPos.x;
 		k.y = mapPos.y;
 		k.dir = node.m_Pose.dir;
@@ -445,12 +374,12 @@ struct std::hash<PoseHashKey>
 	}
 };
 
-void PathFinding::FindPath(const Config& config, const Map& map, const Node::Pose& startPose, const Vector2& destPos, float destRadius, PathFindingResult& outResult, bool extendedCarScale)
+void PathFinding::FindPath(const Config& config, const OccupancyMap& map, const Node::Pose& startPose, const Vector2& destPos, float destRadius, PathFindingResult& outResult, bool extendedCarScale)
 {
 	ZoneScopedN("PathFinding::FindPath");
 
-	Map distMap = CalculateDistanceMap(map);
-	Map structureMap = CalculateStructureMap(distMap, config.m_StructureMapWidth, 0.5f * config.m_CarWidth);
+	DistMap distMap = CalculateDistanceMap(map);
+	DistMap structureMap = CalculateStructureMap(distMap, config.m_StructureMapWidth, 0.5f * config.m_CarWidth);
 
 	Node startNode;
 	Node::Pose destPose(destPos.x, destPos.y, 0);
@@ -510,7 +439,7 @@ void PathFinding::FindPath(const Config& config, const Map& map, const Node::Pos
 		FindNeighborNodes(config, allNodes[currentNodeId], neighborNodes);
 		for (Node& neighborNode : neighborNodes)
 		{
-			Map::TCellPos neighborNodeMapPos = map.PosWorldToMap({ neighborNode.m_Pose.x, neighborNode.m_Pose.y });
+			OccupancyMap::TCellPos neighborNodeMapPos = map.PosWorldToMap({ neighborNode.m_Pose.x, neighborNode.m_Pose.y });
 
 			// Instantly check if it's out of bounds or is instantly in obstacle
 			if (!map.IsMapPosWithinBounds(neighborNodeMapPos))

@@ -17,7 +17,7 @@ public:
 
 protected:
 	// Data to display
-	const Map* m_pMap = nullptr;
+	const OccupancyMap* m_pMap = nullptr;
 	Pose m_MeanPose;
 	QList<Pose> m_Poses;
 	QList<Vector2> m_Path;
@@ -47,7 +47,7 @@ protected:
 	void wheelEvent(QWheelEvent *event);
 
 public:
-	void SetMapData(const Map* pMap);
+	void SetMapData(const OccupancyMap* pMap);
 	void SetLocationData(QList<Pose>& newPoses);
 	void SetMeanPose(const Pose& pose);
 	void SetPathData(QList<Vector2>& newPath);

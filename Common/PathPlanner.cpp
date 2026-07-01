@@ -12,7 +12,7 @@ PathPlanner::PathPlanner(const PathFinding::Config& pfConfig, const PathFollower
 	m_FollowerConfig = followerConfig;
 }
 
-void PathPlanner::PlanPath(const Map& map, const Pose& startPose, Vector2 destPos, float destRadius)
+void PathPlanner::PlanPath(const OccupancyMap& map, const Pose& startPose, Vector2 destPos, float destRadius)
 {
 	ZoneScopedN("PathPlanner::CheckPathObstruction");
 
@@ -136,7 +136,7 @@ void PathPlanner::PlanPath(const Map& map, const Pose& startPose, Vector2 destPo
 	}
 }
 
-bool PathPlanner::CheckPathObstruction(const Map& map, const std::vector<PathFollower::PathPoint>& path, uint currentPathPointId, uint* pOutObstrPointId)
+bool PathPlanner::CheckPathObstruction(const OccupancyMap& map, const std::vector<PathFollower::PathPoint>& path, uint currentPathPointId, uint* pOutObstrPointId)
 {
 	ZoneScopedN("PathPlanner::CheckPathObstruction");
 

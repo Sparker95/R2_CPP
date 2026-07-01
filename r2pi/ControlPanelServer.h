@@ -36,7 +36,7 @@ public:
 	void SendSensorData_mt(uint timestamp_ms, const std::vector<Sensor::ScanSampleInt>& scan, Chassis::TOdometerCounter odometer,
 		Chassis::MoveState moveState, float steer);
 
-	void SendMap_mt(const Map& map);
+	void SendMap_mt(const OccupancyMap& map);
 	void SendLocaction_mt(const Pose& meanPose, const std::vector<Pose>& poses);
 	void SendOptions_mt(); // Sends all options back to client
 	void SendPath_mt(const std::vector<Vector2> path);
@@ -67,7 +67,7 @@ private:
 	};
 	struct PipeMsgMap : PipeMsgBase
 	{
-		Map m_Map;
+		OccupancyMap m_Map;
 	};
 	struct PipeMsgLoc : PipeMsgBase
 	{

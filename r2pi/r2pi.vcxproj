@@ -503,8 +503,6 @@
     <ClCompile Include="..\Common\LineRasterizer.cpp" />
     <ClCompile Include="..\Common\Localizer.cpp" />
     <ClCompile Include="..\Common\LocalizerUtils.cpp" />
-    <ClCompile Include="..\Common\Map.cpp" />
-    <ClCompile Include="..\Common\MapUtils.cpp" />
     <ClCompile Include="..\Common\MathUtils.cpp" />
     <ClCompile Include="..\Common\PathCoordinator.cpp" />
     <ClCompile Include="..\Common\PathFinding.cpp" />

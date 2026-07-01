@@ -252,12 +252,12 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 
 				if (header->m_MapType == THeader::MAP_TYPE_MOST_LIKELY)
 				{
-					const Map& mostLikelyMap = m_pRobotCore->GetLocalizer()->GetMostLikelyParticle().m_Map;
+					const OccupancyMap& mostLikelyMap = m_pRobotCore->GetLocalizer()->GetMostLikelyParticle().m_Map;
 					m_pCtrlPanelServer->SendMap_mt(mostLikelyMap);
 				}
 				else if (header->m_MapType == THeader::MAP_TYPE_REAL_TIME)
 				{
-					const Map& realTimeMap = m_pRobotCore->GetLocalizer()->GetRealTimeMap();
+					const OccupancyMap& realTimeMap = m_pRobotCore->GetLocalizer()->GetRealTimeMap();
 					m_pCtrlPanelServer->SendMap_mt(realTimeMap);
 				}
 

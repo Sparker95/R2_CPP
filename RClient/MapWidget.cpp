@@ -61,7 +61,7 @@ MapWidget::MapWidget(QWidget *parent)
 }
 
 
-void MapWidget::SetMapData(const Map* pMap)
+void MapWidget::SetMapData(const OccupancyMap* pMap)
 {
 	m_pMap = pMap;
 	update();
@@ -113,8 +113,8 @@ void MapWidget::paintEvent(QPaintEvent *event)
 	if (!m_pMap)
 		return;
 
-	const Map& map = *m_pMap;
-	Map::TCellSize mapSize = map.GetSize();
+	const OccupancyMap& map = *m_pMap;
+	OccupancyMap::TCellSize mapSize = map.GetSize();
 	QImage img(QSize(mapSize.x, mapSize.y), QImage::Format::Format_Indexed8);
 	QList<QRgb> colorTable;
 	{
@@ -137,7 +137,7 @@ void MapWidget::paintEvent(QPaintEvent *event)
 	for (int y = 0; y < img.height(); ++y)
 	{
 		uchar* imgLine = img.scanLine(y);
-		const Map::TCellData* mapLine = &map.GetData()[y * mapSize.x];
+		const OccupancyMap::TCellData* mapLine = &map.GetData()[y * mapSize.x];
 		for (int x = 0; x < img.width(); ++x)
 		{
 			// WIP use memcpy
@@ -150,7 +150,7 @@ void MapWidget::paintEvent(QPaintEvent *event)
 	// Scaling
 	qreal viewSize_m = m_ViewSizes_m[m_ViewSizeId];
 	qreal mapRes_w = map.GetResolution_w();
-	Map::TCellSize mapCenter = map.GetCenter();
+	OccupancyMap::TCellSize mapCenter = map.GetCenter();
 	qreal minWidthHeight = static_cast<qreal>(std::min<int>(width(), height()));
 	qreal scaleWorldToView = minWidthHeight / viewSize_m;
 

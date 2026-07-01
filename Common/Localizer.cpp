@@ -23,7 +23,7 @@ Localizer::Localizer(const Config& config, Chassis::ChassisModel& statsModel)
 		Particle p;
 		p.m_Pose = config.m_StartPose;
 		p.m_Weight = 0;
-		p.m_Map = Map(config.m_MapRes_w);
+		p.m_Map = OccupancyMap(config.m_MapRes_w);
 
 		m_Particles.push_back(p);
 	}
@@ -38,13 +38,13 @@ void Localizer::Reset()
 	{
 		p.m_Pose = m_Config.m_StartPose;
 		p.m_Weight = 0;
-		p.m_Map = Map(m_Config.m_MapRes_w);
+		p.m_Map = OccupancyMap(m_Config.m_MapRes_w);
 
 #ifdef LOCALIZER_STORE_HISTORY
 		p.m_PoseHistory.clear();
 #endif
 	}
-	m_LocalizationCommonMap = Map(m_Config.m_MapRes_w);
+	m_LocalizationCommonMap = OccupancyMap(m_Config.m_MapRes_w);
 
 	m_RngResample.seed(RNG_DEFAULT_SEED);
 
@@ -135,7 +135,7 @@ void Localizer::Update(const Chassis::ChassisInputs& inputs, const std::vector<S
 			Scan::CompensateScanMotion(m_RealScanPolarFiltered, *m_pChassisModel, p.m_InputsRnd, m_ScanPolarCompensated);
 
 			// Calculate weight. Which map to use depends on mode.
-			const Map& mapCalcWeight = mode == Mode::LOC_AND_MAP ? p.m_Map : m_LocalizationCommonMap;
+			const OccupancyMap& mapCalcWeight = mode == Mode::LOC_AND_MAP ? p.m_Map : m_LocalizationCommonMap;
 			float weight = CalculateParticleWeight(particleSensorPose, mapCalcWeight, m_ScanDirections, m_ScanPolarCompensated);
 			p.m_Weight = weight;
 
@@ -307,7 +307,7 @@ void Localizer::UpdateMeanPose()
 	m_MeanPose = Pose(meanPos.x, meanPos.y, meanDir);
 }
 
-void Localizer::GetScan(const Pose& sensorPose, const Map& map, const std::vector<Vector2>& scanDirections, std::vector<float>& outScanDistances)
+void Localizer::GetScan(const Pose& sensorPose, const OccupancyMap& map, const std::vector<Vector2>& scanDirections, std::vector<float>& outScanDistances)
 {
 	ZoneScopedN("Localizer::GetScan");
 
@@ -338,11 +338,11 @@ void Localizer::GetScan(const Pose& sensorPose, const Map& map, const std::vecto
 
 			// Went beyond map bounds
 			Vector2 rasterizerPos = lineRasterizer.GetPos();
-			Map::TCellPos mapCellPos = map.PosWorldUnscaledToMap(rasterizerPos);
+			OccupancyMap::TCellPos mapCellPos = map.PosWorldUnscaledToMap(rasterizerPos);
 			if (!map.IsMapPosWithinBounds(mapCellPos))
 				break;
 
-			Map::TCellData cellData = map.GetDataAtPos(mapCellPos);
+			OccupancyMap::TCellData cellData = map.GetDataAtPos(mapCellPos);
 
 			// We've hit cell which is known to be occupied
 			if (cellData > 0)
@@ -412,7 +412,7 @@ void Localizer::GetScan(const Pose& sensorPose, const Map& map, const std::vecto
 */
 
 
-void Localizer::ApplyScan(const Pose& sensorPose, Map& map, const std::vector<Vector2>& scanDirections, const std::vector<Sensor::ScanSample>& scanPolar, int l2FreeCell, int l2OccupiedCell)
+void Localizer::ApplyScan(const Pose& sensorPose, OccupancyMap& map, const std::vector<Vector2>& scanDirections, const std::vector<Sensor::ScanSample>& scanPolar, int l2FreeCell, int l2OccupiedCell)
 {
 	ZoneScopedN("Localizer::ApplyScan");
 
@@ -446,12 +446,12 @@ void Localizer::ApplyScan(const Pose& sensorPose, Map& map, const std::vector<Ve
 		// _u means Unscaled
 		float rayDist_u = rayDist_w / m_Config.m_MapRes_w;
 
-		Map::TCellPos lastMapCellPos = map.PosWorldUnscaledToMap(lineStart_u + lineDir * rayDist_u);
+		OccupancyMap::TCellPos lastMapCellPos = map.PosWorldUnscaledToMap(lineStart_u + lineDir * rayDist_u);
 
 		while (true)
 		{
 			Vector2 rasterizerPos = lineRasterizer.GetPos();
-			Map::TCellPos mapCellPos = map.PosWorldUnscaledToMap(rasterizerPos);
+			OccupancyMap::TCellPos mapCellPos = map.PosWorldUnscaledToMap(rasterizerPos);
 
 			if (mapCellPos == lastMapCellPos)
 				break;
@@ -462,7 +462,7 @@ void Localizer::ApplyScan(const Pose& sensorPose, Map& map, const std::vector<Ve
 			cellData -= l2FreeCell;
 			if (cellData <= -128)
 				cellData = -128;
-			map.SetDataAtPos(mapCellPos, static_cast<Map::TCellData>(cellData));
+			map.SetDataAtPos(mapCellPos, static_cast<OccupancyMap::TCellData>(cellData));
 
 			// Advance one cell further
 			++lineRasterizer;
@@ -478,7 +478,7 @@ void Localizer::ApplyScan(const Pose& sensorPose, Map& map, const std::vector<Ve
 		if (cellData >= 127)
 			cellData = 127;
 
-		map.SetDataAtPos(lastMapCellPos, static_cast<Map::TCellData>(cellData));
+		map.SetDataAtPos(lastMapCellPos, static_cast<OccupancyMap::TCellData>(cellData));
 	}
 }
 
@@ -541,7 +541,7 @@ void Localizer::ApplyScan(const Pose& sensorPose, Map& map, std::vector<Sensor::
 }
 */
 
-float Localizer::CalculateParticleWeight(const Pose& particleSensorPose, const Map& map, const std::vector<Vector2>& scanDirections, const std::vector<Sensor::ScanSample>& realScanPolar)
+float Localizer::CalculateParticleWeight(const Pose& particleSensorPose, const OccupancyMap& map, const std::vector<Vector2>& scanDirections, const std::vector<Sensor::ScanSample>& realScanPolar)
 {
 	ZoneScopedN("Localizer::CalculateParticleWeight");
 

@@ -150,7 +150,7 @@ void ControlPanelServer::ProcessPipeMessage(PipeMsgBase* pMsg, bool& outTerminat
 		if (!GetConnected())
 			return;
 
-		Map& m = pMsgMap->m_Map;
+		OccupancyMap& m = pMsgMap->m_Map;
 
 		ControlPanelProtocol::MapDataHeader mapHeader;
 		mapHeader.m_Res_w = m.GetResolution_w();
@@ -164,7 +164,7 @@ void ControlPanelServer::ProcessPipeMessage(PipeMsgBase* pMsg, bool& outTerminat
 		for (uint y = 0; y < m.GetSize().y; y++)
 		{
 			for (uint x = 0; x < m.GetSize().x; x++)
-				writer.Write<Map::TCellData>(m.GetDataAtPos(Map::TCellPos(x, y)));
+				writer.Write<OccupancyMap::TCellData>(m.GetDataAtPos(OccupancyMap::TCellPos(x, y)));
 		}
 
 		SendMessage(MessageType::MSG_MAP, writer.GetNumBytesWritten(), g_SendBuffer);

@@ -127,7 +127,7 @@ bool PathCoordinator::PlanAndAssignPath()
 {
 	printf("PathCoordinator::PlanAndAssignPath()\n");
 
-	const Map& map = m_pLocalizer->GetRealTimeMap();
+	const OccupancyMap& map = m_pLocalizer->GetRealTimeMap();
 	const Pose& pose = m_pLocalizer->GetMeanPose();
 
 	m_pPathPlanner->PlanPath(map, pose, m_MoveToPos, m_MoveToPosRadius);
@@ -159,7 +159,7 @@ bool PathCoordinator::PlanAndAssignPath()
 
 bool PathCoordinator::CheckPathObstruction()
 {
-	const Map& map = m_pLocalizer->GetRealTimeMap();
+	const OccupancyMap& map = m_pLocalizer->GetRealTimeMap();
 
 	const auto& path = m_pPathFollower->GetPath();
 	uint currentPathPointId = m_pPathFollower->GetCurrentPointId();

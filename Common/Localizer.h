@@ -39,7 +39,7 @@ public:
 	{
 		Pose m_Pose; // Pose of car, not pose of sensor!
 		float m_Weight = 0;
-		Map m_Map;
+		OccupancyMap m_Map;
 		Chassis::ChassisInputs m_InputsRnd; // Randomized input values used for this particle
 
 #ifdef LOCALIZER_STORE_HISTORY
@@ -82,8 +82,8 @@ public:
 private:
 	Chassis::ChassisModel* m_pChassisModel = nullptr;
 	std::vector<Particle> m_Particles;
-	Map m_LocalizationCommonMap; // Map used in mode COMMON_LOC
-	Map m_RealTimeMap;
+	OccupancyMap m_LocalizationCommonMap; // Map used in mode COMMON_LOC
+	OccupancyMap m_RealTimeMap;
 	const Config m_Config;
 	std::minstd_rand m_RngResample;
 	Pose m_MeanPose; // Recalculated from Update
@@ -120,17 +120,17 @@ public:
 	const Particle& GetMostLikelyParticle() const;
 	const Pose& GetMeanPose() const { return m_MeanPose; }
 
-	const Map& GetLocalizationCommonMap() const { return m_LocalizationCommonMap; }
-	const Map& GetRealTimeMap() const { return m_RealTimeMap; }
+	const OccupancyMap& GetLocalizationCommonMap() const { return m_LocalizationCommonMap; }
+	const OccupancyMap& GetRealTimeMap() const { return m_RealTimeMap; }
 
 	// Diagnostics
 	const std::vector<HistoryEntry>& GetHistory() const { return m_History; }
 	const std::vector<Pose>& GetCommonPoseHistory() const { return m_CommonPoseHistory; }
 
 private:
-	void GetScan(const Pose& sensorPose, const Map& map, const std::vector<Vector2>& scanDirections, std::vector<float>& outScanDistances);
-	void ApplyScan(const Pose& particleSensorPose, Map& map, const std::vector<Vector2>& scanDirections, const std::vector<Sensor::ScanSample>& scanPolar, int l2FreeCell, int l2OccupiedCell);
-	float CalculateParticleWeight(const Pose& particleSensorPose, const Map& map, const std::vector<Vector2>& scanDirections, const std::vector<Sensor::ScanSample>& realScanPolar);
+	void GetScan(const Pose& sensorPose, const OccupancyMap& map, const std::vector<Vector2>& scanDirections, std::vector<float>& outScanDistances);
+	void ApplyScan(const Pose& particleSensorPose, OccupancyMap& map, const std::vector<Vector2>& scanDirections, const std::vector<Sensor::ScanSample>& scanPolar, int l2FreeCell, int l2OccupiedCell);
+	float CalculateParticleWeight(const Pose& particleSensorPose, const OccupancyMap& map, const std::vector<Vector2>& scanDirections, const std::vector<Sensor::ScanSample>& realScanPolar);
 	float SensorRayPdf(float realDist, float expectedDist);
 
 #ifdef LOCALIZER_STORE_HISTORY

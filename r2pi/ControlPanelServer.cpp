@@ -368,7 +368,7 @@ void ControlPanelServer::SendSensorData_mt(uint timestamp_ms, const std::vector<
 	PostPipeMessage(pMsg);
 }
 
-void ControlPanelServer::SendMap_mt(const Map& map)
+void ControlPanelServer::SendMap_mt(const OccupancyMap& map)
 {
 	if (!GetConnected())
 		return;

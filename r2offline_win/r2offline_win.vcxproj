@@ -139,11 +139,10 @@
     <ClCompile Include="..\Common\Config.cpp" />
     <ClCompile Include="..\Common\ConfigUtils.cpp" />
     <ClCompile Include="..\Common\CrashDetector.cpp" />
+    <ClCompile Include="..\Common\Exploration.cpp" />
     <ClCompile Include="..\Common\LineRasterizer.cpp" />
     <ClCompile Include="..\Common\Localizer.cpp" />
     <ClCompile Include="..\Common\LocalizerUtils.cpp" />
-    <ClCompile Include="..\Common\Map.cpp" />
-    <ClCompile Include="..\Common\MapUtils.cpp" />
     <ClCompile Include="..\Common\MathUtils.cpp" />
     <ClCompile Include="..\Common\PathCoordinator.cpp" />
     <ClCompile Include="..\Common\PathFinding.cpp" />
@@ -167,6 +166,7 @@
     <ClInclude Include="..\Common\Config.h" />
     <ClInclude Include="..\Common\ConfigUtils.h" />
     <ClInclude Include="..\Common\CrashDetector.h" />
+    <ClInclude Include="..\Common\Exploration.h" />
     <ClInclude Include="..\Common\LocalizerUtils.h" />
     <ClInclude Include="..\Common\MathUtils.h" />
     <ClInclude Include="..\Common\CommonIntTypes.h" />
