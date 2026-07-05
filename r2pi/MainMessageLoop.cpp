@@ -340,6 +340,11 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 
 				break;
 			}
+			case TCtrlPanelMsgType::MSG_EXPLORE:
+			{
+				m_pRobotCore->ExploreNextPosition();
+				break;
+			}
 			default:
 			{
 				fprintf(stderr, "MainMessageLoop: Received unknown Control Panel Protocol message type: %u",

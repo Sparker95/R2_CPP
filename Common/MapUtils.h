@@ -11,22 +11,27 @@
 
 namespace MapUtils
 {
+
+
 	template<typename TMap>
-	void FillCircle(TMap& map, Vector2 centerWorld, float radiusWorld, OccupancyMap::TCellData value)
+	void FillCircle(TMap& map, Vector2 centerWorld, float radiusWorld, int value)
 	{
+		using TCellPos = typename TMap::TCellPos;
+		using TCellData = typename TMap::TCellData;
+
 		float cellSize = map.GetResolution_w();
 
 		Vector2 centerLocal = centerWorld / cellSize;
 		float radiusLocal = radiusWorld / cellSize;
 
-		OccupancyMap::TCellPos minMap = map.PosWorldToMap(Vector2(centerLocal.x - radiusLocal, centerLocal.y - radiusLocal));
-		OccupancyMap::TCellPos maxMap = map.PosWorldToMap(Vector2(centerLocal.x + radiusLocal, centerLocal.y + radiusLocal));
+		TCellPos minMap = map.PosWorldToMap(Vector2(centerLocal.x - radiusLocal, centerLocal.y - radiusLocal));
+		TCellPos maxMap = map.PosWorldToMap(Vector2(centerLocal.x + radiusLocal, centerLocal.y + radiusLocal));
 
 		for (int y = minMap.y; y <= maxMap.y; y++)
 		{
 			for (int x = minMap.x; x <= maxMap.x; x++)
 			{
-				OccupancyMap::TCellPos cellPosMap(x, y);
+				TCellPos cellPosMap(x, y);
 				if (!map.IsMapPosWithinBounds(cellPosMap))
 					continue;
 
@@ -36,25 +41,28 @@ namespace MapUtils
 				if ((diffLocal.x * diffLocal.x + diffLocal.y * diffLocal.y) > radiusLocal * radiusLocal)
 					continue;
 
-				map.SetDataAtPos(cellPosMap, value);
+				map.SetDataAtPos(cellPosMap, static_cast<TCellData>(value));
 			}
 		}
 	}
 
 	template<typename TMap>
-	void FillRect(TMap& map, Vector2 minsWorld, Vector2 maxsWorld, OccupancyMap::TCellData value)
+	void FillRect(TMap& map, Vector2 minsWorld, Vector2 maxsWorld, int value)
 	{
-		OccupancyMap::TCellPos minMap = map.PosWorldToMap(minsWorld);
-		OccupancyMap::TCellPos maxMap = map.PosWorldToMap(maxsWorld);
+		using TCellPos = typename TMap::TCellPos;
+		using TCellData = typename TMap::TCellData;
+
+		TCellPos minMap = map.PosWorldToMap(minsWorld);
+		TCellPos maxMap = map.PosWorldToMap(maxsWorld);
 		for (int y = minMap.y; y <= maxMap.y; y++)
 		{
 			for (int x = minMap.x; x <= maxMap.x; x++)
 			{
-				OccupancyMap::TCellPos cellPosMap(x, y);
+				TCellPos cellPosMap(x, y);
 				if (!map.IsMapPosWithinBounds(cellPosMap))
 					continue;
 
-				map.SetDataAtPos(cellPosMap, value);
+				map.SetDataAtPos(cellPosMap, static_cast<TCellData>(value));
 			}
 		}
 	}
@@ -62,6 +70,10 @@ namespace MapUtils
 	template<typename TMap>
 	bool WriteMapToFile_L2Int(const TMap& map, const char* pFilePath, uint l2IntQuantization)
 	{
+		using TCellPos = typename TMap::TCellPos;
+		using TCellData = typename TMap::TCellData;
+		using TCellSize = typename TMap::TCellSize;
+
 		// Remember binary flag! Otherwise size measurement goes wrong, because of CRLF conversions.
 		std::ofstream f(pFilePath, std::ios_base::out | std::ios_base::binary);
 		if (!f.is_open())
@@ -70,8 +82,8 @@ namespace MapUtils
 		std::string outString;
 		StringWordWriter writer(outString);
 
-		OccupancyMap::TCellSize mapSize = map.GetSize();
-		OccupancyMap::TCellSize mapCenter = map.GetCenter();
+		TCellSize mapSize = map.GetSize();
+		TCellSize mapCenter = map.GetCenter();
 
 		writer.Write("MAP");
 		writer.Write("FORMAT");
@@ -105,8 +117,8 @@ namespace MapUtils
 
 			for (uint x = 0; x < mapSize.x; x++)
 			{
-				OccupancyMap::TCellPos cellPos(x, y);
-				OccupancyMap::TCellData value = map.GetDataAtPos(cellPos);
+				TCellPos cellPos(x, y);
+				TCellData value = map.GetDataAtPos(cellPos);
 				writer.Write<int>(static_cast<int>(value));
 			}
 			writer.WriteNewLine();
@@ -121,6 +133,10 @@ namespace MapUtils
 	template<typename TMap>
 	bool ReadMapFromFile_L2Int(const char* pFilePath, TMap& outMap, uint& outl2IntQuantization)
 	{
+		using TCellPos = typename TMap::TCellPos;
+		using TCellData = typename TMap::TCellData;
+		using TCellSize = typename TMap::TCellSize;
+
 		// Remember binary flag! Otherwise size measurement goes wrong, because of CRLF conversions.
 		std::ifstream f(pFilePath, std::ios_base::in | std::ios_base::binary);
 		if (!f.is_open())
@@ -186,7 +202,7 @@ namespace MapUtils
 		if (!reader.ReadCompareWord("MAP_DATA"))
 			return false;
 
-		outMap = OccupancyMap(xSize, ySize, xCenter, yCenter, mapRes_w);
+		outMap = TMap(xSize, ySize, xCenter, yCenter, mapRes_w);
 
 		for (uint y = 0; y < ySize; y++)
 		{
@@ -208,10 +224,10 @@ namespace MapUtils
 				if (!reader.Read<int>(cellData))
 					return false;
 
-				if ((cellData < -128) || (cellData > 127))
-					return false;
+				//if ((cellData < -128) || (cellData > 127))
+				//	return false;
 
-				outMap.SetDataAtPos(OccupancyMap::TCellPos(x, y), static_cast<OccupancyMap::TCellData>(cellData));
+				outMap.SetDataAtPos(TMap::TCellPos(x, y), static_cast<TCellData>(cellData));
 			}
 		}
 

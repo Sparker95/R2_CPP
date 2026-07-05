@@ -9,7 +9,7 @@
 const char* PathCoordinator::s_aStateText[5] = {
 	"IDLE",
 	"MOVING",
-	"PATH_OBSTR_BRAKING",
+	"PATH_OBSTR_STOPPING",
 	"PATH_OBSTR_WAITING_CLEAR",
 	"FAIL"
 };
@@ -35,10 +35,10 @@ void PathCoordinator::Reset()
 	m_MoveToPosRadius = 0;
 	m_MoveToPos = Vector2::ZERO;
 	SwitchToState(State::IDLE);
-	m_pPathFollower->Reset();
+	m_pPathFollower->ResetAndStop();
 }
 
-void PathCoordinator::Update(const ControlSensorFrame& frame)
+void PathCoordinator::Update()
 {
 	ZoneScopedN("PathCoordinator::Update");
 
@@ -48,9 +48,16 @@ void PathCoordinator::Update(const ControlSensorFrame& frame)
 			return;
 
 		// New movement has been requested. First ensure we stopped.
-		if (frame.IsMoving())
+		if (m_pPathFollower->GetState() == PathFollower::State::MOVING ||
+			m_pPathFollower->GetState() == PathFollower::State::ERROR)
 		{
-			printf("PathCoordinator: New movement requested, braking.\n");
+			m_pPathFollower->ResetAndStop();
+			printf("PathCoordinator: New movement requested, requesting ResetAndStop.\n");
+			return;
+		}
+		else if (m_pPathFollower->GetState() == PathFollower::State::STOPPING)
+		{
+			printf("PathCoordinator: New movement requested, waiting for stop.\n");
 			return;
 		}
 
@@ -72,7 +79,7 @@ void PathCoordinator::Update(const ControlSensorFrame& frame)
 			printf("PathCoordinator: PathFollower error.\n");
 			SwitchToState(State::FAIL);
 		}
-		else if (followerState == PathFollower::State::END || followerState == PathFollower::State::IDLE)
+		else if (followerState == PathFollower::State::IDLE)
 		{
 			printf("PathCoordinator: PathFollower has finished.\n");
 			Reset();
@@ -83,14 +90,14 @@ void PathCoordinator::Update(const ControlSensorFrame& frame)
 			if (!CheckPathObstruction())
 			{
 				printf("PathCoordinator: Path is obstructed, braking.\n");
-				m_pPathFollower->Reset();
-				SwitchToState(State::PATH_OBSTR_BRAKING);
+				m_pPathFollower->ResetAndStop();
+				SwitchToState(State::PATH_OBSTR_STOPPING);
 			}
 		}
 	}
-	else if (m_State == State::PATH_OBSTR_BRAKING)
+	else if (m_State == State::PATH_OBSTR_STOPPING)
 	{
-		if (frame.IsMoving())
+		if (m_pPathFollower->GetState() != PathFollower::State::IDLE)
 		{
 			printf("PathCoordinator: Path is obstructed, waiting for stop.\n");
 			return;
@@ -146,7 +153,7 @@ bool PathCoordinator::PlanAndAssignPath()
 	}
 	else
 	{
-		m_pPathFollower->Reset();
+		m_pPathFollower->ResetAndStop();
 
 		// Invoke OnPathPlanned
 		std::vector<PathFollower::PathPoint> emptyPath;

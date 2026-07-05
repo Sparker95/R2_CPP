@@ -8,6 +8,7 @@
 #include "PathFinding.h"
 #include "CrashDetector.h"
 #include "PathFollower.h"
+#include "Explorer.h"
 
 bool ConfigUtils::ReadChassisStatsConfig(const Config& config, Chassis::ChassisStatsConfig& outConfig)
 {
@@ -131,6 +132,22 @@ bool ConfigUtils::ReadPathFollowerConfig(const Config& cfg, PathFollowerConfig& 
 		cfg.Get("LookaheadDistance", tempConfig.m_LookaheadDistance) &&
 		cfg.Get("BrakeDistance", tempConfig.m_BrakeDist) &&
 		cfg.Get("Speed_m/s", tempConfig.m_Speed_mps);
+
+	if (!cfgSuccess)
+		return false;
+
+	outConfig = tempConfig;
+	return true;
+}
+
+bool ConfigUtils::ReadExplorerConfig(const Config& cfg, ExplorerConfig& outConfig)
+{
+	ExplorerConfig tempConfig;
+
+	cfg.SetSection("Explorer");
+
+	bool cfgSuccess = cfg.Get("DistMapThreshold_m", tempConfig.m_DistMapThreshold_m) &&
+		cfg.Get("MoveRadius_m", tempConfig.m_MoveRadius_m);
 
 	if (!cfgSuccess)
 		return false;

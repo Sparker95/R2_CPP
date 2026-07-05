@@ -45,6 +45,7 @@ namespace ControlPanelProtocol
 
 		// Commands
 		MSG_MOVE,                      // Requests movement to position
+		MSG_EXPLORE,                   // Run exploration algorithm and move to chosen position
 
 		//---------------------------------------------------
 		// Server to Client

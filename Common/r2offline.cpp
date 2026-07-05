@@ -36,6 +36,7 @@
 #include "PathFinding.h"
 #include "PathPlanner.h"
 #include "PathFollower.h"
+#include "Exploration.h"
 
 void TestReadStreamFile(const char* pFilePath)
 {
@@ -188,6 +189,39 @@ void TestPathFinding()
 	*/
 }
 
+void TestExploration()
+{
+	OccupancyMap map;
+	uint l2IntQuantization;
+
+	const char mapPath[] = "D:\\Projects\\Robot2\\Records\\Apartment 28 06 2026\\Room2.rmap";
+	const Vector2 START_POS_W(1.6, -0.2);
+
+	//const char mapPath[] = "D:\\Projects\\Robot2\\Records\\Legacy Encoder\\Office 26 Jan 2026\\Office1.rmap";
+	//const Vector2 START_POS_W(0, -13);
+
+	if (!MapUtils::ReadMapFromFile_L2Int(mapPath, map, l2IntQuantization))
+		return;
+
+
+	DistMap distMap = PathFinding::CalculateDistanceMap(map, 1); // Threshold = 1->unknown space is not obstacle
+
+	MapUtils::WriteMapToFile_L2Int(distMap, "TestExplorationDistanceMap.rmap", 8);
+
+	float DIST_MAP_THRESHOLD_W = 0.2;
+	std::unordered_set<Exploration::TCellPos> expCells;
+	ExpMap expMap = Exploration::CalculateExplorationMap(map, distMap, START_POS_W, DIST_MAP_THRESHOLD_W, expCells);
+
+	std::vector<std::unordered_set<Exploration::TCellPos>> cellComponents = Exploration::FindCellGraphComponents(expCells);
+
+	MapUtils::WriteMapToFile_L2Int(expMap, "TestExplorationMap.rmap", 8);
+
+	std::vector<Exploration::CellComponentEval> componentsEval;
+	Exploration::EvaluateSortCellComponents(cellComponents, expMap, componentsEval);
+
+	printf("Exploration Test finished!\n");
+}
+
 void TestConfigSections()
 {
 	Config config("D:\\Projects\\Robot2\\CPP\\Config\\TestSections.cfg");
@@ -234,7 +268,8 @@ int main(int argc, char* argv[])
 	//TestProjectPoint();
 
 	// WIP path finding tests
-	TestPathFinding();
+	//TestPathFinding();
+	TestExploration();
 	return 0;
 	//TestChassisCurvatureCalculation();
 	//TestConfigSections();

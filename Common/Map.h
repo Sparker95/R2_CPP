@@ -56,7 +56,7 @@ public:
 
 		// Init data
 		uint ttlSize = m_xSize * m_ySize;
-		std::memset(m_Data, CELL_VALUE_DEFAULT, ttlSize);
+		std::memset(m_Data, CELL_VALUE_DEFAULT, sizeof(TCellData) * ttlSize);
 	}
 
 	GridMap(uint xSize, uint ySize, uint xCenter, uint yCenter, float resolution_w) :
@@ -72,7 +72,7 @@ public:
 
 		// Init data
 		uint ttlSize = m_xSize * m_ySize;
-		std::memset(m_Data, CELL_VALUE_DEFAULT, ttlSize);
+		std::memset(m_Data, CELL_VALUE_DEFAULT, sizeof(TCellData) * ttlSize);
 	}
 
 	// Copy
@@ -89,7 +89,7 @@ public:
 		m_Data = new TCellData[m_xSize * m_ySize];
 
 		// memcpy takes majority of time here: ~100us
-		std::memcpy(m_Data, other.m_Data, m_xSize * m_ySize);
+		std::memcpy(m_Data, other.m_Data, sizeof(TCellData) * m_xSize * m_ySize);
 	}
 
 	// Assignment
@@ -115,7 +115,7 @@ public:
 		if (!m_Data)
 			m_Data = new TCellData[m_xSize * m_ySize];
 
-		std::memcpy(m_Data, other.m_Data, m_xSize * m_ySize);
+		std::memcpy(m_Data, other.m_Data, sizeof(TCellData) * m_xSize * m_ySize);
 
 		return *this;
 	}
@@ -187,7 +187,7 @@ public:
 			return;
 
 		uint ttlSize = m_xSize * m_ySize;
-		std::memset(m_Data, value, ttlSize);
+		std::memset(m_Data, value, sizeof(TCellData) * ttlSize);
 	}
 
 	// ##########################################################################################
@@ -315,7 +315,7 @@ public:
 
 		// Copy data
 		TCellData* newData = new TCellData[newxSize * newySize];
-		std::memset(newData, CELL_VALUE_DEFAULT, newxSize * newySize);
+		std::memset(newData, CELL_VALUE_DEFAULT, sizeof(TCellData) * newxSize * newySize);
 
 		uint xCopyStartDst = newxCenter - m_xCenter;
 		//uint xCopyEnd = newxCenter + m_xSize - m_xCenter;
@@ -325,7 +325,7 @@ public:
 		for (uint ySrc = 0; ySrc < m_ySize; ySrc++)
 		{
 			uint yDst = yCopyStartDst + ySrc;
-			std::memcpy(&newData[newxSize * yDst + xCopyStartDst], &m_Data[m_xSize * ySrc], m_xSize);
+			std::memcpy(&newData[newxSize * yDst + xCopyStartDst], &m_Data[m_xSize * ySrc], sizeof(TCellData) * m_xSize);
 		}
 
 		// Update member variables
@@ -344,7 +344,6 @@ public:
 		EnsureWorldBounds_Rect(mins_w, maxs_w);
 	}
 };
-
 
 //--------------------------------------------------------------------------------------------------------------------------
 // Common map types used in project

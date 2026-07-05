@@ -172,6 +172,12 @@
     <ClCompile Include="..\Common\PathCoordinator.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="..\Common\Explorer.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Common\Exploration.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\ControlPanelProtocol.h">
@@ -1351,6 +1357,12 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\PathCoordinator.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Explorer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Exploration.h">
       <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>

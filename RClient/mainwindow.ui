@@ -423,7 +423,7 @@
     <property name="geometry">
      <rect>
       <x>1330</x>
-      <y>620</y>
+      <y>730</y>
       <width>121</width>
       <height>31</height>
      </rect>
@@ -475,7 +475,7 @@
     <property name="geometry">
      <rect>
       <x>1330</x>
-      <y>660</y>
+      <y>780</y>
       <width>121</width>
       <height>31</height>
      </rect>
@@ -528,6 +528,19 @@
       <string>Real Time</string>
      </property>
     </widget>
+   </widget>
+   <widget class="QPushButton" name="ExploreButton">
+    <property name="geometry">
+     <rect>
+      <x>1330</x>
+      <y>680</y>
+      <width>121</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Explore</string>
+    </property>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">

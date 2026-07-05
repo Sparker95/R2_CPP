@@ -12,6 +12,7 @@ class CrashDetector;
 class PathPlanner;
 class PathFollower;
 class PathCoordinator;
+class Explorer;
 namespace Chassis
 {
 	class ChassisModel;
@@ -35,6 +36,7 @@ private:
 	PathPlanner* m_pPathPlanner;
 	PathFollower* m_pPathFollower;
 	PathCoordinator* m_pPathCoordinator;
+	Explorer* m_pExplorer;
 
 	ControlSensorFrame m_PrevFrame;
 	bool m_PrevFrameValid = false;
@@ -48,7 +50,7 @@ private:
 	
 public:
 	RobotCore(const Chassis::ChassisModel& chassisModel, Localizer& localizer, CrashDetector& crashDetector,
-		PathPlanner& pathPlanner, PathFollower& pathFollower, PathCoordinator& pathCoordinator);
+		PathPlanner& pathPlanner, PathFollower& pathFollower, PathCoordinator& pathCoordinator, Explorer& explorer);
 
 	void Update(const ControlSensorFrame& frame);
 
@@ -65,6 +67,8 @@ public:
 	const OutChassisControls& GetOutControls() const { return m_OutControls; }
 
 	void ResetLocalizer();
+
+	void ExploreNextPosition();
 
 	// Trivial getters
 	const Chassis::ChassisModel* GetChassisModel() { return m_pChassisModel; }

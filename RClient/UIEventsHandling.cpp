@@ -166,6 +166,14 @@ void MainWindow::SlotOnMoveButton()
 	//SendMessage(ControlPanelProtocol::MessageType::MSG_REQUEST_PATH, 0, nullptr);
 }
 
+void MainWindow::SlotOnExploreButton()
+{
+	if (!IsConnected())
+		return;
+
+	SendMessage(ControlPanelProtocol::MessageType::MSG_EXPLORE, 0, nullptr);
+}
+
 void MainWindow::SlotOnLocalizerModeButton()
 {
 	if (!IsConnected())

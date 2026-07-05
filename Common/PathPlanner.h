@@ -14,8 +14,8 @@ class PathPlanner
 	using uint = unsigned int;
 
 private:
-	PathFinding::Config m_PFConfig;
-	PathFollowerConfig m_FollowerConfig;
+	const PathFinding::Config m_PFConfig;
+	const PathFollowerConfig m_FollowerConfig;
 	std::vector<PathFollower::PathPoint> m_Path;
 
 public:

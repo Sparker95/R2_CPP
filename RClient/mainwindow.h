@@ -69,6 +69,7 @@ private slots:
 	void SlotOnLocalizerModeButton(); // Used for both radio buttons
 
 	void SlotOnMoveButton();
+	void SlotOnExploreButton();
 
 	void SlotOnEnableAutoControlsButton(bool checked = false);
 

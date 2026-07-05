@@ -198,10 +198,14 @@ DistMap PathFinding::CalculateStructureMap(const DistMap& distMap, float structu
 	return structureDistMap;
 }
 
-// Converts between distance map distance values and world values
-float DistanceMapValueToWorld(DistMap::TCellData distMapValue, float mapRes_w)
+float PathFinding::DistanceMapValueToWorld(DistMap::TCellData distMapValue, float mapRes_w)
 {
 	return static_cast<float>(static_cast<uint>(distMapValue)) / 3.0f * mapRes_w;
+}
+
+float PathFinding::WorldToDistanceMapValue(float worldValue, float mapRes_w)
+{
+	return 3.0f * (worldValue / mapRes_w);
 }
 
 bool PathFinding::CheckObstruction(const Config& config, const Vector2& pos, const Vector2& dir, const OccupancyMap& map, bool extendedCarScale)

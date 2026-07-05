@@ -140,6 +140,7 @@
     <ClCompile Include="..\Common\ConfigUtils.cpp" />
     <ClCompile Include="..\Common\CrashDetector.cpp" />
     <ClCompile Include="..\Common\Exploration.cpp" />
+    <ClCompile Include="..\Common\Explorer.cpp" />
     <ClCompile Include="..\Common\LineRasterizer.cpp" />
     <ClCompile Include="..\Common\Localizer.cpp" />
     <ClCompile Include="..\Common\LocalizerUtils.cpp" />
@@ -162,11 +163,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\Chassis.h" />
-    <ClInclude Include="..\Common\Common.h" />
     <ClInclude Include="..\Common\Config.h" />
     <ClInclude Include="..\Common\ConfigUtils.h" />
     <ClInclude Include="..\Common\CrashDetector.h" />
     <ClInclude Include="..\Common\Exploration.h" />
+    <ClInclude Include="..\Common\Explorer.h" />
     <ClInclude Include="..\Common\LocalizerUtils.h" />
     <ClInclude Include="..\Common\MathUtils.h" />
     <ClInclude Include="..\Common\CommonIntTypes.h" />
@@ -178,6 +179,7 @@
     <ClInclude Include="..\Common\PathFinding.h" />
     <ClInclude Include="..\Common\PathFollower.h" />
     <ClInclude Include="..\Common\PathPlanner.h" />
+    <ClInclude Include="..\Common\Pose.h" />
     <ClInclude Include="..\Common\ProbUtils.h" />
     <ClInclude Include="..\Common\RobotCore.h" />
     <ClInclude Include="..\Common\Scan.h" />

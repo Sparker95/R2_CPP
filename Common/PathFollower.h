@@ -5,6 +5,8 @@
 
 #include <vector>
 
+struct ControlSensorFrame;
+
 struct PathFollowerConfig
 {
 	float m_CompletionRadius = 0.06f;
@@ -55,17 +57,17 @@ public:
 	enum class State : unsigned char
 	{
 		IDLE,
-		RUNNING,
-		END,
+		MOVING,   // Moving
+		STOPPING, // Braking and waiting for stop
 		ERROR
 	};
 
 	PathFollower(const PathFollowerConfig& config);
 
 	// Main external interface
-	void Update(const Pose& pose);
+	void Update(const Pose& pose, const ControlSensorFrame& frame);
 	void FollowPath(const std::vector<PathPoint>& path);
-	void Reset();
+	void ResetAndStop();
 
 	// Getters
 	void GetOutputControls(float& outCurvature, float& outSpeed_mps, bool& outBrake) const
@@ -76,7 +78,6 @@ public:
 	}
 
 	State GetState() const                        { return m_State; }
-	bool GetStateRunning() const                  { return m_State == State::RUNNING; }
 	const Vector2& GetLookaheadPos() const        { return m_LookaheadPos; }
 	const std::vector<PathPoint>& GetPath() const { return m_Path; }
 	uint GetCurrentPointId() const                { return m_CurrentPointId; }
@@ -84,7 +85,7 @@ public:
 
 private:
 	std::vector<PathPoint> m_Path;
-	PathFollowerConfig m_Config;
+	const PathFollowerConfig m_Config;
 
 	// State of path following
 	Vector2 m_LookaheadPos;

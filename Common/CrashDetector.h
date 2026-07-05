@@ -28,7 +28,7 @@ public:
 	bool GetBrakeOverride_mt() const;
 
 private:
-	Config m_Config;
+	const Config m_Config;
 	const Chassis::ChassisModel* m_pChassisModel = nullptr;
 	std::atomic_bool m_BrakeOverride = false;
 };

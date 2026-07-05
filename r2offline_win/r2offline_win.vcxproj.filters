@@ -96,12 +96,12 @@
     <ClCompile Include="..\Common\Exploration.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="..\Common\Explorer.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Common\Vector2.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Common\Common.h">
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\LineRasterizer.h">
@@ -1104,6 +1104,12 @@
       <Filter>Common</Filter>
     </ClInclude>
     <ClInclude Include="..\Common\Exploration.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Explorer.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Common\Pose.h">
       <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>

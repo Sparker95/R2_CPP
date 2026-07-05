@@ -17,6 +17,7 @@
 #include "../Common/PathPlanner.h"
 #include "../Common/PathFollower.h"
 #include "../Common/PathCoordinator.h"
+#include "../Common/Explorer.h"
 
 #include "PlatformConfigUtils.h"
 
@@ -89,6 +90,7 @@ int main(int argc, char** argv)
 	Chassis::ChassisStatsConfig      chassisStatsConfig;
 	PathFinding::Config              pathFindingConfig;
 	PathFollowerConfig               pathFollowerConfig;
+	ExplorerConfig                   explorerConfig;
 	initDone = initDone && PlatformConfigUtils::ReadChassisInterfaceSettingsConfig(platformConfig, chassisIfSettings);
 	initDone = initDone && PlatformConfigUtils::ReadChassisControlSettingsConfig(platformConfig, chassisControlSettings);
 	initDone = initDone && PlatformConfigUtils::ReadSensorInterfaceSettingsConfig(platformConfig, sensorIfSettings);
@@ -97,6 +99,7 @@ int main(int argc, char** argv)
 	initDone = initDone && ConfigUtils::ReadChassisStatsConfig(mainConfig, chassisStatsConfig);
 	initDone = initDone && ConfigUtils::ReadPathFindingConfig(mainConfig, pathFindingConfig);
 	initDone = initDone && ConfigUtils::ReadPathFollowerConfig(mainConfig, pathFollowerConfig);
+	initDone = initDone && ConfigUtils::ReadExplorerConfig(mainConfig, explorerConfig);
 
 	if (!initDone)
 	{
@@ -125,8 +128,13 @@ int main(int argc, char** argv)
 	// Path coordinator
 	PathCoordinator pathCoordinator(localizer, pathPlanner, pathFollower);
 
+	// Explorer
+	Explorer explorer(pathCoordinator, explorerConfig);
+
 	// Core
-	RobotCore robotCore(chassisModel, localizer, crashDetector, pathPlanner, pathFollower, pathCoordinator);
+	RobotCore robotCore(chassisModel, localizer, crashDetector,
+		pathPlanner, pathFollower, pathCoordinator,
+		explorer);
 
 	// Sensor interface
 	SensorInterface sensor(sensorIfSettings);

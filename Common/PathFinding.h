@@ -63,7 +63,7 @@ namespace PathFinding
 		// Calculates and fills remaining values
 		void Init();
 
-		const Vector2& GetDirVector(uint dir_id) { return m_DirVectors[dir_id]; }
+		const Vector2& GetDirVector(uint dir_id) const { return m_DirVectors[dir_id]; }
 	};
 
 	struct Node
@@ -155,7 +155,7 @@ namespace PathFinding
 				{
 					uint centerValue = static_cast<uint>(distMap.GetDataAtPos({ i, j }));
 					if (centerValue > f)
-						distMap.SetDataAtPos({ i, j }, std::clamp(f, 0u, VALUE_MAX));
+						distMap.SetDataAtPos({ i, j }, static_cast<DistMap::TCellData>(std::clamp(f, 0u, VALUE_MAX)));
 				}
 			}
 		}
@@ -175,13 +175,17 @@ namespace PathFinding
 				{
 					uint centerValue = static_cast<uint>(distMap.GetDataAtPos({ i, j }));
 					if (centerValue > f)
-						distMap.SetDataAtPos({ i, j }, std::clamp(f, 0u, VALUE_MAX));
+						distMap.SetDataAtPos({ i, j }, static_cast<DistMap::TCellData>(std::clamp(f, 0u, VALUE_MAX)));
 				}
 			}
 		}
 
 		return distMap;
 	}
+
+	// Converts between distance map distance values and world values
+	float DistanceMapValueToWorld(DistMap::TCellData distMapValue, float mapRes_w);
+	float WorldToDistanceMapValue(float worldValue, float mapRes_w); // Caller decides how to round it
 
 	// Calculates smooth arcs between nodes
 	void CalculateSmoothTransition(const Config& config, const Node& nodeFrom, const Node& nodeTo, std::vector<Vector2>& outPositions, uint nIntervals, bool addLastPoint);

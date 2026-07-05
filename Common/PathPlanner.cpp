@@ -7,9 +7,8 @@
 using uint = unsigned int;
 
 PathPlanner::PathPlanner(const PathFinding::Config& pfConfig, const PathFollowerConfig& followerConfig)
+	: m_PFConfig(pfConfig), m_FollowerConfig(followerConfig)
 {
-	m_PFConfig = pfConfig;
-	m_FollowerConfig = followerConfig;
 }
 
 void PathPlanner::PlanPath(const OccupancyMap& map, const Pose& startPose, Vector2 destPos, float destRadius)

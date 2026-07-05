@@ -7,17 +7,19 @@
 #include "CrashDetector.h"
 #include "PathFollower.h"
 #include "PathCoordinator.h"
+#include "Explorer.h"
 
 #include <cstdio>
 
 RobotCore::RobotCore(const Chassis::ChassisModel& chassisModel, Localizer& localizer, CrashDetector& crashDetector,
-	PathPlanner& pathPlanner, PathFollower& pathFollower, PathCoordinator& pathCoordinator)
+	PathPlanner& pathPlanner, PathFollower& pathFollower, PathCoordinator& pathCoordinator, Explorer& explorer)
 	: m_pChassisModel(&chassisModel),
 	m_pLocalizer(&localizer),
 	m_pCrashDetector(&crashDetector),
 	m_pPathPlanner(&pathPlanner),
 	m_pPathFollower(&pathFollower),
-	m_pPathCoordinator(&pathCoordinator)
+	m_pPathCoordinator(&pathCoordinator),
+	m_pExplorer(&explorer)
 {
 }
 
@@ -48,31 +50,26 @@ void RobotCore::Update(const ControlSensorFrame& frame)
 		m_pLocalizer->Update(inputs, frame.m_ScanSamples, localizerMode);
 	}
 
+	// Explorer before PathCoordinator
+	// m_pExplorer->Update()
+
 	// PathCoordinator before Follower
-	m_pPathCoordinator->Update(frame);
+	m_pPathCoordinator->Update();
 
 	// Path follower and output controls values
 	const Pose& meanPose = m_pLocalizer->GetMeanPose();
-	if (m_pPathFollower->GetStateRunning())
-		m_pPathFollower->Update(meanPose);
+	m_pPathFollower->Update(meanPose, frame);
 
-	if (m_pPathFollower->GetStateRunning())
 	{
 		float ctrlCurvature, ctrlSpeed_mps;
 		bool ctrlBrake;
 		m_pPathFollower->GetOutputControls(ctrlCurvature, ctrlSpeed_mps, ctrlBrake);
 
 		m_OutControls.m_Steer = m_pChassisModel->CalculateSteeringInput(ctrlCurvature);
-		m_OutControls.m_Brake = false;
+		m_OutControls.m_Brake = ctrlBrake;
 		m_OutControls.m_MotorSpeed_Hz = m_pChassisModel->CalculateMotorFreqInput(ctrlSpeed_mps);
 
 		//printf("RobotCore::Update: Output controls: steer: %.3f speed: %.2f Hz\n", m_OutControls.m_Steer, m_OutControls.m_MotorSpeed_Hz);
-	}
-	else
-	{
-		m_OutControls.m_Steer = 0;
-		m_OutControls.m_MotorSpeed_Hz = 0;
-		m_OutControls.m_Brake = true;
 	}
 
 	m_PrevFrame = frame;
@@ -92,4 +89,11 @@ void RobotCore::SwitchLocalizerMode(Localizer::Mode newMode)
 bool RobotCore::GetBrakeOverride_mt() const
 {
 	return m_pCrashDetector->GetBrakeOverride_mt();
+}
+
+void RobotCore::ExploreNextPosition()
+{
+	const OccupancyMap& rtMap = m_pLocalizer->GetRealTimeMap();
+	const Pose& meanPose = m_pLocalizer->GetMeanPose();
+	m_pExplorer->ExploreNextPosition(rtMap, meanPose);
 }

@@ -2,6 +2,7 @@
 
 #include "MathUtils.h"
 #include "Utils.h"
+#include "ControlSensorFrame.h"
 
 #include <cmath>
 #include <cstdio>
@@ -9,8 +10,8 @@
 using uint = unsigned int;
 
 PathFollower::PathFollower(const PathFollowerConfig& config)
+	: m_Config(config)
 {
-	m_Config = config;
 }
 
 void PathFollower::FollowPath(const std::vector<PathPoint>& path)
@@ -51,36 +52,48 @@ void PathFollower::FollowPath(const std::vector<PathPoint>& path)
 
 	printf("PathFollower::FollowPath: Current point: %u, end point: %u\n", m_CurrentPointId, m_CurrentEndPointId);
 
-	m_State = State::RUNNING;
+	m_State = State::MOVING;
 }
 
-void PathFollower::Reset()
+void PathFollower::ResetAndStop()
 {
 	m_LookaheadPos = {};
 	m_Path.clear();
 	m_CurrentPointId = -1;
 	m_CurrentEndPointId = -1;
-	m_State = State::IDLE;
-
-	m_CtrlCurvature = 0;
-	m_CtrlSpeed_mps = 0;
-	m_CtrlBrake = true; // For safety
+	m_State = State::STOPPING; // Current speed is unknown, ensure we're stopped.
 }
 
-void PathFollower::Update(const Pose& pose)
+void PathFollower::Update(const Pose& pose, const ControlSensorFrame& frame)
 {
-	if (m_State != State::RUNNING)
-		return;
+	if (m_State == State::MOVING)
+	{
+		Vector2 vPoseDir(std::cos(pose.dir), std::sin(pose.dir));
 
-	Vector2 vPoseDir(std::cos(pose.dir), std::sin(pose.dir));
+		UpdateCurrentPathPoint(pose, vPoseDir); // Here state might switch to error
 
-	UpdateCurrentPathPoint(pose, vPoseDir); // Here state might switch to error
+		if (m_State == State::MOVING)
+			UpdateSteeringSolution(pose, vPoseDir);
 
-	if (m_State == State::RUNNING)
-		UpdateSteeringSolution(pose, vPoseDir);
-	
-	if (m_State == State::RUNNING)
-		UpdateSpeedSolution(pose, vPoseDir);
+		if (m_State == State::MOVING)
+			UpdateSpeedSolution(pose, vPoseDir);
+	}
+	else if (m_State == State::STOPPING)
+	{
+		if (frame.IsMoving())
+		{
+			m_CtrlBrake = true;
+			//m_CtrlCurvature = 0; // Leave it from last MOVING update to follow same curve even when stopping
+			m_CtrlSpeed_mps = 0;
+		}
+		else
+		{
+			m_CtrlBrake = true;
+			m_CtrlCurvature = 0;
+			m_CtrlSpeed_mps = 0;
+			m_State = State::IDLE;
+		}
+	}
 }
 
 void PathFollower::UpdateCurrentPathPoint(const Pose& pose, const Vector2& dir)
@@ -136,7 +149,7 @@ void PathFollower::UpdateCurrentPathPoint(const Pose& pose, const Vector2& dir)
 		else if (newCurrentPtId == (uint)m_Path.size() - 1) // Last extension point
 		{
 			printf("PathFollower::Update: Reached end of path\n");
-			m_State = State::END;
+			m_State = State::STOPPING;
 			return;
 		}
 
@@ -247,4 +260,5 @@ void PathFollower::UpdateSpeedSolution(const Pose& pose, const Vector2& dir)
 		// Linearly reduce speed as we approach the end point
 		m_CtrlSpeed_mps = speedSign * m_Config.m_Speed_mps * (distToEnd / m_Config.m_BrakeDist);
 	}
+	m_CtrlBrake = false;
 }

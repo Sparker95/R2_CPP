@@ -20,7 +20,7 @@ private:
 	{
 		IDLE = 0,
 		MOVING,
-		PATH_OBSTR_BRAKING,
+		PATH_OBSTR_STOPPING,
 		PATH_OBSTR_WAITING_CLEAR,
 		FAIL
 	};
@@ -38,7 +38,7 @@ private:
 
 public:
 	PathCoordinator(const Localizer& localizer, PathPlanner& planner, PathFollower& follower);
-	void Update(const ControlSensorFrame& frame);
+	void Update();
 	void MoveTo(const Vector2& pos, float radius);
 	void Reset();
 
