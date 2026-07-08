@@ -74,7 +74,7 @@ public:
 		uint m_nParticles = 32;
 		int m_L2IntOccupiedCell = 8; // Use Utils::L2FloatToL2Int()
 		int m_L2IntFreeCell = 8;
-		int m_L2IntOccupiedCell_RT = 8;
+		int m_L2IntOccupiedCell_RT = 8; // RT - for RealTime map
 		int m_L2IntFreeCell_RT = 8;
 		uint m_ScanDecimation = 1;
 	};

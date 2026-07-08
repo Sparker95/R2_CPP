@@ -44,8 +44,9 @@ namespace PathFinding
 
 		// Properties and costs and  of search
 		float m_HeuristicMult = 1.0f;
-		float m_OffStructureMult = 2.0f;  // Penalty of moving off structure map
-		float m_StructureMapWidth = 0.1f; // Width of skeleton
+		float m_OffStructureMult = 2.0f;    // Penalty of moving off structure map
+		float m_HitUnknownCellsMult = 2.0f; // Penalty for hitting unknown cells
+		float m_StructureMapWidth = 0.1f;   // Width of skeleton
 		uint m_MaxNodes = 1024;
 
 		// Multipliers of cost for each transition ID
@@ -194,7 +195,13 @@ namespace PathFinding
 	Node::Pose CalculateNodePose(const Config& config, float x, float y, float dir_rad);
 
 	// Checks if vehicle fits at position, returns true if fits
-	bool CheckObstruction(const Config& config, const Vector2& pos, const Vector2& dir, const OccupancyMap& map, bool extendedCarScale);
+	enum ECheckObstruction
+	{
+		FREE,
+		HIT_OCCUPIED_CELLS,
+		HIT_UNKNOWN_CELLS,
+	};
+	ECheckObstruction CheckObstruction(const Config& config, const Vector2& pos, const Vector2& dir, const OccupancyMap& map, bool extendedCarScale);
 
 	// The main path finding function
 	void FindPath(const Config& config, const OccupancyMap& map, const Node::Pose& startPose, const Vector2& destPos, float destRadius, PathFindingResult& outResult, bool extendedCarScale);

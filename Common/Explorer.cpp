@@ -22,7 +22,7 @@ void Explorer::ExploreNextPosition(const OccupancyMap& map, const Pose& pose)
 
 	std::unordered_set<Exploration::TCellPos> expCells;
 	ExpMap expMap = Exploration::CalculateExplorationMap(map, distMap, Vector2(pose.x, pose.y),
-		m_Config.m_DistMapThreshold_m, expCells);
+		m_Config.m_DistMapThreshold, expCells);
 
 	if (expCells.empty())
 	{
@@ -33,7 +33,7 @@ void Explorer::ExploreNextPosition(const OccupancyMap& map, const Pose& pose)
 	std::vector<std::unordered_set<Exploration::TCellPos>> cellComponents = Exploration::FindCellGraphComponents(expCells);
 
 	std::vector<Exploration::CellComponentEval> componentsEval;
-	Exploration::EvaluateSortCellComponents(cellComponents, expMap, componentsEval);
+	Exploration::EvaluateSortCellComponents(cellComponents, expMap, m_Config.m_MinDistToCell, componentsEval);
 
 	const Exploration::CellComponentEval& bestComp = componentsEval[0];
 	Vector2 bestCompPos = map.PosMapToWorld(bestComp.m_NearestCell);
@@ -41,5 +41,5 @@ void Explorer::ExploreNextPosition(const OccupancyMap& map, const Pose& pose)
 	printf("Explorer: Selected component at: %.1f %.1f, cells: %u, score: %.1f\n", bestCompPos.x, bestCompPos.y,
 		(uint)bestComp.m_pComponent->size(), bestComp.m_Score);
 
-	m_pPathCoordinator->MoveTo(bestCompPos, m_Config.m_MoveRadius_m);
+	m_pPathCoordinator->MoveTo(bestCompPos, m_Config.m_MoveRadius);
 }

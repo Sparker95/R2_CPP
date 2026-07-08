@@ -89,6 +89,7 @@ bool ConfigUtils::ReadPathFindingConfig(const Config& config, PathFinding::Confi
 		config.Get("CarScaleExtended",  tempConfig.m_CarScaleExtended) &&
 		config.Get("HeuristicMult",     tempConfig.m_HeuristicMult) &&
 		config.Get("OffStructureMult",  tempConfig.m_OffStructureMult) &&
+		config.Get("UnknownCellsMult",  tempConfig.m_HitUnknownCellsMult) &&
 		config.Get("StructureMapWidth", tempConfig.m_StructureMapWidth) &&
 		config.Get("MaxNumNodes",       tempConfig.m_MaxNodes) &&
 		config.Get("MultFwd",           tempConfig.m_MultFwd) &&
@@ -146,8 +147,9 @@ bool ConfigUtils::ReadExplorerConfig(const Config& cfg, ExplorerConfig& outConfi
 
 	cfg.SetSection("Explorer");
 
-	bool cfgSuccess = cfg.Get("DistMapThreshold_m", tempConfig.m_DistMapThreshold_m) &&
-		cfg.Get("MoveRadius_m", tempConfig.m_MoveRadius_m);
+	bool cfgSuccess = cfg.Get("DistMapThreshold", tempConfig.m_DistMapThreshold) &&
+		cfg.Get("MoveRadius", tempConfig.m_MoveRadius) &&
+		cfg.Get("MinDistToCell", tempConfig.m_MinDistToCell);
 
 	if (!cfgSuccess)
 		return false;

@@ -71,23 +71,6 @@ void Scan::ScanPolarToCart(const TScanPolar& scanPolar, TScanCart& outScanCart, 
 	}
 }
 
-void Scan::FilterScan(const float* scanPolar, uint scanPolarSize, float* outScanPolarFiltered, uint& outScanPolarFilteredSize)
-{
-	uint scanPolarFilteredSize = 0;
-	for (uint i = 0; i < scanPolarSize; i++)
-	{
-		float dist = scanPolar[i];
-		if (dist == SCAN_RAY_NO_HIT_VALUE)
-			continue;
-
-		outScanPolarFiltered[scanPolarFilteredSize] = dist;
-		scanPolarFilteredSize++;
-	}
-
-	outScanPolarFilteredSize = scanPolarFilteredSize;
-}
-
-
 void Scan::CompensateScanMotion(const std::vector<Sensor::ScanSample>& scanPolar,
 	const Chassis::ChassisModel& chassisModel, const Chassis::ChassisInputs& inputs, std::vector<Sensor::ScanSample>& outScanPolarComp)
 {

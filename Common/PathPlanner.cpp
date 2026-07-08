@@ -149,7 +149,8 @@ bool PathPlanner::CheckPathObstruction(const OccupancyMap& map, const std::vecto
 		if (point.m_Dir != Vector2::ZERO && (point.m_Type == TPathPointType::MAIN || point.m_Type == TPathPointType::MAIN_END))
 		{
 			// extendedCarScale = false - in path obstruction checks we use normal car size
-			if (!PathFinding::CheckObstruction(m_PFConfig, point.m_Pos, point.m_Dir, map, false))
+			if (PathFinding::CheckObstruction(m_PFConfig, point.m_Pos, point.m_Dir, map, false) ==
+				PathFinding::ECheckObstruction::HIT_OCCUPIED_CELLS)
 			{
 				if (pOutObstrPointId)
 					*pOutObstrPointId = pointId;

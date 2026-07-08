@@ -110,15 +110,17 @@ void SensorScanWidget::paintEvent(QPaintEvent *event)
 
         QPointF posRayStart(m_ChassisConfig.m_sensorOffsetFwd, m_ChassisConfig.m_sensorOffsetSide);
         uint nSamples = m_ScanPolar.size();
-        rayPosEnds.resize(nSamples);
+		rayPosEnds.reserve(nSamples);
 
         for (uint i = 0; i < nSamples; i++)
         {
             const Sensor::ScanSample& sample = m_ScanPolar[i];
+			if (sample.m_Dist_m == 0)
+				continue;
             float rayDir = sample.m_Angle_rad + m_ChassisConfig.m_sensorOffsetDir_rad;
             QPointF posRayEnd = posRayStart + QPointF(sample.m_Dist_m * std::cos(rayDir),
                                                       sample.m_Dist_m * std::sin(rayDir));
-            rayPosEnds[i] = posRayEnd;
+			rayPosEnds.push_back(posRayEnd);
         }
 
         for (QPointF& posRayEnd : rayPosEnds)

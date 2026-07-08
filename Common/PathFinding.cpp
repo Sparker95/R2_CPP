@@ -208,7 +208,7 @@ float PathFinding::WorldToDistanceMapValue(float worldValue, float mapRes_w)
 	return 3.0f * (worldValue / mapRes_w);
 }
 
-bool PathFinding::CheckObstruction(const Config& config, const Vector2& pos, const Vector2& dir, const OccupancyMap& map, bool extendedCarScale)
+ECheckObstruction PathFinding::CheckObstruction(const Config& config, const Vector2& pos, const Vector2& dir, const OccupancyMap& map, bool extendedCarScale)
 {
 	float mapRes_w = map.GetResolution_w();
 	Vector2 pos_u(pos.x / mapRes_w, pos.y / mapRes_w); // In unscaled coordinates(not world coordinates)
@@ -216,11 +216,11 @@ bool PathFinding::CheckObstruction(const Config& config, const Vector2& pos, con
 	OccupancyMap::TCellPos mapPos = map.PosWorldUnscaledToMap({ pos_u.x, pos_u.y });
 
 	if (!map.IsMapPosWithinBounds(mapPos))
-		return false;
+		return ECheckObstruction::HIT_OCCUPIED_CELLS;
 
 	// Check if this position is occupied
-	if (map.GetDataAtPos(mapPos) >= 0)
-		return false;
+	if (map.GetDataAtPos(mapPos) > 0)
+		return ECheckObstruction::HIT_OCCUPIED_CELLS;
 
 	float carScale = extendedCarScale ? config.m_CarScaleExtended : config.m_CarScaleNormal;
 
@@ -234,6 +234,7 @@ bool PathFinding::CheckObstruction(const Config& config, const Vector2& pos, con
 
 	// Iterate spans of rectangle
 	OccupancyMap::TCellSize mapCenter = map.GetCenter();
+	uint nUnknownCells = 0;
 	for (const auto& span : rectSpans)
 	{
 		int y_map = span.y + mapCenter.y; // Indices are in map's native form
@@ -244,20 +245,26 @@ bool PathFinding::CheckObstruction(const Config& config, const Vector2& pos, con
 		// If either end doesn't fit, we're out of map
 
 		if (!map.IsMapPosWithinBounds({ xStart_map, y_map }))
-			return false;
+			return ECheckObstruction::HIT_OCCUPIED_CELLS;
 
 		if (!map.IsMapPosWithinBounds({ xEnd_map, y_map }))
-			return false;
+			return ECheckObstruction::HIT_OCCUPIED_CELLS;
 
 		// This line span is inside map, check individual cells
 		for (int x_map = xStart_map; x_map <= xEnd_map; x_map++)
 		{
-			if (map.GetDataAtPos({ x_map, y_map }) >= 0)
-				return false;
+			auto cellValue = map.GetDataAtPos({ x_map, y_map });
+			if (cellValue > 0)
+				return ECheckObstruction::HIT_OCCUPIED_CELLS;
+			else if (cellValue == 0)
+				nUnknownCells++;
 		}
 	}
 
-	return true;
+	if (nUnknownCells != 0)
+		return ECheckObstruction::HIT_UNKNOWN_CELLS;
+	else
+		return ECheckObstruction::FREE;
 }
 
 void RestorePath(const Node& endNode, const std::vector<Node>& allNodes, std::vector<Node>& outNodes)
@@ -424,10 +431,11 @@ void PathFinding::FindPath(const Config& config, const OccupancyMap& map, const 
 		openSet.erase(openSet.begin() + minFScoreOpenSetId);
 
 		// Check collision at this node, skip it if car can't be here
-		if (!CheckObstruction(config,
+		ECheckObstruction obstruction = CheckObstruction(config,
 			{ allNodes[currentNodeId].m_Pose.x, allNodes[currentNodeId].m_Pose.y },
 			config.m_DirVectors[allNodes[currentNodeId].m_Pose.dir],
-			map, extendedCarScale))
+			map, extendedCarScale);
+		if (obstruction == ECheckObstruction::HIT_OCCUPIED_CELLS)
 			continue;
 
 		// We have arrived
@@ -448,7 +456,7 @@ void PathFinding::FindPath(const Config& config, const OccupancyMap& map, const 
 			// Instantly check if it's out of bounds or is instantly in obstacle
 			if (!map.IsMapPosWithinBounds(neighborNodeMapPos))
 				continue;
-			if (map.GetDataAtPos(neighborNodeMapPos) >= 0)
+			if (map.GetDataAtPos(neighborNodeMapPos) > 0)
 				continue;
 
 			// However don't do full collision test yet
@@ -458,6 +466,8 @@ void PathFinding::FindPath(const Config& config, const OccupancyMap& map, const 
 			edgeWeight *= config.m_StepDist;
 			if (structureMap.GetDataAtPos(neighborNodeMapPos) != 1) // If we step out of structure
 				edgeWeight *= config.m_OffStructureMult;
+			if (obstruction == ECheckObstruction::HIT_UNKNOWN_CELLS)
+				edgeWeight *= config.m_HitUnknownCellsMult;
 
 			float neighborNodeG = allNodes[currentNodeId].m_G + edgeWeight;
 

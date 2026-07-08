@@ -175,19 +175,26 @@ std::vector<std::unordered_set<TCellPos>> Exploration::FindCellGraphComponents(s
 	return components;
 }
 
-Exploration::CellComponentEval Exploration::EvaluateCellComponent(const std::unordered_set<TCellPos>& cells, const ExpMap& explorationMap)
+bool Exploration::EvaluateCellComponent(const std::unordered_set<TCellPos>& cells,
+	const ExpMap& explorationMap, float excludeDist_w, Exploration::CellComponentEval& outResult)
 {
 	// Closer is better, bigger number of connected cells is better
 	// distScore = 1 / (1 + min dist to any cell in cellsSet)
 	// compSizeScore = cellsSet.size()
 	// score = compSizeScore * distScore
 
-	TCellPos nearestCell = *cells.begin();
-	ExpMap::TCellData minDist_m = explorationMap.GetDataAtPos(nearestCell); // _m stands for "Map" units!
+	TCellPos nearestCell;
+	ExpMap::TCellData minDist_m = 0xFFFF; // _m stands for "Map" units!
+	ExpMap::TCellData excludeDist_m = static_cast<ExpMap::TCellData>(excludeDist_w / explorationMap.GetResolution_w());
 
 	for (const TCellPos& cell : cells)
 	{
 		ExpMap::TCellData dist_m = explorationMap.GetDataAtPos(cell);
+
+		// Ignore if cell is too close
+		if (dist_m < excludeDist_m)
+			continue;
+
 		if (dist_m < minDist_m)
 		{
 			minDist_m = dist_m;
@@ -195,22 +202,30 @@ Exploration::CellComponentEval Exploration::EvaluateCellComponent(const std::uno
 		}
 	}
 
+	// All cells are too close, this component should not be used for exploration as it's too close
+	if (minDist_m == 0xFFFF)
+		return false;
+
 	float distScore = 1 / (1 + static_cast<float>(minDist_m));
 	float compSizeScore = static_cast<float>(cells.size());
 	float score = 1000.0f * distScore * compSizeScore; // Scale for better range
 
-	return { &cells, score, nearestCell };
+	outResult = { &cells, score, nearestCell };
+
+	return true;
 }
 
 void Exploration::EvaluateSortCellComponents(const std::vector<std::unordered_set<TCellPos>>& cellComponents, const ExpMap& explorationMap,
-	std::vector<Exploration::CellComponentEval>& outEvalResults)
+	float excludeDist_w, std::vector<Exploration::CellComponentEval>& outEvalResults)
 {
 	outEvalResults.reserve(cellComponents.size());
 	
 	for (const auto& component : cellComponents)
 	{
-		TCellPos nearestCell;
-		outEvalResults.push_back(EvaluateCellComponent(component, explorationMap));
+		CellComponentEval evalResult;
+		if (!EvaluateCellComponent(component, explorationMap, excludeDist_w, evalResult))
+			continue;
+		outEvalResults.push_back(evalResult);
 	}
 
 	std::sort(outEvalResults.begin(), outEvalResults.end(), [](const CellComponentEval& a, const CellComponentEval& b)

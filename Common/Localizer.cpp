@@ -45,8 +45,12 @@ void Localizer::Reset()
 #endif
 	}
 	m_LocalizationCommonMap = OccupancyMap(m_Config.m_MapRes_w);
+	m_RealTimeMap = OccupancyMap(m_Config.m_MapRes_w);
+
+	m_MeanPose = {};
 
 	m_RngResample.seed(RNG_DEFAULT_SEED);
+
 
 #ifdef LOCALIZER_STORE_HISTORY
 	m_History.clear();
@@ -85,8 +89,7 @@ void Localizer::Update(const Chassis::ChassisInputs& inputs, const std::vector<S
 	m_RealScanPolarFiltered.clear();
 	for (const auto& sample : realScanPolar)
 	{
-		if (sample.m_Dist_m == Scan::SCAN_RAY_NO_HIT_VALUE ||
-			sample.m_Dist_m > m_Config.m_SensorScanRange)
+		if (sample.m_Dist_m == Scan::SCAN_RAY_NO_HIT_VALUE)
 			continue;
 		m_RealScanPolarFiltered.push_back(sample);
 	}
@@ -437,11 +440,19 @@ void Localizer::ApplyScan(const Pose& sensorPose, OccupancyMap& map, const std::
 
 		LineRasterizer lineRasterizer(lineStart_u.x, lineStart_u.y, lineDir.x, lineDir.y);
 		float rayDist_w = scanPolar[i].m_Dist_m;
-		bool rayHit = rayDist_w != Scan::SCAN_RAY_NO_HIT_VALUE; // Did ray hit something?
+		bool rayHit;
 
-		// No-hit rays are ignored
-		if (!rayHit)
-			continue;
+		if (rayDist_w > m_Config.m_SensorScanRange)
+		{
+			// Ray hit something out of range: mark up to m_SensorScanRange as free space
+			rayDist_w = m_Config.m_SensorScanRange;
+			rayHit = false;
+		}
+		else
+		{
+			// Ray has valid measurement: mark up to rayDist_w as free space, and mark last cell occupied
+			rayHit = true;
+		}
 
 		// _u means Unscaled
 		float rayDist_u = rayDist_w / m_Config.m_MapRes_w;
@@ -472,13 +483,16 @@ void Localizer::ApplyScan(const Pose& sensorPose, OccupancyMap& map, const std::
 				break;
 		}
 
-		// Handle last cell
-		int cellData = static_cast<int>(map.GetDataAtPos(lastMapCellPos));
-		cellData += l2OccupiedCell;
-		if (cellData >= 127)
-			cellData = 127;
+		// Mark last cell occupied
+		if (rayHit)
+		{
+			int cellData = static_cast<int>(map.GetDataAtPos(lastMapCellPos));
+			cellData += l2OccupiedCell;
+			if (cellData >= 127)
+				cellData = 127;
 
-		map.SetDataAtPos(lastMapCellPos, static_cast<OccupancyMap::TCellData>(cellData));
+			map.SetDataAtPos(lastMapCellPos, static_cast<OccupancyMap::TCellData>(cellData));
+		}
 	}
 }
 
@@ -552,7 +566,15 @@ float Localizer::CalculateParticleWeight(const Pose& particleSensorPose, const O
 	for (uint i = 0; i < nSamples; i+= m_Config.m_ScanDecimation)
 	{
 		float expectedDist = m_ExpectedScanDists[i];
-		float pdfValue = SensorRayPdf(realScanPolar[i].m_Dist_m, expectedDist);
+		float realDist = realScanPolar[i].m_Dist_m;
+
+		// Ignore no-hit rays and rays beyond scan range
+		if (realDist == Scan::SCAN_RAY_NO_HIT_VALUE ||
+			expectedDist == Scan::SCAN_RAY_NO_HIT_VALUE ||
+			realDist > m_Config.m_SensorScanRange)
+			continue;
+
+		float pdfValue = SensorRayPdf(realDist, expectedDist);
 		weight *= pdfValue;
 	}
 
@@ -561,9 +583,6 @@ float Localizer::CalculateParticleWeight(const Pose& particleSensorPose, const O
 
 float Localizer::SensorRayPdf(float realDist, float expectedDist)
 {
-	if (expectedDist == Scan::SCAN_RAY_NO_HIT_VALUE)
-		return m_Config.m_SensorPdfFloor;
-
 	// https://www.desmos.com/calculator/oa2gg8rzuk
 	float diff = realDist - expectedDist;
 	float diffNorm = diff / m_Config.m_SensorPdfHalfWidth;
