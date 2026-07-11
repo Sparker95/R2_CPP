@@ -3,6 +3,7 @@
 #include "TracyPlug.h"
 
 #include <cstdio>
+#include <cmath>
 
 using uint = unsigned int;
 
@@ -11,41 +12,21 @@ PathPlanner::PathPlanner(const PathFinding::Config& pfConfig, const PathFollower
 {
 }
 
-void PathPlanner::PlanPath(const OccupancyMap& map, const Pose& startPose, Vector2 destPos, float destRadius)
+void PathPlanner::ProcessPath(const std::vector<PathFinding::Node>& pfResultNodes, std::vector<PathFollower::PathPoint>& outPath) const
 {
-	ZoneScopedN("PathPlanner::CheckPathObstruction");
+	ZoneScopedN("PathPlanner::ProcessPath");
 
-	// Reset the stored path either way
-	ResetPath();
-
-	PathFinding::Node::Pose startNodePose = PathFinding::CalculateNodePose(m_PFConfig,
-		startPose.x, startPose.y, startPose.dir);
-
-	printf("PathPlanner::PlanPath: %.3f %.3f %.3f -> %.3f %.3f r%.3f\n",
-		startPose.x, startPose.y, startPose.dir,
-		destPos.x, destPos.y, destRadius);
-
-	PathFinding::PathFindingResult pfResult;
-	// extendedCarScale = true - in path finding we use extended, bigger car size, to get path further from everything.
-	PathFinding::FindPath(m_PFConfig, map, startNodePose, destPos, destRadius, pfResult, true);
-
-	if (pfResult.m_Nodes.empty())
-	{
-		printf("PathPlanner::PlanPath: Failed to find path\n");
-		return;
-	}
-
-	printf("PathPlanner::PlanPath: Found path: %u nodes, %u explored\n", (uint)pfResult.m_Nodes.size(), pfResult.m_NodesExplored);
+	outPath.clear();
 
 	// Post processing of path
 	// - Smoothing of arcs
 	// - Extension points for path planner when direction changes
 	const float extensionDistance = 3.0f * m_FollowerConfig.m_LookaheadDistance; // Must be several times larger
 	std::vector<Vector2> tempSmoothPoints;
-	for (uint i = 0; i < (uint)pfResult.m_Nodes.size()-1; i++)
+	for (uint i = 0; i < (uint)pfResultNodes.size() - 1; i++)
 	{
-		const PathFinding::Node& node = pfResult.m_Nodes[i];
-		const PathFinding::Node& nextNode = pfResult.m_Nodes[i + 1];
+		const PathFinding::Node& node = pfResultNodes[i];
+		const PathFinding::Node& nextNode = pfResultNodes[i + 1];
 
 		bool nodeFwd = PathFinding::IsTransitionForward(node.m_InTransId);
 		bool nextNodeFwd = PathFinding::IsTransitionForward(nextNode.m_InTransId);
@@ -55,8 +36,8 @@ void PathPlanner::PlanPath(const OccupancyMap& map, const Pose& startPose, Vecto
 		if (addExtension)
 		{
 			// Last added point must be marked as end point
-			if (!m_Path.empty())
-				m_Path.rbegin()->m_Type = PathFollower::PathPoint::Type::MAIN_END;
+			if (!outPath.empty())
+				outPath.rbegin()->m_Type = PathFollower::PathPoint::Type::MAIN_END;
 
 			const Vector2& nodeDirVector = m_PFConfig.m_DirVectors[node.m_Pose.dir];
 			float extensionDirSign = nodeFwd ? 1.0f : -1.0f;
@@ -66,7 +47,7 @@ void PathPlanner::PlanPath(const OccupancyMap& map, const Pose& startPose, Vecto
 			fpp.m_Pos = extensionPointPos;
 			fpp.m_OutMoveFwd = nextNodeFwd; // Same as main node
 			fpp.m_Type = PathFollower::PathPoint::Type::EXTENSION;
-			m_Path.push_back(fpp);
+			outPath.push_back(fpp);
 		}
 
 		PathFinding::CalculateSmoothTransition(m_PFConfig, node, nextNode,
@@ -102,17 +83,17 @@ void PathPlanner::PlanPath(const OccupancyMap& map, const Pose& startPose, Vecto
 			else
 				fpp.m_Type = PathFollower::PathPoint::Type::MAIN_SMOOTH;
 
-			m_Path.push_back(fpp);
+			outPath.push_back(fpp);
 		}
 	}
 
 	// Special handling for last node. Extend it too.
 	{
-		const PathFinding::Node& lastNode = *pfResult.m_Nodes.rbegin();
+		const PathFinding::Node& lastNode = *pfResultNodes.rbegin();
 		bool lastNodeFwd = PathFinding::IsTransitionForward(lastNode.m_InTransId);
 
-		if (!m_Path.empty())
-			m_Path.rbegin()->m_Type = PathFollower::PathPoint::Type::MAIN_END;
+		if (!outPath.empty())
+			outPath.rbegin()->m_Type = PathFollower::PathPoint::Type::MAIN_END;
 
 		const Vector2& nodeDirVector = m_PFConfig.m_DirVectors[lastNode.m_Pose.dir];
 		float extensionDirSign = lastNodeFwd ? 1.0f : -1.0f;
@@ -122,17 +103,71 @@ void PathPlanner::PlanPath(const OccupancyMap& map, const Pose& startPose, Vecto
 		fpp.m_Pos = extensionPointPos;
 		fpp.m_OutMoveFwd = lastNodeFwd; // Same direction as we came here
 		fpp.m_Type = PathFollower::PathPoint::Type::EXTENSION;
-		m_Path.push_back(fpp);
+		outPath.push_back(fpp);
 	}
 
 	// Calculate m_DistFromStart for each point
-	m_Path[0].m_DistFromStart = 0;
+	outPath[0].m_DistFromStart = 0;
 	for (uint i = 1; i < (uint)m_Path.size(); i++)
 	{
-		auto& prevPt = m_Path[i - 1];
-		auto& thisPt = m_Path[i];
+		auto& prevPt = outPath[i - 1];
+		auto& thisPt = outPath[i];
 		thisPt.m_DistFromStart = prevPt.m_DistFromStart + Vector2::Distance(prevPt.m_Pos, thisPt.m_Pos);
 	}
+}
+
+void PathPlanner::PlanPath(const OccupancyMap& map, const Pose& startPose, Vector2 destPos, float destRadius)
+{
+	ZoneScopedN("PathPlanner::PlanPath");
+
+	// Reset the stored path either way
+	ResetPath();
+
+	PathFinding::Node::Pose startNodePose = PathFinding::CalculateNodePose(m_PFConfig,
+		startPose.x, startPose.y, startPose.dir);
+
+	printf("PathPlanner::PlanPath: %.3f %.3f %.3f -> %.3f %.3f r%.3f\n",
+		startPose.x, startPose.y, startPose.dir,
+		destPos.x, destPos.y, destRadius);
+
+	PathFinding::PathFindingResult pfResult;
+	// extendedCarScale = true - in path finding we use extended, bigger car size, to get path further from everything.
+	PathFinding::FindPath(m_PFConfig, map, startNodePose, destPos, destRadius, pfResult, true);
+
+	if (pfResult.m_Nodes.empty())
+	{
+		printf("PathPlanner::PlanPath: Failed to find path\n");
+		return;
+	}
+
+	printf("PathPlanner::PlanPath: Found path: %u nodes, %u explored\n", (uint)pfResult.m_Nodes.size(), pfResult.m_NodesExplored);
+
+	ProcessPath(pfResult.m_Nodes, m_Path);
+}
+
+void PathPlanner::PlanUnobstructPath(const OccupancyMap& map, const Pose& startPose)
+{
+	ZoneScopedN("PathPlanner::PlanUnobstructPath");
+
+	// Reset the stored path either way
+	ResetPath();
+
+	PathFinding::Node::Pose startNodePose = PathFinding::CalculateNodePose(m_PFConfig,
+		startPose.x, startPose.y, startPose.dir);
+
+	PathFinding::PathFindingResult pfResult;
+	// extendedCarScale = true - in path finding we use extended, bigger car size, to get path further from everything.
+	PathFinding::FindUnobstructPath(m_PFConfig, map, startNodePose, pfResult, true);
+
+	if (pfResult.m_Nodes.empty())
+	{
+		printf("PathPlanner::PlanPath: Failed to find unobstruct path\n");
+		return;
+	}
+
+	printf("PathPlanner::PlanUnobstructPath: Found path\n");
+
+	ProcessPath(pfResult.m_Nodes, m_Path);
 }
 
 bool PathPlanner::CheckPathObstruction(const OccupancyMap& map, const std::vector<PathFollower::PathPoint>& path, uint currentPathPointId, uint* pOutObstrPointId)
@@ -158,6 +193,30 @@ bool PathPlanner::CheckPathObstruction(const OccupancyMap& map, const std::vecto
 			}
 		}
 	}
+	return true;
+}
+
+bool PathPlanner::CheckPoseObstruction(const OccupancyMap& map, const Pose& pose) const
+{
+	ZoneScopedN("PathPlanner::CheckPoseObstruction");
+
+	// First pass: check the non quantized pose
+	Vector2 pos(pose.x, pose.y);
+	Vector2 dir(std::cos(pose.dir), std::sin(pose.dir));
+
+	// extendedCarScale = false - in path obstruction checks we use normal car size
+	if (PathFinding::CheckObstruction(m_PFConfig, pos, dir, map, false) == PathFinding::ECheckObstruction::HIT_OCCUPIED_CELLS)
+		return false;
+
+	// Second pass: also check the pose with direction quantized same as for regular path finding
+	PathFinding::Node::Pose startNodePose = PathFinding::CalculateNodePose(m_PFConfig,
+		pose.x, pose.y, pose.dir);
+
+	if (PathFinding::CheckObstruction(m_PFConfig,
+		{startNodePose.x, startNodePose.y}, m_PFConfig.GetDirVector(startNodePose.dir), map, false)
+		== PathFinding::ECheckObstruction::HIT_OCCUPIED_CELLS)
+		return false;
+
 	return true;
 }
 

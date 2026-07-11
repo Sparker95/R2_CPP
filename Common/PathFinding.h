@@ -203,6 +203,9 @@ namespace PathFinding
 	};
 	ECheckObstruction CheckObstruction(const Config& config, const Vector2& pos, const Vector2& dir, const OccupancyMap& map, bool extendedCarScale);
 
-	// The main path finding function
+	// The main path finding function. Finds path to destination.
 	void FindPath(const Config& config, const OccupancyMap& map, const Node::Pose& startPose, const Vector2& destPos, float destRadius, PathFindingResult& outResult, bool extendedCarScale);
+
+	// Finds path to nearest unobstructed position. Now considers only one move, as it should be enough.
+	void FindUnobstructPath(const Config& config, const OccupancyMap& map, const Node::Pose& startPose, PathFindingResult& outResult, bool extendedCarScale);
 }

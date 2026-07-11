@@ -185,7 +185,7 @@ bool Exploration::EvaluateCellComponent(const std::unordered_set<TCellPos>& cell
 
 	TCellPos nearestCell;
 	ExpMap::TCellData minDist_m = 0xFFFF; // _m stands for "Map" units!
-	ExpMap::TCellData excludeDist_m = static_cast<ExpMap::TCellData>(excludeDist_w / explorationMap.GetResolution_w());
+	ExpMap::TCellData excludeDist_m = static_cast<ExpMap::TCellData>(PathFinding::WorldToDistanceMapValue(excludeDist_w, explorationMap.GetResolution_w()));
 
 	for (const TCellPos& cell : cells)
 	{

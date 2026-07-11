@@ -19,9 +19,9 @@ private:
 	enum class State
 	{
 		IDLE = 0,
-		MOVING,
-		PATH_OBSTR_STOPPING,
-		PATH_OBSTR_WAITING_CLEAR,
+		MOVING,            // Moving to requested destination
+		MOVING_UNOBSTRUCT, // Moving on a path to leave obstruction
+		PATH_OBSTR,
 		FAIL
 	};
 	static const char* s_aStateText[5];
@@ -48,7 +48,15 @@ public:
 	void BindOnPathPlanned(F f) { m_OnPathPlanned.push_back(f); }
 
 private:
-	bool CheckPathObstruction();
+	bool CheckPathObstruction() const;
+	bool CheckCurrentPoseObstruction() const;
+
 	bool PlanAndAssignPath();
+	bool PlanAndAssignUnobstructPath();
+
 	void SwitchToState(State newState);
+
+	// Checks obstruction of current pose, then assigns unobstruction path or normal path, and switches state.
+	// This function is called from many states.
+	void ResolvePathAndState();
 };

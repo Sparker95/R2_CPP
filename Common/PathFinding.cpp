@@ -511,3 +511,63 @@ void PathFinding::FindPath(const Config& config, const OccupancyMap& map, const 
 	// If we are here, we failed to find path
 	return;
 }
+
+void PathFinding::FindUnobstructPath(const Config& config, const OccupancyMap& map, const Node::Pose& startPose, PathFindingResult& outResult, bool extendedCarScale)
+{
+	ZoneScopedN("PathFinding::FindUnobstructPath");
+
+	// Now the function doesn't do a proper BFS, but simply considers one move.
+
+	Node startNode;
+	startNode.m_Pose = startPose;
+	startNode.m_F = 0;
+	startNode.m_Id = 0;
+
+	std::vector<Node> allNodes;
+	allNodes.push_back(startNode);
+
+	std::vector<Node> neighborNodes;
+	neighborNodes.reserve(6);
+
+	FindNeighborNodes(config, startNode, neighborNodes);
+
+	for (Node& neighborNode : neighborNodes)
+	{
+		ECheckObstruction obstruction = CheckObstruction(config,
+			{ neighborNode.m_Pose.x, neighborNode.m_Pose.y },
+			config.m_DirVectors[neighborNode.m_Pose.dir],
+			map, extendedCarScale);
+
+		if (obstruction == ECheckObstruction::HIT_OCCUPIED_CELLS)
+			neighborNode.m_NodeFrom = -1; // Mark it invalid
+		else
+		{
+			float edgeWeight = 1.0f;
+			edgeWeight *= config.m_TransIdMult[neighborNode.m_InTransId];
+			edgeWeight *= config.m_StepDist;
+			neighborNode.m_G = edgeWeight; 
+		}
+	}
+
+	// Find node with best score
+	float minScore = std::numeric_limits<float>::max();
+	const Node* pMinScoreNode = nullptr;
+	for (Node& neighborNode : neighborNodes)
+	{
+		if (neighborNode.m_NodeFrom == -1)
+			continue;
+		if (neighborNode.m_G < minScore)
+		{
+			minScore = neighborNode.m_G;
+			pMinScoreNode = &neighborNode;
+		}
+	}
+
+	// No valid movement found -> failure
+	if (pMinScoreNode == nullptr)
+		return;
+
+	// Restore path
+	RestorePath(*pMinScoreNode, allNodes, outResult.m_Nodes);
+	outResult.m_NodesExplored = 1; // Diagnostics data, not important
+}

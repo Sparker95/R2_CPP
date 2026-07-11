@@ -217,7 +217,7 @@ void TestExploration()
 	MapUtils::WriteMapToFile_L2Int(expMap, "TestExplorationMap.rmap", 8);
 
 	std::vector<Exploration::CellComponentEval> componentsEval;
-	Exploration::EvaluateSortCellComponents(cellComponents, expMap, componentsEval);
+	Exploration::EvaluateSortCellComponents(cellComponents, expMap, 0.4f, componentsEval);
 
 	printf("Exploration Test finished!\n");
 }
