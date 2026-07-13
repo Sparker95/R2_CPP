@@ -3,6 +3,7 @@
 #include "Map.h"
 
 class PathCoordinator;
+class Localizer;
 struct Pose;
 
 // Explorer is ExplorationManager. It selects new map positions for exploration and commands the PathCoordinator.
@@ -17,11 +18,24 @@ struct ExplorerConfig
 class Explorer
 {
 private:
+	enum class State
+	{
+		IDLE,
+		ACTIVE,
+		ERROR
+	};
+
+private:
+	Localizer* m_pLocalizer = nullptr;
 	PathCoordinator* m_pPathCoordinator = nullptr;
 	const ExplorerConfig m_Config;
+	State m_State = State::IDLE;
+
+	bool FindExplorePosAndMove();
 
 public:
-	Explorer(PathCoordinator& pathCoordinator, const ExplorerConfig& config);
+	Explorer(Localizer& localizer, PathCoordinator& pathCoordinator, const ExplorerConfig& config);
 
-	void ExploreNextPosition(const OccupancyMap& map, const Pose& pose);
+	void StartExploration();
+	void Update();
 };

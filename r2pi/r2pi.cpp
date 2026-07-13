@@ -129,7 +129,7 @@ int main(int argc, char** argv)
 	PathCoordinator pathCoordinator(localizer, pathPlanner, pathFollower);
 
 	// Explorer
-	Explorer explorer(pathCoordinator, explorerConfig);
+	Explorer explorer(localizer, pathCoordinator, explorerConfig);
 
 	// Core
 	RobotCore robotCore(chassisModel, localizer, crashDetector,

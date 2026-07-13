@@ -6,12 +6,13 @@
 
 #include <cstdio>
 
-const char* PathCoordinator::s_aStateText[5] = {
+const char* PathCoordinator::s_aStateText[6] = {
 	"IDLE",
 	"MOVING",
 	"MOVING_UNOBSTRUCT",
-	"PATH_OBSTR_STOPPING",
-	"FAIL"
+	"PATH_OBSTR",
+	"COMPLETED",
+	"ERROR"
 };
 
 PathCoordinator::PathCoordinator(const Localizer& localizer, PathPlanner& planner, PathFollower& follower)
@@ -38,6 +39,15 @@ void PathCoordinator::Reset()
 	m_pPathFollower->ResetAndStop();
 }
 
+void PathCoordinator::Complete()
+{
+	printf("PathCoordinator::Complete()\n");
+	m_MoveToPosRadius = 0;
+	m_MoveToPos = Vector2::ZERO;
+	SwitchToState(State::COMPLETED);
+	m_pPathFollower->ResetAndStop();
+}
+
 void PathCoordinator::ResolvePathAndState()
 {
 	if (!CheckCurrentPoseObstruction())
@@ -46,12 +56,12 @@ void PathCoordinator::ResolvePathAndState()
 		if (PlanAndAssignUnobstructPath())
 			SwitchToState(State::MOVING_UNOBSTRUCT);
 		else
-			SwitchToState(State::FAIL);
+			SwitchToState(State::ERROR);
 	}
 	else if (PlanAndAssignPath())
 		SwitchToState(State::MOVING);
 	else
-		SwitchToState(State::FAIL);
+		SwitchToState(State::ERROR);
 }
 
 void PathCoordinator::Update()
@@ -61,6 +71,7 @@ void PathCoordinator::Update()
 	switch (m_State)
 	{
 		case State::IDLE:
+		case State::COMPLETED: // Idle and completed work same
 		{
 			if (m_MoveToPosRadius == 0)
 				return;
@@ -90,12 +101,12 @@ void PathCoordinator::Update()
 			if (followerState == PathFollower::State::ERROR)
 			{
 				printf("PathCoordinator: PathFollower error.\n");
-				SwitchToState(State::FAIL);
+				SwitchToState(State::ERROR);
 			}
 			else if (followerState == PathFollower::State::IDLE)
 			{
 				printf("PathCoordinator: PathFollower has finished.\n");
-				Reset();
+				Complete();
 			}
 			else
 			{
@@ -116,7 +127,7 @@ void PathCoordinator::Update()
 			if (followerState == PathFollower::State::ERROR)
 			{
 				printf("PathCoordinator: PathFollower error.\n");
-				SwitchToState(State::FAIL);
+				SwitchToState(State::ERROR);
 			}
 			else if (followerState == PathFollower::State::IDLE)
 			{
@@ -141,7 +152,7 @@ void PathCoordinator::Update()
 			ResolvePathAndState();
 			break;
 		}
-		case State::FAIL:
+		case State::ERROR:
 		{
 			break;
 		}

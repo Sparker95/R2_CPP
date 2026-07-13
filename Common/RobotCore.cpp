@@ -51,7 +51,7 @@ void RobotCore::Update(const ControlSensorFrame& frame)
 	}
 
 	// Explorer before PathCoordinator
-	// m_pExplorer->Update()
+	m_pExplorer->Update();
 
 	// PathCoordinator before Follower
 	m_pPathCoordinator->Update();
@@ -93,7 +93,5 @@ bool RobotCore::GetBrakeOverride_mt() const
 
 void RobotCore::ExploreNextPosition()
 {
-	const OccupancyMap& rtMap = m_pLocalizer->GetRealTimeMap();
-	const Pose& meanPose = m_pLocalizer->GetMeanPose();
-	m_pExplorer->ExploreNextPosition(rtMap, meanPose);
+	m_pExplorer->StartExploration();
 }

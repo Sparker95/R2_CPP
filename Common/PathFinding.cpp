@@ -539,7 +539,7 @@ void PathFinding::FindUnobstructPath(const Config& config, const OccupancyMap& m
 			map, extendedCarScale);
 
 		if (obstruction == ECheckObstruction::HIT_OCCUPIED_CELLS)
-			neighborNode.m_NodeFrom = -1; // Mark it invalid
+			neighborNode.m_NodeFrom = static_cast<uint>(-1); // Mark it invalid
 		else
 		{
 			float edgeWeight = 1.0f;
@@ -554,7 +554,7 @@ void PathFinding::FindUnobstructPath(const Config& config, const OccupancyMap& m
 	const Node* pMinScoreNode = nullptr;
 	for (Node& neighborNode : neighborNodes)
 	{
-		if (neighborNode.m_NodeFrom == -1)
+		if (neighborNode.m_NodeFrom == static_cast<uint>(-1))
 			continue;
 		if (neighborNode.m_G < minScore)
 		{

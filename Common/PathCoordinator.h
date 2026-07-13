@@ -15,16 +15,18 @@ class PathCoordinator
 public:
 	using TOnPathPlanned = std::function<void(const std::vector<PathFollower::PathPoint>&)>;
 
-private:
 	enum class State
 	{
 		IDLE = 0,
 		MOVING,            // Moving to requested destination
-		MOVING_UNOBSTRUCT, // Moving on a path to leave obstruction
-		PATH_OBSTR,
-		FAIL
+		MOVING_UNOBSTRUCT, // Start pose was instantly obstructed, resolving it
+		PATH_OBSTR,        // Path to destination was obstructed, stopping and finding alternative
+		COMPLETED,
+		ERROR
 	};
-	static const char* s_aStateText[5];
+
+private:
+	static const char* s_aStateText[6];
 
 	const Localizer* m_pLocalizer;
 	PathPlanner* m_pPathPlanner;
@@ -41,11 +43,14 @@ public:
 	void Update();
 	void MoveTo(const Vector2& pos, float radius);
 	void Reset();
+	void Complete();
 
 	// !!! Invoked in Main Thread!
 	// Here we must copy data and return.
 	template<typename F>
 	void BindOnPathPlanned(F f) { m_OnPathPlanned.push_back(f); }
+
+	State GetState() { return m_State; }
 
 private:
 	bool CheckPathObstruction() const;
