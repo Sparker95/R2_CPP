@@ -193,6 +193,8 @@ void ControlPanelServer::ProcessPipeMessage(PipeMsgBase* pMsg, bool& outTerminat
 		if (!GetConnected())
 			return;
 
+		writer.Write(pMsgPath->m_DestinationPos);
+
 		writer.Write<uint>(static_cast<uint>(pMsgPath->m_PathPoints.size()));
 		for (Vector2& p : pMsgPath->m_PathPoints)
 			writer.Write(p);

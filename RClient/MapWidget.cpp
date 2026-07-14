@@ -73,8 +73,9 @@ void MapWidget::SetLocationData(QList<Pose>& newPoses)
 	update();
 }
 
-void MapWidget::SetPathData(QList<Vector2>& newPath)
+void MapWidget::SetPathData(const Vector2& destPos, const QList<Vector2>& newPath)
 {
+	m_PathDestPos = destPos;
 	m_Path = newPath;
 	update();
 }
@@ -250,30 +251,38 @@ void MapWidget::paintEvent(QPaintEvent *event)
 	}
 
 	// Draw path
-	if (m_Path.size() > 1)
+	if (m_PathDestPos != Vector2::ZERO)
 	{
 		QPen pen;
 		pen.setCosmetic(true);
 		pen.setColor(pathColor);
 
-		// Draw lines
-		pen.setWidth(2);
-		painter.setPen(pen);
-		for (uint i = 0; i < (uint)m_Path.size()-1; i++)
+		if (!m_Path.empty())
 		{
-			Vector2& p0 = m_Path[i];
-			Vector2& p1 = m_Path[i+1];
-			painter.drawLine(QPointF(p0.x, p0.y), QPointF(p1.x, p1.y));
+			// Draw lines
+			pen.setWidth(2);
+			painter.setPen(pen);
+			for (uint i = 0; i < (uint)m_Path.size()-1; i++)
+			{
+				Vector2& p0 = m_Path[i];
+				Vector2& p1 = m_Path[i+1];
+				painter.drawLine(QPointF(p0.x, p0.y), QPointF(p1.x, p1.y));
+			}
+
+			// Draw points
+			pen.setWidth(5);
+			painter.setPen(pen);
+			for (uint i = 0; i < (uint)m_Path.size(); i++)
+			{
+				Vector2& p0 = m_Path[i];
+				painter.drawLine(QPointF(p0.x, p0.y), QPointF(p0.x, p0.y));
+			}
 		}
 
-		// Draw points
-		pen.setWidth(5);
+		// Draw destination pos
+		pen.setWidth(8);
 		painter.setPen(pen);
-		for (uint i = 0; i < (uint)m_Path.size(); i++)
-		{
-			Vector2& p0 = m_Path[i];
-			painter.drawLine(QPointF(p0.x, p0.y), QPointF(p0.x, p0.y));
-		}
+		painter.drawLine(QPointF(m_PathDestPos.x, m_PathDestPos.y), QPointF(m_PathDestPos.x, m_PathDestPos.y));
 	}
 
 	// Map origin is indicated by two lines 1m in length (1m each direction from center)

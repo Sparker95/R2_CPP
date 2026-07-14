@@ -392,6 +392,8 @@ void MainWindow::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigne
 
 		case ControlPanelProtocol::MessageType::MSG_PATH:
 		{
+			Vector2 pathDestPos = reader.Read<Vector2>();
+
 			uint nPoints = reader.Read<uint>();
 
 			QList<Vector2> points;
@@ -399,7 +401,7 @@ void MainWindow::OnProtocolNewMessage(uint8_t msgType, char* msgPayload, unsigne
 			for (uint i = 0; i < nPoints; i++)
 				points[i] = reader.Read<Vector2>();
 
-			m_pMapWidget->SetPathData(points);
+			m_pMapWidget->SetPathData(pathDestPos, points);
 
 			break;
 		}

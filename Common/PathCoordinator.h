@@ -13,7 +13,7 @@ class Localizer;
 class PathCoordinator
 {
 public:
-	using TOnPathPlanned = std::function<void(const std::vector<PathFollower::PathPoint>&)>;
+	using TOnPathPlanned = std::function<void(const Vector2&, const std::vector<PathFollower::PathPoint>&)>;
 
 	enum class State
 	{

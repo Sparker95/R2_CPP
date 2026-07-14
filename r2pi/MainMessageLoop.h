@@ -99,5 +99,5 @@ private:
 		SensorInterface::TTimestamp timeEnd, float scanPeriod_s);
 
 	// Called from PathCoordinator, this thread
-	void OnPathPlanned(const std::vector<PathFollower::PathPoint>& path);
+	void OnPathPlanned(const Vector2& pathDestPos, const std::vector<PathFollower::PathPoint>& path);
 };

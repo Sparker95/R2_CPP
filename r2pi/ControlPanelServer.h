@@ -39,7 +39,7 @@ public:
 	void SendMap_mt(const OccupancyMap& map);
 	void SendLocaction_mt(const Pose& meanPose, const std::vector<Pose>& poses);
 	void SendOptions_mt(); // Sends all options back to client
-	void SendPath_mt(const std::vector<Vector2> path);
+	void SendPath_mt(const Vector2& destPos, const std::vector<Vector2>& path);
 	void SendDiagData_mt(const ControlPanelProtocol::DiagDataHeader& diagData);
 
 private:
@@ -77,6 +77,7 @@ private:
 	struct PipeMsgPath : PipeMsgBase
 	{
 		std::vector<Vector2> m_PathPoints;
+		Vector2 m_DestinationPos; // Destination where path was requested to
 	};
 	struct PipeMsgDiagData : PipeMsgBase
 	{

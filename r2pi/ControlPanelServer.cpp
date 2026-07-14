@@ -402,12 +402,13 @@ void ControlPanelServer::SendOptions_mt()
 	PostPipeMessage(pMsg);
 }
 
-void ControlPanelServer::SendPath_mt(const std::vector<Vector2> path)
+void ControlPanelServer::SendPath_mt(const Vector2& destPos, const std::vector<Vector2>& path)
 {
 	if (!GetConnected())
 		return;
 
 	PipeMsgPath* pMsg = new PipeMsgPath();
+	pMsg->m_DestinationPos = destPos;
 	pMsg->m_PathPoints = path;
 	PostPipeMessage(pMsg);
 }

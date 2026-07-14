@@ -20,6 +20,7 @@ protected:
 	const OccupancyMap* m_pMap = nullptr;
 	Pose m_MeanPose;
 	QList<Pose> m_Poses;
+	Vector2 m_PathDestPos = {};
 	QList<Vector2> m_Path;
 	QPointF m_PathPointPos;
 	QPointF m_PathEndPointPos;
@@ -50,7 +51,7 @@ public:
 	void SetMapData(const OccupancyMap* pMap);
 	void SetLocationData(QList<Pose>& newPoses);
 	void SetMeanPose(const Pose& pose);
-	void SetPathData(QList<Vector2>& newPath);
+	void SetPathData(const Vector2& destPos, const QList<Vector2>& newPath);
 	void SetPathFollowerData(const Vector2& pathPointPos, const Vector2& pathEndPointPos, const Vector2& lookaheadPos);
 
 	bool GetCursorMarkerPos(QPointF& outPos) { outPos = m_CursorMarkerPos; return m_CursorMarkerEnabled; };

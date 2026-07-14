@@ -183,7 +183,7 @@ bool PathCoordinator::PlanAndAssignPath()
 
 		// Invoke OnPathPlanned
 		for (const auto& f : m_OnPathPlanned)
-			f(path);
+			f(m_MoveToPos, path);
 
 		return true;
 	}
@@ -194,7 +194,7 @@ bool PathCoordinator::PlanAndAssignPath()
 		// Invoke OnPathPlanned
 		std::vector<PathFollower::PathPoint> emptyPath;
 		for (const auto& f : m_OnPathPlanned)
-			f(emptyPath);
+			f(m_MoveToPos, emptyPath);
 
 		return false;
 	}
@@ -209,6 +209,7 @@ bool PathCoordinator::PlanAndAssignUnobstructPath()
 
 	m_pPathPlanner->PlanUnobstructPath(map, pose);
 
+	// OnPathPlanned invocation: here we don't have a specified end position, so provide last point instead
 	if (m_pPathPlanner->PathValid())
 	{
 		const auto& path = m_pPathPlanner->GetPath();
@@ -217,7 +218,7 @@ bool PathCoordinator::PlanAndAssignUnobstructPath()
 
 		// Invoke OnPathPlanned
 		for (const auto& f : m_OnPathPlanned)
-			f(path);
+			f(path.rbegin()->m_Pos,  path);
 
 		return true;
 	}
@@ -227,8 +228,9 @@ bool PathCoordinator::PlanAndAssignUnobstructPath()
 
 		// Invoke OnPathPlanned
 		std::vector<PathFollower::PathPoint> emptyPath;
+		Vector2 emptyDestPos = {};
 		for (const auto& f : m_OnPathPlanned)
-			f(emptyPath);
+			f(emptyDestPos, emptyPath);
 
 		return false;
 	}

@@ -8,7 +8,9 @@
 
 struct PathFollowerConfig;
 
-// Plans path and stores the result in itself.
+// Plans path and stores the result.
+// WIP now separate PathPlanner object is not fully needed as it can be made stateless.
+// Later it might serve path planning requests asynchronously.
 class PathPlanner
 {
 	using uint = unsigned int;
@@ -16,7 +18,10 @@ class PathPlanner
 private:
 	const PathFinding::Config m_PFConfig;
 	const PathFollowerConfig m_FollowerConfig;
+
+	// Planning results:
 	std::vector<PathFollower::PathPoint> m_Path;
+	Vector2 m_PathDestPos;
 
 	// Performs post processing of path such as smoothing and insertion of additional points.
 	// Converts path finding result into path which can be passed to PathFollower.
@@ -39,4 +44,5 @@ public:
 
 	bool PathValid() const { return !m_Path.empty(); }
 	const std::vector<PathFollower::PathPoint>& GetPath() const { return m_Path; }
+	const Vector2& GetPathDestPos() const { return m_PathDestPos; }
 };

@@ -13,7 +13,7 @@ namespace ControlPanelProtocol
 	constexpr unsigned char HEADER_MAGIC_NR_1 = 0xA5;
 
 	// !!! Remember to increase protocol version any time anything changes in protocol !!!
-	constexpr uint8_t PROTOCOL_VERSION = 1;
+	constexpr uint8_t PROTOCOL_VERSION = 2;
 
 	enum class MessageType : uint8_t
 	{

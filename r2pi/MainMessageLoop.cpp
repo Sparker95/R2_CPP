@@ -44,8 +44,8 @@ MainMessageLoop::MainMessageLoop(SensorInterface& sensorInterface, ChassisInterf
 	m_pSensorInterface->BindOnReceivedScan(std::bind(&MainMessageLoop::OnReceivedScan_mt, this, _1, _2, _3, _4));
 
 	m_pRobotCore->GetPathCoordinator()->BindOnPathPlanned(
-		[this](auto& path) {
-			this->OnPathPlanned(path);
+		[this](auto& destPos, auto& path) {
+			this->OnPathPlanned(destPos, path);
 		}
 	);
 
@@ -328,7 +328,7 @@ void MainMessageLoop::ProcessMessage(MessageBase& msgBase)
 						pathPoints.push_back(p.m_Pos);
 				}
 
-				m_pCtrlPanelServer->SendPath_mt(pathPoints);
+				m_pCtrlPanelServer->SendPath_mt(pPathPlanner->GetPathDestPos(), pathPoints);
 				break;
 			}
 			case TCtrlPanelMsgType::MSG_MOVE:
@@ -376,7 +376,7 @@ void MainMessageLoop::OnReceivedScan_mt(const std::vector<Sensor::ScanSample>& s
 	PostMessage(std::unique_ptr<MessageBase>(pMsg));
 }
 
-void MainMessageLoop::OnPathPlanned(const std::vector<PathFollower::PathPoint>& path)
+void MainMessageLoop::OnPathPlanned(const Vector2& pathDestPos, const std::vector<PathFollower::PathPoint>& path)
 {
 	PathPlanner* pPathPlanner = m_pRobotCore->GetPathPlanner();
 	std::vector<Vector2> pathPoints;
@@ -386,5 +386,5 @@ void MainMessageLoop::OnPathPlanned(const std::vector<PathFollower::PathPoint>& 
 			pathPoints.push_back(p.m_Pos);
 	}
 
-	m_pCtrlPanelServer->SendPath_mt(pathPoints);
+	m_pCtrlPanelServer->SendPath_mt(pathDestPos, pathPoints);
 }
