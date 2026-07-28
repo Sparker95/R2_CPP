@@ -21,6 +21,12 @@ namespace PathFinding
 		constexpr uint BWD   = 4;
 		constexpr uint BWD_R = 5;
 		constexpr uint FWD_R = 6;
+
+		// !!! If any index is changed, also update this array!
+
+		// Index is transition index. Value means that transition is forward or backward.
+		//                                  0  1  2  3  4  5  6
+		const char TRANS_DIR_FWD_BWD[7] = { 0, 1, 1, 2, 2, 2, 1 };
 	}
 
 	struct Config
@@ -46,6 +52,7 @@ namespace PathFinding
 		float m_HeuristicMult = 1.0f;
 		float m_OffStructureMult = 2.0f;    // Penalty of moving off structure map
 		float m_HitUnknownCellsMult = 2.0f; // Penalty for hitting unknown cells
+		float m_FwdBwdChangeMult = 2.0f;
 		float m_StructureMapWidth = 0.1f;   // Width of skeleton
 		uint m_MaxNodes = 1024;
 

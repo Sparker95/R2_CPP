@@ -90,6 +90,7 @@ bool ConfigUtils::ReadPathFindingConfig(const Config& config, PathFinding::Confi
 		config.Get("HeuristicMult",     tempConfig.m_HeuristicMult) &&
 		config.Get("OffStructureMult",  tempConfig.m_OffStructureMult) &&
 		config.Get("UnknownCellsMult",  tempConfig.m_HitUnknownCellsMult) &&
+		config.Get("FwdBwdChangeMult",  tempConfig.m_FwdBwdChangeMult) &&
 		config.Get("StructureMapWidth", tempConfig.m_StructureMapWidth) &&
 		config.Get("MaxNumNodes",       tempConfig.m_MaxNodes) &&
 		config.Get("MultFwd",           tempConfig.m_MultFwd) &&

@@ -461,13 +461,24 @@ void PathFinding::FindPath(const Config& config, const OccupancyMap& map, const 
 
 			// However don't do full collision test yet
 
+			//----------------------------------------------------
+			// Apply weight multipliers
 			float edgeWeight = 1.0f;
 			edgeWeight *= config.m_TransIdMult[neighborNode.m_InTransId];
 			edgeWeight *= config.m_StepDist;
-			if (structureMap.GetDataAtPos(neighborNodeMapPos) != 1) // If we step out of structure
+
+			// If we step out of structure map
+			if (structureMap.GetDataAtPos(neighborNodeMapPos) != 1)
 				edgeWeight *= config.m_OffStructureMult;
+			
+			// If we hit unknown cells
 			if (obstruction == ECheckObstruction::HIT_UNKNOWN_CELLS)
 				edgeWeight *= config.m_HitUnknownCellsMult;
+
+			// If we change direction of travel: fwd to bwd or otherwise
+			if (Transition::TRANS_DIR_FWD_BWD[neighborNode.m_InTransId] != Transition::TRANS_DIR_FWD_BWD[allNodes[currentNodeId].m_InTransId])
+				edgeWeight *= config.m_FwdBwdChangeMult;
+			//----------------------------------------------------
 
 			float neighborNodeG = allNodes[currentNodeId].m_G + edgeWeight;
 
