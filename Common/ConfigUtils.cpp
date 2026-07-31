@@ -9,6 +9,7 @@
 #include "CrashDetector.h"
 #include "PathFollower.h"
 #include "Explorer.h"
+#include "PathCoordinator.h"
 
 bool ConfigUtils::ReadChassisStatsConfig(const Config& config, Chassis::ChassisStatsConfig& outConfig)
 {
@@ -151,6 +152,21 @@ bool ConfigUtils::ReadExplorerConfig(const Config& cfg, ExplorerConfig& outConfi
 	bool cfgSuccess = cfg.Get("DistMapThreshold", tempConfig.m_DistMapThreshold) &&
 		cfg.Get("MoveRadius", tempConfig.m_MoveRadius) &&
 		cfg.Get("MinDistToCell", tempConfig.m_MinDistToCell);
+
+	if (!cfgSuccess)
+		return false;
+
+	outConfig = tempConfig;
+	return true;
+}
+
+bool ConfigUtils::ReadPathCoordinatorConfig(const Config& cfg, PathCoordinatorConfig& outConfig)
+{
+	PathCoordinatorConfig tempConfig;
+
+	cfg.SetSection("PathCoordinator");
+
+	bool cfgSuccess = cfg.Get("ObstructionCheckDist", tempConfig.m_ObstructCheckDist);
 
 	if (!cfgSuccess)
 		return false;

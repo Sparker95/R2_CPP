@@ -26,10 +26,10 @@ namespace Exploration
 	};
 
 	// Returns score and nearest cell in the cell component
-	bool EvaluateCellComponent(const std::unordered_set<TCellPos>& cells, const ExpMap& explorationMap,
+	bool EvaluateCellComponent(const Vector2& startPos_w, const std::unordered_set<TCellPos>& cells, const ExpMap& explorationMap,
 		float excludeDist_w, CellComponentEval& outResult);
 
 	// Scores cell components and sorts them by score. Highest score component will be first in array.
-	void EvaluateSortCellComponents(const std::vector<std::unordered_set<TCellPos>>& cellComponents, const ExpMap& explorationMap,
+	void EvaluateSortCellComponents(const Vector2& startPos_w, const std::vector<std::unordered_set<TCellPos>>& cellComponents, const ExpMap& explorationMap,
 		float excludeDist_w, std::vector<CellComponentEval>& outEvalResults);
 }

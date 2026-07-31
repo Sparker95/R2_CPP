@@ -690,6 +690,7 @@
       <CppLanguageStandard>c++17</CppLanguageStandard>
       <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NDEBUG;TRACY_ENABLE;TRACY_ON_DEMAND;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <DebugInformationFormat>FullDebug</DebugInformationFormat>
     </ClCompile>
     <Link>
       <LibraryDependencies>pigpiod_if2;rt</LibraryDependencies>

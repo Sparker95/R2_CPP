@@ -35,8 +35,8 @@ public:
 	void ResetPath();
 
 	// Checks that path points are not obstructed, starting from currentPathPointId. Returns true if path is clear.
-	bool CheckPathObstruction(const OccupancyMap& map, const std::vector<PathFollower::PathPoint>& path, uint currentPathPointId,
-		uint* pOutObstrPointId);
+	bool CheckPathObstruction(const OccupancyMap& map, const std::vector<PathFollower::PathPoint>& path, float maxCheckDist,
+		uint currentPathPointId, uint* pOutObstrPointId);
 
 	// Checks if given pose is obstructed. Returns true if it's clear.
 	// Pose is checked same way as during regular path finding, with direction quantization.

@@ -15,8 +15,9 @@ const char* PathCoordinator::s_aStateText[6] = {
 	"ERROR"
 };
 
-PathCoordinator::PathCoordinator(const Localizer& localizer, PathPlanner& planner, PathFollower& follower)
-	: m_pLocalizer(&localizer),
+PathCoordinator::PathCoordinator(const PathCoordinatorConfig& config, const Localizer& localizer, PathPlanner& planner, PathFollower& follower)
+	: m_Config(config),
+	m_pLocalizer(&localizer),
 	m_pPathPlanner(&planner),
 	m_pPathFollower(&follower)
 {
@@ -244,7 +245,7 @@ bool PathCoordinator::CheckPathObstruction() const
 	uint currentPathPointId = m_pPathFollower->GetCurrentPointId();
 	uint obstrPathPointId = -1;
 	
-	bool result = m_pPathPlanner->CheckPathObstruction(map, path, currentPathPointId, &obstrPathPointId);
+	bool result = m_pPathPlanner->CheckPathObstruction(map, path, m_Config.m_ObstructCheckDist, currentPathPointId, &obstrPathPointId);
 
 	if (!result)
 		printf("PathCoordinator: Path is obstructed, point %u / %u.\n", obstrPathPointId, (uint)path.size());

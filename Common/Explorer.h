@@ -2,6 +2,8 @@
 
 #include "Map.h"
 
+#include <vector>
+
 class PathCoordinator;
 class Localizer;
 struct Pose;
@@ -30,6 +32,7 @@ private:
 	PathCoordinator* m_pPathCoordinator = nullptr;
 	const ExplorerConfig m_Config;
 	State m_State = State::IDLE;
+	std::vector<Vector2> m_AltExplorePoints;
 
 	bool FindExplorePosAndMove();
 

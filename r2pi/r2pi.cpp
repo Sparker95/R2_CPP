@@ -90,6 +90,7 @@ int main(int argc, char** argv)
 	Chassis::ChassisStatsConfig      chassisStatsConfig;
 	PathFinding::Config              pathFindingConfig;
 	PathFollowerConfig               pathFollowerConfig;
+	PathCoordinatorConfig            pathCoordinatorConfig;
 	ExplorerConfig                   explorerConfig;
 	initDone = initDone && PlatformConfigUtils::ReadChassisInterfaceSettingsConfig(platformConfig, chassisIfSettings);
 	initDone = initDone && PlatformConfigUtils::ReadChassisControlSettingsConfig(platformConfig, chassisControlSettings);
@@ -99,6 +100,7 @@ int main(int argc, char** argv)
 	initDone = initDone && ConfigUtils::ReadChassisStatsConfig(mainConfig, chassisStatsConfig);
 	initDone = initDone && ConfigUtils::ReadPathFindingConfig(mainConfig, pathFindingConfig);
 	initDone = initDone && ConfigUtils::ReadPathFollowerConfig(mainConfig, pathFollowerConfig);
+	initDone = initDone && ConfigUtils::ReadPathCoordinatorConfig(mainConfig, pathCoordinatorConfig);
 	initDone = initDone && ConfigUtils::ReadExplorerConfig(mainConfig, explorerConfig);
 
 	if (!initDone)
@@ -126,7 +128,7 @@ int main(int argc, char** argv)
 	PathPlanner pathPlanner(pathFindingConfig, pathFollowerConfig);
 
 	// Path coordinator
-	PathCoordinator pathCoordinator(localizer, pathPlanner, pathFollower);
+	PathCoordinator pathCoordinator(pathCoordinatorConfig, localizer, pathPlanner, pathFollower);
 
 	// Explorer
 	Explorer explorer(localizer, pathCoordinator, explorerConfig);

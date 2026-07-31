@@ -39,7 +39,8 @@ bool Explorer::FindExplorePosAndMove()
 	DistMap distMap = PathFinding::CalculateDistanceMap(map, 1); // Threshold = 1->unknown space is not obstacle
 
 	std::unordered_set<Exploration::TCellPos> expCells;
-	ExpMap expMap = Exploration::CalculateExplorationMap(map, distMap, Vector2(pose.x, pose.y),
+	Vector2 startPos(pose.x, pose.y);
+	ExpMap expMap = Exploration::CalculateExplorationMap(map, distMap, startPos,
 		m_Config.m_DistMapThreshold, expCells);
 
 	if (expCells.empty())
@@ -51,7 +52,7 @@ bool Explorer::FindExplorePosAndMove()
 	std::vector<std::unordered_set<Exploration::TCellPos>> cellComponents = Exploration::FindCellGraphComponents(expCells);
 
 	std::vector<Exploration::CellComponentEval> componentsEval;
-	Exploration::EvaluateSortCellComponents(cellComponents, expMap, m_Config.m_MinDistToCell, componentsEval);
+	Exploration::EvaluateSortCellComponents(startPos, cellComponents, expMap, m_Config.m_MinDistToCell, componentsEval);
 
 	const Exploration::CellComponentEval& bestComp = componentsEval[0];
 	Vector2 bestCompPos = map.PosMapToWorld(bestComp.m_NearestCell);
@@ -60,6 +61,15 @@ bool Explorer::FindExplorePosAndMove()
 		(uint)bestComp.m_pComponent->size(), bestComp.m_Score);
 
 	m_pPathCoordinator->MoveTo(bestCompPos, m_Config.m_MoveRadius);
+
+	// Push the rest of components into array, to use later in case of PathCoordinator failure.
+	m_AltExplorePoints.clear();
+	m_AltExplorePoints.reserve(componentsEval.size());
+	for (uint i = 1; i < (uint)componentsEval.size(); i++)
+	{
+		Vector2 compNearestCellPos = map.PosMapToWorld(componentsEval[i].m_NearestCell);
+		m_AltExplorePoints.push_back(compNearestCellPos);
+	}
 
 	return true;
 }
@@ -89,7 +99,19 @@ void Explorer::Update()
 				}
 				case TCoordState::ERROR:
 				{
-					m_State = State::ERROR;
+					if (m_AltExplorePoints.empty())
+					{
+						printf("Explorer:: PathCoordinator failed. No alternative points remaining.\n");
+						m_State = State::ERROR;
+					}
+					else
+					{
+						printf("Explorer:: PathCoordinator failed. Selected alternative point.\n");
+						// Try to move to next component
+						Vector2 compPos = m_AltExplorePoints[0];
+						m_AltExplorePoints.erase(m_AltExplorePoints.begin());
+						m_pPathCoordinator->MoveTo(compPos, m_Config.m_MoveRadius);
+					}
 					break;
 				}
 				default:

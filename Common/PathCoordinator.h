@@ -9,6 +9,11 @@
 class PathPlanner;
 class Localizer;
 
+struct PathCoordinatorConfig
+{
+	float m_ObstructCheckDist = 1.0f;
+};
+
 // Coordinates path follower and planner. Also verifies that path is correct.
 class PathCoordinator
 {
@@ -28,6 +33,7 @@ public:
 private:
 	static const char* s_aStateText[6];
 
+	const PathCoordinatorConfig m_Config;
 	const Localizer* m_pLocalizer;
 	PathPlanner* m_pPathPlanner;
 	PathFollower* m_pPathFollower;
@@ -39,7 +45,7 @@ private:
 	std::vector<TOnPathPlanned> m_OnPathPlanned;
 
 public:
-	PathCoordinator(const Localizer& localizer, PathPlanner& planner, PathFollower& follower);
+	PathCoordinator(const PathCoordinatorConfig& config, const Localizer& localizer, PathPlanner& planner, PathFollower& follower);
 	void Update();
 	void MoveTo(const Vector2& pos, float radius);
 	void Reset();

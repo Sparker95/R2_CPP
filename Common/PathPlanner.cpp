@@ -126,9 +126,10 @@ void PathPlanner::PlanPath(const OccupancyMap& map, const Pose& startPose, Vecto
 	PathFinding::Node::Pose startNodePose = PathFinding::CalculateNodePose(m_PFConfig,
 		startPose.x, startPose.y, startPose.dir);
 
-	printf("PathPlanner::PlanPath: %.3f %.3f %.3f -> %.3f %.3f r%.3f\n",
+	printf("PathPlanner::PlanPath: %.3f %.3f %.3f -> %.3f %.3f, radius %.3f, dist %.3f\n",
 		startPose.x, startPose.y, startPose.dir,
-		destPos.x, destPos.y, destRadius);
+		destPos.x, destPos.y, destRadius,
+		Vector2::Distance(destPos, Vector2(startPose.x, startPose.y)));
 
 	PathFinding::PathFindingResult pfResult;
 	// extendedCarScale = true - in path finding we use extended, bigger car size, to get path further from everything.
@@ -170,14 +171,23 @@ void PathPlanner::PlanUnobstructPath(const OccupancyMap& map, const Pose& startP
 	ProcessPath(pfResult.m_Nodes, m_Path);
 }
 
-bool PathPlanner::CheckPathObstruction(const OccupancyMap& map, const std::vector<PathFollower::PathPoint>& path, uint currentPathPointId, uint* pOutObstrPointId)
+bool PathPlanner::CheckPathObstruction(const OccupancyMap& map, const std::vector<PathFollower::PathPoint>& path, float maxCheckDist, uint currentPathPointId, uint* pOutObstrPointId)
 {
 	ZoneScopedN("PathPlanner::CheckPathObstruction");
+
+	if (currentPathPointId >= path.size())
+		return true;
+
+	const float maxDistFromStart = path[currentPathPointId].m_DistFromStart + maxCheckDist;
 
 	for (uint pointId = currentPathPointId; pointId < (uint)path.size(); pointId++)
 	{
 		const PathFollower::PathPoint& point = path[pointId];
 		using TPathPointType = PathFollower::PathPoint::Type;
+
+		// Bail if everything is clear for maxCheckDist from start point of the check
+		if (point.m_DistFromStart > maxDistFromStart)
+			return true;
 
 		// Obstruction can only be checked at MAIN and MAIN_END points,
 		// because path obstruction was checked only at those points.
@@ -204,8 +214,8 @@ bool PathPlanner::CheckPoseObstruction(const OccupancyMap& map, const Pose& pose
 	Vector2 pos(pose.x, pose.y);
 	Vector2 dir(std::cos(pose.dir), std::sin(pose.dir));
 
-	// extendedCarScale = false - in path obstruction checks we use normal car size
-	if (PathFinding::CheckObstruction(m_PFConfig, pos, dir, map, false) == PathFinding::ECheckObstruction::HIT_OCCUPIED_CELLS)
+	// extendedCarScale = true - in path obstruction checks we extended car size, to be in sync with path finding
+	if (PathFinding::CheckObstruction(m_PFConfig, pos, dir, map, true) == PathFinding::ECheckObstruction::HIT_OCCUPIED_CELLS)
 		return false;
 
 	// Second pass: also check the pose with direction quantized same as for regular path finding
@@ -213,7 +223,7 @@ bool PathPlanner::CheckPoseObstruction(const OccupancyMap& map, const Pose& pose
 		pose.x, pose.y, pose.dir);
 
 	if (PathFinding::CheckObstruction(m_PFConfig,
-		{startNodePose.x, startNodePose.y}, m_PFConfig.GetDirVector(startNodePose.dir), map, false)
+		{startNodePose.x, startNodePose.y}, m_PFConfig.GetDirVector(startNodePose.dir), map, true)
 		== PathFinding::ECheckObstruction::HIT_OCCUPIED_CELLS)
 		return false;
 

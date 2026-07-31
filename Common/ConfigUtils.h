@@ -11,6 +11,7 @@ namespace Chassis { struct ChassisStatsConfig; }
 namespace PathFinding { struct Config; }
 struct PathFollowerConfig;
 struct ExplorerConfig;
+struct PathCoordinatorConfig;
 
 class Config;
 
@@ -22,4 +23,5 @@ namespace ConfigUtils
 	bool ReadCrashDetectorConfig(const Config& cfg, CrashDetector::Config& outCrashDetectorSettings);
 	bool ReadPathFollowerConfig(const Config& cfg, PathFollowerConfig& outConfig);
 	bool ReadExplorerConfig(const Config& cfg, ExplorerConfig& outConfig);
+	bool ReadPathCoordinatorConfig(const Config& cfg, PathCoordinatorConfig& outConfig);
 }

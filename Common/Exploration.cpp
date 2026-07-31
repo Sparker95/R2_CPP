@@ -175,7 +175,7 @@ std::vector<std::unordered_set<TCellPos>> Exploration::FindCellGraphComponents(s
 	return components;
 }
 
-bool Exploration::EvaluateCellComponent(const std::unordered_set<TCellPos>& cells,
+bool Exploration::EvaluateCellComponent(const Vector2& startPos_w, const std::unordered_set<TCellPos>& cells,
 	const ExpMap& explorationMap, float excludeDist_w, Exploration::CellComponentEval& outResult)
 {
 	// Closer is better, bigger number of connected cells is better
@@ -185,14 +185,15 @@ bool Exploration::EvaluateCellComponent(const std::unordered_set<TCellPos>& cell
 
 	TCellPos nearestCell;
 	ExpMap::TCellData minDist_m = 0xFFFF; // _m stands for "Map" units!
-	ExpMap::TCellData excludeDist_m = static_cast<ExpMap::TCellData>(PathFinding::WorldToDistanceMapValue(excludeDist_w, explorationMap.GetResolution_w()));
+	float excludeDist_w_sq = excludeDist_w * excludeDist_w;
 
 	for (const TCellPos& cell : cells)
 	{
 		ExpMap::TCellData dist_m = explorationMap.GetDataAtPos(cell);
 
 		// Ignore if cell is too close
-		if (dist_m < excludeDist_m)
+		Vector2 cellPos_w = explorationMap.PosMapToWorld(cell);
+		if (Vector2::DistanceSq(cellPos_w, startPos_w) < excludeDist_w_sq)
 			continue;
 
 		if (dist_m < minDist_m)
@@ -215,7 +216,7 @@ bool Exploration::EvaluateCellComponent(const std::unordered_set<TCellPos>& cell
 	return true;
 }
 
-void Exploration::EvaluateSortCellComponents(const std::vector<std::unordered_set<TCellPos>>& cellComponents, const ExpMap& explorationMap,
+void Exploration::EvaluateSortCellComponents(const Vector2& startPos_w, const std::vector<std::unordered_set<TCellPos>>& cellComponents, const ExpMap& explorationMap,
 	float excludeDist_w, std::vector<Exploration::CellComponentEval>& outEvalResults)
 {
 	outEvalResults.reserve(cellComponents.size());
@@ -223,7 +224,7 @@ void Exploration::EvaluateSortCellComponents(const std::vector<std::unordered_se
 	for (const auto& component : cellComponents)
 	{
 		CellComponentEval evalResult;
-		if (!EvaluateCellComponent(component, explorationMap, excludeDist_w, evalResult))
+		if (!EvaluateCellComponent(startPos_w, component, explorationMap, excludeDist_w, evalResult))
 			continue;
 		outEvalResults.push_back(evalResult);
 	}

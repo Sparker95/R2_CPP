@@ -175,7 +175,7 @@ void TestPathFinding()
 	printf("Path finding has ended!\n");
 
 	// Check path obstruciton
-	bool checkObstructionResult = pathPlanner.CheckPathObstruction(map, pathPlanner.GetPath(), 0, nullptr);
+	bool checkObstructionResult = pathPlanner.CheckPathObstruction(map, pathPlanner.GetPath(), 1.0f, 0, nullptr);
 
 	printf("CheckPathObstruction result: %i\n", (int)checkObstructionResult);
 	printf("\n");
@@ -195,7 +195,8 @@ void TestExploration()
 	uint l2IntQuantization;
 
 	const char mapPath[] = "D:\\Projects\\Robot2\\Records\\Apartment 28 06 2026\\Room2.rmap";
-	const Vector2 START_POS_W(1.6, -0.2);
+	//const Vector2 START_POS_W(1.6, -0.2);
+	const Vector2 START_POS_W(2.72f, -1.61f);
 
 	//const char mapPath[] = "D:\\Projects\\Robot2\\Records\\Legacy Encoder\\Office 26 Jan 2026\\Office1.rmap";
 	//const Vector2 START_POS_W(0, -13);
@@ -217,7 +218,15 @@ void TestExploration()
 	MapUtils::WriteMapToFile_L2Int(expMap, "TestExplorationMap.rmap", 8);
 
 	std::vector<Exploration::CellComponentEval> componentsEval;
-	Exploration::EvaluateSortCellComponents(cellComponents, expMap, 0.4f, componentsEval);
+	Exploration::EvaluateSortCellComponents(START_POS_W, cellComponents, expMap, 0.8f, componentsEval);
+
+	/////
+	const auto& bestComp = componentsEval[0];
+	Vector2 bestCellPos_w = expMap.PosMapToWorld(bestComp.m_NearestCell);
+	printf("Best cell: %i %i, %.3f %.3f\n", bestComp.m_NearestCell.x, bestComp.m_NearestCell.y,
+		bestCellPos_w.x, bestCellPos_w.y);
+	float distToBestCell = Vector2::Distance(bestCellPos_w, START_POS_W);
+	printf("Dist to best cell: %.3f\n", distToBestCell);
 
 	printf("Exploration Test finished!\n");
 }
