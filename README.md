@@ -30,7 +30,7 @@ Here's a short summary of current abilities. The various aspects of implementati
 - Path replanning if obstructed
 - Automatic exploration of the map
 
-## Full list of hardware components
+## List of hardware components and modifications
 
 **LIDAR**
 
@@ -59,19 +59,36 @@ A Traxxas 2075X servo was used for steering, but most likely any other is suitab
 **Other chassis parts**
 
 - [540-size 55-turn brushed motor by YeahRacing](https://www.yeahracing.com/yeah-racing-hackmoto-v2-55t-540-brushed-motor-mt-0016-00056719)
-- [QuickRun WP 1060 brushed electronic speed controller (ESC)](https://www.hobbywing.com/en/products/quicrun-wp-1060-brushed55) was used as motor driver. It receives PWM signal as input (usual for RC models), and can drive the motor forward and backward at different speed.
-- 3000 mAh NiMH battery
+- [QuickRun WP 1060 brushed electronic speed controller (ESC)](https://www.hobbywing.com/en/products/quicrun-wp-1060-brushed55) was used as motor driver. It receives PWM signal as input (usual for RC models), and can drive the motor forward and backward at different speed. Also it can perform braking by shorting the motor.
+- 3000 mAh 7.2V NiMH battery
 
 **Electronic parts**
 
 - [Arduino Micro](https://store.arduino.cc/products/arduino-micro)
 - Connectors, prototype board, etc
-- [Raspberry Pi 4](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) with plastic case, Micro SD card.
-- XL6009-based buck-boost converter, or anything able to provide 5V and a couple of Amps for Raspberry Pi and LIDAR.
+- [Raspberry Pi 4](https://www.raspberrypi.com/products/raspberry-pi-4-model-b/) with plastic case.
+- XL6009 buck-boost converter. Or any converter outputting 5V ~2A from the battery.
 - Voltmeter module with LED display, to know battery voltage.
 
-## Problems solved in software
-**WIP** SLAM, path finding, path following, exploration
+## Principles of operation
+
+The central question is how to solve the SLAM problem, since many other decisions revolve around it. SLAM is solved by FastSLAM algorithm, which utilizes a particle filter. Each rotation of the LIDAR produces a new scan and constitutes one **update cycle**. Also we must know difference of (x,y, direction) between the two updates. The offset is calculated (randomly sampled) based on car model, which requires some physical sensor data from the car, like angle of steering and how much the wheels have rotated. Also at this stage the car models helps compensate the motion in the LIDAR scan data, because otherwise it is distorted by the speed.
+
+It is theoretically possible to calculate pose deltas based on two consecutive LIDAR scans alone, but I was unable to achieve reliable results. There is possibility for further investigation.
+
+The chosen approach requires data from extra car sensors for the car motion model:
+- **Steering angle** is calculated straight from voltage of servo potentiometer.
+- **Wheel rotation data** is calculated based on the magnetic encoder attached to the input shaft of car differential (effectively, to motor).
+
+Solving those tasks, and more, is handled by the **Arduino Micro** board:
+- Generation of PWM signals for the servo and ESC (electronic speed controller). [50 Hz PWM signal](https://en.wikipedia.org/wiki/Servo_control) is traditionally used in hardware for RC models.
+- Counting pulses of the magnetic encoder.
+- PID control of motor speed.
+- Measurement of servo position by ADC.
+- Communication with RPi via UART interface.
+
+The **Control Panel** software connects to RPi software through TCP, and can receive full data from sensors, save it to files, or send back basic commands.
+
 
 ## Repo structure
 **WIP** This repository contains C++ code, the other contains Python code WIP
@@ -80,5 +97,4 @@ Used libs: Eugen, Tracy, Pigpio
 
 ## References and thanks
 the SLAM course, 
-
 
