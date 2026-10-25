@@ -1,6 +1,6 @@
 # R2 - LIDAR Indoors Robot Car
 
-<img height="310" alt="Image" src="https://github.com/user-attachments/assets/78f9a7c9-714d-4541-a9c6-6d71fe3531a7" /><img height="310" alt="Image" src="https://github.com/user-attachments/assets/e2cefe24-f1e6-436e-bfc1-c9d0f22b7917" />
+<img height="250" alt="Image" src="https://github.com/user-attachments/assets/78f9a7c9-714d-4541-a9c6-6d71fe3531a7" /><img height="250" alt="Image" src="https://github.com/user-attachments/assets/e2cefe24-f1e6-436e-bfc1-c9d0f22b7917" />
 
 R2 is a spare time project aimed at practicing of indoors robot navigation: SLAM (Simultaneous Localization and Mapping), path finding, driving, map exploration, and everything related.
 
@@ -16,8 +16,19 @@ Ackermann platform is not practical indoors, and was chosen for fun & curiosity 
 - Qt-based control panel on PC toggles modes and visualizes data.
 
 ## Current functionality
-**WIP** Video of MainWindow, video of actual car driving
-**WIP** list of features: FastSLAM, path finding, path following, replanning, exploration of map
+Video demonstrations:
+
+[▶ YouTube: View of the car as it explores environment](https://youtu.be/uJNpeLaECnc?si=d3IO5W9ucZdIrcSA)
+
+[▶ YouTube: View of the control panel, robot is remotely controlled](https://youtu.be/VyZWErm8OQ4?si=NTOK5pJTbdTtG3kR)
+
+Here's a short summary of current abilities. The various aspects of implementations and their downsides are explained later.
+- Remote control
+- Simultaneous Localization and Mapping, powered by FastSLAM algorithm (particle filter)
+- Path finding
+- Path following
+- Path replanning if obstructed
+- Automatic exploration of the map
 
 ## Full list of hardware components
 **WIP**
