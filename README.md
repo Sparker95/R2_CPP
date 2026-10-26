@@ -40,7 +40,7 @@ Here's a short summary of current abilities. The various aspects of implementati
 
 An RC car chassis is used as the robot base. [S10 Blast TC3 chassis by LRP](https://www.lrp.cc/en/product/120203/) is a 4WD car, with ~25cm wheel base, and is meant for custom RC car builds.
 
-- 🔧 A custom magnetic encoder was installed. It connects to the Arduino and has dual purpose: speed sensor for motor PID controller; measurement of distance traveled between updates of navigation algorithm. The encoder consists of a 3D-printed disc holding 20 magnets, and a 3D-printed holder for TLE4935L Hall sensor.
+- 🔧 A custom incremental single-channel magnetic encoder was installed. It connects to the Arduino and has dual purpose: speed sensor for motor PID controller; measurement of distance traveled between updates of navigation algorithm. The encoder consists of a 3D-printed disc holding 20 magnets, and a 3D-printed holder for TLE4935L Hall sensor.
 
 <img height="150" alt="Image" src="https://github.com/user-attachments/assets/ec817778-cb4f-42ed-979d-330c8e8c9a6a" /><img height="150" alt="Image" src="https://github.com/user-attachments/assets/671d57c9-a447-4395-9415-34b387356070" /><img height="150" alt="Image" src="https://github.com/user-attachments/assets/4e426c57-6d98-43d5-b03b-a2dc9c05bfaa" /><img height="150" alt="Image" src="https://github.com/user-attachments/assets/ea1577ad-5745-4898-b891-9b0115869ba6" />
 
@@ -72,23 +72,36 @@ A Traxxas 2075X servo was used for steering, but most likely any other is suitab
 
 ## Principles of operation
 
-The central question is how to solve the SLAM problem, since many other decisions revolve around it. SLAM is solved by FastSLAM algorithm, which utilizes a particle filter. Each rotation of the LIDAR produces a new scan and constitutes one **update cycle**. Also we must know difference of (x,y, direction) between the two updates. The offset is calculated (randomly sampled) based on car model, which requires some physical sensor data from the car, like angle of steering and how much the wheels have rotated. Also at this stage the car models helps compensate the motion in the LIDAR scan data, because otherwise it is distorted by the speed.
+Solution of the SLAM problem is central one, and many other decisions revolve around it. SLAM is solved by FastSLAM algorithm, which utilizes a particle filter. Each rotation of the LIDAR produces a new scan and constitutes one **update cycle**. Also we must know difference of robot's pose (x,y, dir) between the two updates. The offset is calculated based on basic mathematical model of car motion, which relies on data from extra sensors. The car motion model also helps compensate the LIDAR scan distortion caused by movement.
 
-It is theoretically possible to calculate pose deltas based on two consecutive LIDAR scans alone, but I was unable to achieve reliable results. There is possibility for further investigation.
+It is possible to calculate pose deltas based on matching of two consecutive LIDAR scans, but I was unable to achieve reliable results (and besides, scan distortion compensation would be problematic). Thus the current approach is based on extra sensors attached to chassis required by motion model:
+- **Steering angle**, calculated from voltage of servo potentiometer.
+- **Number of pulses from incremental encoder** mounted on the differential input shaft.
 
-The chosen approach requires data from extra car sensors for the car motion model:
-- **Steering angle** is calculated straight from voltage of servo potentiometer.
-- **Wheel rotation data** is calculated based on the magnetic encoder attached to the input shaft of car differential (effectively, to motor).
-
-Solving those tasks, and more, is handled by the **Arduino Micro** board:
+Providing this data, and more, is handled by the **Arduino Micro** board:
 - Generation of PWM signals for the servo and ESC (electronic speed controller). [50 Hz PWM signal](https://en.wikipedia.org/wiki/Servo_control) is traditionally used in hardware for RC models.
-- Counting pulses of the magnetic encoder.
+- Counting encoder pulses.
 - PID control of motor speed.
 - Measurement of servo position by ADC.
-- Communication with RPi via UART interface.
+- Communication with RPi via UART.
+
+Thus we have a basic chassis, executing steering and movement commands, and providing extra sensor data. FastSLAM, running on Raspberry Pi, solves the mapping problem and produces the map when car is moving, regardless why it is moving (exploring the map itself, following path, or simply remotely controlled).
+
+Extra autonomous capabilities are achieved "on top" of FastSLAM output. Right now, the solutions chosen here are _naive implementations and not proper solutions_ how to handle results from a particle filter:
+- The map of the most likely particle is assumed the true map.
+- The mean pose of all particles is assumed the true pose.
+- 
+This obviously _can not deal with multimodal distribution of particles_ resulting from loops in environment. However, this turned out sufficient for the basic test environment.
+
+WIP Path following
+
+WIP Path finding
+
+WIP Replanning
+
+WIP Exploration
 
 The **Control Panel** software connects to RPi software through TCP, and can receive full data from sensors, save it to files, or send back basic commands.
-
 
 ## Repo structure
 **WIP** This repository contains C++ code, the other contains Python code WIP
