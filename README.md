@@ -74,7 +74,7 @@ A Traxxas 2075X servo was used for steering, but most likely any other is suitab
 
 Solution of the SLAM problem is central one, and many other decisions revolve around it. SLAM is solved by FastSLAM algorithm, which utilizes a particle filter. Each rotation of the LIDAR produces a new scan and constitutes one **update cycle**. Also we must know difference of robot's pose (x,y, dir) between the two updates. The offset is calculated based on basic mathematical model of car motion, which relies on data from extra sensors. The car motion model also helps compensate the LIDAR scan distortion caused by movement.
 
-It is possible to calculate pose deltas based on matching of two consecutive LIDAR scans, but I was unable to achieve reliable results (and besides, scan distortion compensation would be problematic). Thus the current approach is based on extra sensors attached to chassis required by motion model:
+The extra chassis sensor data includes:
 - **Steering angle**, calculated from voltage of servo potentiometer.
 - **Number of pulses from incremental encoder** mounted on the differential input shaft.
 
@@ -91,15 +91,38 @@ Extra autonomous capabilities are achieved "on top" of FastSLAM output. Right no
 - The map of the most likely particle is assumed the true map.
 - The mean pose of all particles is assumed the true pose.
 - 
-This obviously _can not deal with multimodal distribution of particles_ resulting from loops in environment. However, this turned out sufficient for the basic test environment.
+This obviously _can not deal with multimodal distribution of particles_ (resulting from unresolved loops in environment). However, this turned out sufficient for the basic test environment.
 
-WIP Path following
+Sections below briefly describe operation of each functionality:
 
-WIP Path finding
+### Path following
+Path following utilizes [pure pursuit algorithm](https://publications.ri.cmu.edu/storage/publications/pub_files/pub3/coulter_r_craig_1992_1/coulter_r_craig_1992_1.pdf).
 
-WIP Replanning
+### Path finding
+Path finding utilizes A*. Each next node is one of 6 possible transitions: forward, fwd+left, fwd+right, backward, bwd+left, bwd+right. Each transition the car moves by a discrete distance straight, or also rotates by discrete amount of degrees. Car collision is tested by rectangle rasterization against the map.
 
-WIP Exploration
+A few tricks keep amount of explored nodes sane:
+- "Skeleton" of the map is constructed based on [distance transform](https://en.wikipedia.org/wiki/Distance_transform). Exploration along the map skeleton (within fixed distance) has smaller cost in A*.
+- Grid-hashmap detects already visited locations, such as car completing a full circle across several iterations.
+
+Images: _Original map and map skeleton_
+
+<img height="150" alt="Image" src="https://github.com/user-attachments/assets/20f14123-5e68-4f00-8645-edda7b3d50b7" />
+<img height="150" alt="Image" src="https://github.com/user-attachments/assets/29b632ae-4497-49ac-8464-7640580ad243" />
+
+Images: _pathfinding starting from tight spot; all explored positions are visualized as red dots; final path is blue line._
+
+<img height="250" alt="Image" src="https://github.com/user-attachments/assets/46dc553a-19b0-4871-95cb-e7ca8a84d22f" />
+<img height="250" alt="Image" src="https://github.com/user-attachments/assets/3fbb5ef1-2e61-4334-b406-b96f00ecc31c" />
+<img height="250" alt="Image" src="https://github.com/user-attachments/assets/ba01c045-923a-4d6f-bd32-7f1e5e913554" />
+
+It's worth noting that the paths which follow map skeleton can be not nicest visually and not shortest. But they maximize safety of car, since it will drive furthest possible from map obstacles.
+
+### Replanning
+The currently-chosen path is actively monitored for obstructions along the way. If obstruction is detected, car stops and alternative path is calculated. Map is often 'noisy', as same cells change their value, and often there is too much replanning as seen on video.
+
+### Exploration
+
 
 The **Control Panel** software connects to RPi software through TCP, and can receive full data from sensors, save it to files, or send back basic commands.
 
