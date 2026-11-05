@@ -122,14 +122,36 @@ It's worth noting that the paths which follow map skeleton can be not nicest vis
 The currently-chosen path is actively monitored for obstructions along the way. If obstruction is detected, car stops and alternative path is calculated. Map is often 'noisy', as same cells change their value, and often there is too much replanning as seen on video.
 
 ### Exploration
+Exploration means visiting all unexplored map areas and building whole map.
 
+Exploration is implemented as a basic greedy algorithm. At each iteration it selects most 'interesting' place and drives there, then repeats.
 
-The **Control Panel** software connects to RPi software through TCP, and can receive full data from sensors, save it to files, or send back basic commands.
+First the exploration algorithm groups unexplored 'frontier' cells, then scores those groups. Bigger and nearest groups have highest score.
+
+Images: _Original map at start of exploration; discovered frontier areas and their scores for exploration._
+
+<img height="250" alt="Image" src="https://github.com/user-attachments/assets/6c8ac0f8-4559-4788-8b59-66eee8dc6cbb" /><img height="250" alt="Image" src="https://github.com/user-attachments/assets/d561807e-da5f-4847-9ef0-01b0aaea97c6" />
+
+## Control Panel
+Finally, there is the Control Panel program, running in Windows. It and connects to the Raspberry Pi software through TCP. It can receive full data from sensors, save it to files, or send back basic commands.
 
 ## Repo structure
-**WIP** This repository contains C++ code, the other contains Python code WIP
-List programs: Common folder, Config folder, r2pi, MotorControl, RClient
-Used libs: Eugen, Tracy, Pigpio
+This repository contains C++ code. [The other repository](https://github.com/Sparker95/R2_Python) contains Python code.
+
+**Common** folder contains most of C++ code which is independent on platform. The FastSLAM, path finding, etc.
+
+**r2pi** is the project for Raspberry Pi. It also contains lots of _platform-dependent_ code, such as the serial interfaces with LIDAR/Arduino, etc.
+
+**MotorControl** is the code for Arudiono Micro.
+
+**RClient** is the control panel QT project. It's called a client because it connects to **r2pi** as TCP client.
+
+**r2offline_pi** and **r2offline_win** are projects for testing purposes, to run on Linux or Windows. They can be used for reading sensor data in offline mode, or other tests.
+
+## Used libraries
+[Eigen C++ library for linear algebra](https://libeigen.gitlab.io/)
+[Tracy Profiler](https://github.com/wolfpld/tracy) greatly helps profile performance on Raspberry Pi.
+[Pigpio library](https://abyz.me.uk/rpi/pigpio/) is used for PWM control of LIDAR motor.
 
 ## References and thanks
 the SLAM course, 
