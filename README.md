@@ -90,8 +90,7 @@ Thus we have a basic chassis, executing steering and movement commands, and prov
 Extra autonomous capabilities are achieved "on top" of FastSLAM output. Right now, the solutions chosen here are _naive implementations and not proper solutions_ how to handle results from a particle filter:
 - The map of the most likely particle is assumed the true map.
 - The mean pose of all particles is assumed the true pose.
-- 
-This obviously _can not deal with multimodal distribution of particles_ (resulting from unresolved loops in environment). However, this turned out sufficient for the basic test environment.
+This obviously _can not deal with multimodal distribution of particles_ (for example, resulting from unresolved loops in environment). However, this turned out sufficient for the basic test environment.
 
 Sections below briefly describe operation of each functionality:
 
@@ -142,17 +141,39 @@ This repository contains C++ code. [The other repository](https://github.com/Spa
 
 **r2pi** is the project for Raspberry Pi. It also contains lots of _platform-dependent_ code, such as the serial interfaces with LIDAR/Arduino, etc.
 
+**Config** folder contains config files, there are two of them: MainConfig.cfg and PlatformConfig.cfg. First one contains properties for classes in **Common**, second contains properties for platform-specific classes in **r2pi**.
+
 **MotorControl** is the code for Arudiono Micro.
 
 **RClient** is the control panel QT project. It's called a client because it connects to **r2pi** as TCP client.
 
 **r2offline_pi** and **r2offline_win** are projects for testing purposes, to run on Linux or Windows. They can be used for reading sensor data in offline mode, or other tests.
 
+## Interesting discoveries
+
+Initially the Gaussian curve exp(-x^2) was used for Probability Density Function (PDF) of LIDAR measurements. I observed that slightly angled walls in environments would become aligned to X or Y axis of the map after many iterations of particle filter resampling. I concluded that the effect is due to the fact that the Gaussian curve is 'pointy', thus a more 'flat-top' curve is used as PDF, in form of exp(-x^4).
+
+## Future possible enhancements
+
+- It should have been done from start: measure the A1M8 LIDAR performance, especially at bigger range (closer to 10m), don't blindly trust the datasheet.
+- This LIDAR's accuracy varies by distance, however the code assumes PDF of the measurement is same for any measurement, which seems to fail at big distances.
+- Improve particle filter memory consumption (the Localizer class): now each particle has own map. For hundreds of particles and big environment it can reach hundreds of megabytes, while most of map areas are same.
+- Improve Path Follower and Path Coordinator to perform path switch without stopping.
+- Research approaches for path planning and exploration to fix shortcomings of the naive approaches of handling particle filter results.
+- Improve PathFinding A* search to use priority queue.
+- Implement binary communications for MotorControl board. Now it receives commands as text over UART, which wastes lots of time (milliseconds) each update cycle of r2pi.
+
 ## Used libraries
 [Eigen C++ library for linear algebra](https://libeigen.gitlab.io/)
+
 [Tracy Profiler](https://github.com/wolfpld/tracy) greatly helps profile performance on Raspberry Pi.
+
 [Pigpio library](https://abyz.me.uk/rpi/pigpio/) is used for PWM control of LIDAR motor.
 
 ## References and thanks
-the SLAM course, 
+My teacher Petr Lebedev, who started my interest in robots and aided in previous robot builds decades ago
+
+[SLAM Course by Cyrill Stachniss on YouTube](https://youtu.be/U6vr3iNrwRA?si=w5MhYhFN_YwfiSkT)
+
+[Probabilistic Robotics by Sebastian Thrun](https://mitpress.mit.edu/9780262303804/probabilistic-robotics/)
 
