@@ -149,12 +149,20 @@ This repository contains C++ code. [The other repository](https://github.com/Spa
 
 **r2offline_pi** and **r2offline_win** are projects for testing purposes, to run on Linux or Windows. They can be used for reading sensor data in offline mode, or other tests.
 
+## About .rstream and .rmap files, and the Python repository
+The Control Panel can save files:
+- .rstream - Full data stream from the LIDAR and chassis.
+- .rmap - Map data as 2D grid.
+
+Files are plain text and can be used to simulate operation of the robot in offline mode. [The Python repository](https://github.com/Sparker95/R2_Python) contains almost 1-1 replica of the main C++ classes, and is a convenient way to research improvements based on recorded sensor data or maps. In fact, the project started in Python and was transferred to C++ step by step.
+
 ## Interesting discoveries
 
 Initially the Gaussian curve exp(-x^2) was used for Probability Density Function (PDF) of LIDAR measurements. I observed that slightly angled walls in environments would become aligned to X or Y axis of the map after many iterations of particle filter resampling. I concluded that the effect is due to the fact that the Gaussian curve is 'pointy', thus a more 'flat-top' curve is used as PDF, in form of exp(-x^4).
 
 ## Future possible enhancements
 
+- Biggest problem now is the lack of sensor detecting obstacles below LIDAR height. Robot crashes into very low objects during exploration.
 - It should have been done from start: measure the A1M8 LIDAR performance, especially at bigger range (closer to 10m), don't blindly trust the datasheet.
 - This LIDAR's accuracy varies by distance, however the code assumes PDF of the measurement is same for any measurement, which seems to fail at big distances.
 - Improve particle filter memory consumption (the Localizer class): now each particle has own map. For hundreds of particles and big environment it can reach hundreds of megabytes, while most of map areas are same.
